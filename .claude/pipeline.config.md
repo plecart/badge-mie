@@ -13,7 +13,7 @@ Ordre de normativité : **en cas de contradiction, le rang le plus haut l'emport
 | 1 | `docs/adr/0001-stack-et-architecture.md` | stack, architecture, sécurité (jeton fixe), modèle de données, API, comportement hors ligne, variante d'écran retenue (« Pouce ») | le § concerné ; une décision qui le remplace passe par un nouvel ADR (`docs/adr/000N-…`) qui marque l'ancien « Remplacé » |
 | n | issues GitHub ouvertes | découpage et planification, **dérivés** des rangs supérieurs | le corps de l'issue, jamais un commentaire — voir `repercussions` |
 
-**Non normatif :** aucun pour l'instant.
+**Non normatif :** `docs/archive/` — le raisonnement et les options écartées ; rien ne s'y décide.
 
 Toute référence croisée cite un **§ ou un titre de section**, jamais un numéro de ligne.
 
