@@ -11,11 +11,11 @@ import type { PresenceDay, PresenceRepository } from "./app";
 
 /**
  * Les journées d'une plage de dates, bornes comprises. Postgres rend la date et les heures en
- * texte : `pg` lirait sinon une `date` en objet `Date` à minuit local, et une `time` avec ses
- * secondes.
+ * texte par `to_char`, au format fixé ici quel que soit le `DateStyle` de la session : `pg`
+ * lirait sinon une `date` en objet `Date` à minuit local, et une `time` avec ses secondes.
  */
 const READ_DAYS = `
-  select jour::text as jour,
+  select to_char(jour, 'YYYY-MM-DD') as jour,
          to_char(arrivee, 'HH24:MI') as arrivee,
          to_char(depart, 'HH24:MI') as depart
   from presence

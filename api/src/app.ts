@@ -4,7 +4,7 @@
  */
 
 import { createHash, timingSafeEqual } from "node:crypto";
-import { isIsoDate, mondayOf, weekDates } from "@badge-mie/week";
+import { isMonday, weekDates } from "@badge-mie/week";
 import { Hono, type MiddlewareHandler } from "hono";
 
 /** Une journée de la table `presence` ; une heure non pointée vaut `null`. */
@@ -47,11 +47,6 @@ function requireToken(token: string): MiddlewareHandler {
     }
     await next();
   };
-}
-
-/** Dit si un texte est un lundi `AAAA-MM-JJ` réel ; `isIsoDate` d'abord, `mondayOf` lève sinon. */
-function isMonday(date: string): boolean {
-  return isIsoDate(date) && mondayOf(date) === date;
 }
 
 /**
