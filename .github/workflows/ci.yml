@@ -116,9 +116,10 @@ jobs:
         run: npm ci
 
       # Avant les portes de code : un avis de sécurité sur une dépendance n'a pas à attendre que la
-      # suite passe pour être signalé. Seuil `high` : les avis `moderate` connus viennent d'outils
-      # (chaîne `minimatch` d'Expo, CLI `neon`) sans correctif hors retour de version majeure
-      # (issue #3, décision 6).
+      # suite passe pour être signalé. Seuil `high` : les avis `low` et `moderate` connus viennent
+      # d'outils de développement (CLI `neon`, qui épingle ses propres dépendances ; chaîne
+      # `minimatch` d'Expo au lot 2, qui ne se corrige que par un retour de version majeure — issue
+      # #3, décision 6).
       - name: Audit
         run: npm audit --audit-level=high
 

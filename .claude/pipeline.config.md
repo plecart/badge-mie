@@ -39,8 +39,7 @@ Lues par `cycle-pr`, `execution-qa` et la génération de CI. `n/a` = étape abs
 
 ## Qualité
 - seuil de couverture : aucun
-- règles sensibles à la plateforme (poste Windows, CI Linux) : fins de ligne forcées en LF par `.gitattributes` (`core.autocrlf` du poste ferait rougir `format:check`) ; un fichier écrit par Python sous Windows sort en CRLF sans `newline="
-"` ; la suite Vitest épingle `TZ` sur `Pacific/Honolulu` (UTC−10, sans heure d'été) pour qu'un calcul de date fait en heure locale rougisse partout ; sous Git Bash, un préfixe `TZ=… node` n'est pas pris en compte par Node
+- règles sensibles à la plateforme (poste Windows, CI Linux) : fins de ligne forcées en LF par `.gitattributes` (`core.autocrlf` du poste ferait rougir `format:check`) ; un fichier écrit par Python sous Windows sort en CRLF sans `newline="\n"` ; la suite Vitest épingle `TZ` sur `Pacific/Honolulu` (UTC−10, sans heure d'été) pour qu'un calcul de date fait en heure locale rougisse partout ; sous Git Bash, un préfixe `TZ=… node` n'est pas pris en compte par Node
 - gates bloquants en CI : audit, lint, format:check, typecheck, test
 - services requis en CI : aucun
 

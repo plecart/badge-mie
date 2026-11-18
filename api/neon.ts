@@ -4,7 +4,8 @@
  *
  * Déployer : `npm run deploy -w api`. Le script charge `api/.env.local` (ignoré par git) avant
  * d'évaluer ce fichier ; une variable déjà présente dans l'environnement du terminal l'emporte
- * sur le fichier. Un `JETON_API` absent ou vide fait échouer le déploiement.
+ * sur le fichier. Un `JETON_API` absent fait échouer le déploiement (`required: true`) ; un
+ * jeton vide est refusé au démarrage de la Function (`src/index.ts`).
  *
  * Tourner le jeton : changer `JETON_API` dans `api/.env.local`, redéployer, puis le ressaisir
  * dans l'application.
