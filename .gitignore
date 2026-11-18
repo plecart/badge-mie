@@ -1,0 +1,34 @@
+# Généré par init-projet depuis le profil : npm workspaces app/ (Expo) et api/ (Neon Function).
+# Motifs indépendants de la profondeur : chaque paquet vit hors racine.
+
+# --- Node / npm (racine, app/, api/) ---
+**/node_modules/
+**/npm-debug.log*
+**/coverage/
+**/dist/
+**/*.tsbuildinfo
+
+# --- Expo / React Native (app/) ---
+**/.expo/
+**/web-build/
+# Dossiers natifs régénérés par `expo prebuild` (Continuous Native Generation) : jamais suivis.
+app/android/
+app/ios/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# --- Secrets et environnement local ---
+**/.env
+**/.env.*
+!**/.env.example
+**/.neon/
+
+# --- Claude Code : état local de la session ---
+.claude/settings.local.json
+.claude/worktrees/
+
+# --- Système ---
+.DS_Store
+Thumbs.db
