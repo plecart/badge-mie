@@ -100,6 +100,39 @@ export function mondayOf(date: string): string {
   return formatDate(mondayTime(parseDate(date)));
 }
 
+/** Vrai si l'instant `time`, un minuit UTC, tombe un lundi. */
+function isMondayTime(time: number): boolean {
+  return mondayTime(time) === time;
+}
+
+/**
+ * Dit si un texte est un lundi réel au format `AAAA-MM-JJ`.
+ *
+ * À appeler à une frontière de confiance, comme {@link isIsoDate} : {@link weekDates} et
+ * {@link weekDays} lèvent sur un autre jour.
+ *
+ * @param value - Le texte à vérifier.
+ * @returns `true` pour un lundi ; `false` pour un autre jour ou pour un texte qui n'est pas une
+ *   date réelle (voir {@link isIsoDate}).
+ */
+export function isMonday(value: string): boolean {
+  const time = tryParseDate(value);
+  return time !== undefined && isMondayTime(time);
+}
+
+/**
+ * Minuit UTC d'un lundi `AAAA-MM-JJ` réel.
+ *
+ * @throws {RangeError} si `monday` n'est pas une date réelle, ou pas un lundi.
+ */
+function parseMonday(monday: string): number {
+  const time = parseDate(monday);
+  if (!isMondayTime(time)) {
+    throw new RangeError(`lundi invalide : « ${monday} », attendu un lundi`);
+  }
+  return time;
+}
+
 /**
  * Rend le numéro de semaine ISO 8601 d'une date.
  *
@@ -122,10 +155,10 @@ export function isoWeek(date: string): number {
  *
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine, tel que le rend {@link mondayOf}.
  * @returns Cinq dates `AAAA-MM-JJ` consécutives, qui peuvent changer de mois ou d'année.
- * @throws {RangeError} si `monday` n'est pas une date réelle.
+ * @throws {RangeError} si `monday` n'est pas une date réelle, ou pas un lundi.
  */
 export function weekDates(monday: string): string[] {
-  const start = parseDate(monday);
+  const start = parseMonday(monday);
   return Array.from({ length: WORKDAYS }, (_, index) =>
     formatDate(start + index * DAY_MS),
   );
@@ -148,7 +181,7 @@ export interface WeekDay {
  * @param today - La date `AAAA-MM-JJ` du jour, lue sur l'horloge par l'appelant.
  * @returns Cinq jours consécutifs. Dans une semaine passée, aucun n'est marqué ; un samedi ou un
  *   dimanche, la semaine en cours non plus.
- * @throws {RangeError} si `monday` ou `today` n'est pas une date réelle.
+ * @throws {RangeError} si `monday` n'est pas un lundi réel, ou `today` pas une date réelle.
  */
 export function weekDays(monday: string, today: string): WeekDay[] {
   const dates = weekDates(monday);

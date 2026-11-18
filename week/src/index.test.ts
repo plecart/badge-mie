@@ -3,12 +3,24 @@ import {
   dayDuration,
   formatDuration,
   isIsoDate,
+  isMonday,
   isoWeek,
   mondayOf,
   weekDates,
   weekDays,
   weekTotal,
 } from "@badge-mie/week";
+
+// Garde du fuseau épinglé par `vitest.config.ts` : sans lui, une méthode de date locale prise
+// pour sa jumelle UTC passerait inaperçue dans ce module.
+describe("fuseau de la suite", () => {
+  it.each([
+    ["en hiver", "2026-01-15T00:00:00Z"],
+    ["en été", "2026-07-15T00:00:00Z"],
+  ])("place minuit UTC la veille, %s", (_, instant) => {
+    expect(new Date(instant).getDate()).toBe(14);
+  });
+});
 
 describe("isIsoDate", () => {
   it.each(["2026-11-16", "2024-02-29", "0099-12-31"])(
@@ -39,6 +51,18 @@ describe("mondayOf", () => {
     ["2026-01-01", "2025-12-29"],
   ])("rend le lundi de la semaine du %s : %s", (date, monday) => {
     expect(mondayOf(date)).toBe(monday);
+  });
+});
+
+describe("isMonday", () => {
+  it.each([
+    ["2026-11-16", true],
+    ["2026-11-17", false],
+    ["2026-11-22", false],
+    ["2026-02-30", false],
+    ["16-11-2026", false],
+  ])("dit si %s est un lundi AAAA-MM-JJ réel : %s", (value, expected) => {
+    expect(isMonday(value)).toBe(expected);
   });
 });
 
@@ -99,6 +123,17 @@ describe("dates invalides", () => {
   ])("%s lève une RangeError qui nomme la date", (_, call) => {
     expect(call).toThrow(
       new RangeError("date invalide : « 2026-02-30 », attendu AAAA-MM-JJ"),
+    );
+  });
+});
+
+describe("lundis invalides", () => {
+  it.each([
+    ["weekDates", () => weekDates("2026-11-18")],
+    ["weekDays", () => weekDays("2026-11-18", "2026-11-18")],
+  ])("%s lève une RangeError sur un mercredi", (_, call) => {
+    expect(call).toThrow(
+      new RangeError("lundi invalide : « 2026-11-18 », attendu un lundi"),
     );
   });
 });
