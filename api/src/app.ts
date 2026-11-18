@@ -8,14 +8,14 @@ import { isMonday, weekDates } from "@badge-mie/week";
 import { Hono, type MiddlewareHandler } from "hono";
 
 /** Une journée de la table `presence` ; une heure non pointée vaut `null`. */
-export type PresenceDay = {
+export interface PresenceDay {
   /** La date `AAAA-MM-JJ`. */
   jour: string;
   /** L'heure d'arrivée `HH:MM`. */
   arrivee: string | null;
   /** L'heure de départ `HH:MM`. */
   depart: string | null;
-};
+}
 
 /** L'accès aux présences, injecté : l'application ne connaît pas la base. */
 export interface PresenceRepository {
