@@ -5,6 +5,7 @@ import {
   isIsoDate,
   isoWeek,
   mondayOf,
+  weekDates,
   weekDays,
   weekTotal,
 } from "@badge-mie/week";
@@ -53,6 +54,18 @@ describe("isoWeek", () => {
   });
 });
 
+describe("weekDates", () => {
+  it("rend les cinq dates du lundi au vendredi, d'une année sur l'autre", () => {
+    expect(weekDates("2026-12-28")).toEqual([
+      "2026-12-28",
+      "2026-12-29",
+      "2026-12-30",
+      "2026-12-31",
+      "2027-01-01",
+    ]);
+  });
+});
+
 describe("weekDays", () => {
   it("marque aujourd'hui et les jours à venir de la semaine en cours", () => {
     expect(weekDays("2026-11-16", "2026-11-18")).toEqual([
@@ -80,6 +93,7 @@ describe("dates invalides", () => {
   it.each([
     ["mondayOf", () => mondayOf("2026-02-30")],
     ["isoWeek", () => isoWeek("2026-02-30")],
+    ["weekDates", () => weekDates("2026-02-30")],
     ["weekDays (lundi)", () => weekDays("2026-02-30", "2026-11-18")],
     ["weekDays (aujourd'hui)", () => weekDays("2026-11-16", "2026-02-30")],
   ])("%s lève une RangeError qui nomme la date", (_, call) => {
