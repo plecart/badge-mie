@@ -2,9 +2,9 @@
  * Calendrier de semaine : la logique pure de l'écran de la semaine, partagée par l'API et
  * l'application.
  *
- * Convention : une date est une chaîne `AAAA-MM-JJ`. Tous les calculs se font en UTC, si bien
- * qu'aucun résultat ne dépend du fuseau de la machine. Le module ne lit jamais l'horloge :
- * « aujourd'hui » arrive en argument.
+ * Conventions : une date est une chaîne `AAAA-MM-JJ`, une heure une chaîne `HH:MM`. Tous les
+ * calculs de date se font en UTC, si bien qu'aucun résultat ne dépend du fuseau de la machine.
+ * Le module ne lit jamais l'horloge : « aujourd'hui » arrive en argument.
  */
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -147,4 +147,67 @@ export function weekDays(monday: string, today: string): WeekDay[] {
       isFuture: time > now,
     };
   });
+}
+
+const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const HOUR_MINUTES = 60;
+
+/**
+ * Minutes écoulées depuis minuit pour une heure `HH:MM`.
+ *
+ * @throws {RangeError} si `time` n'est pas une heure de `00:00` à `23:59` écrite `HH:MM`, sans
+ *   secondes.
+ */
+function minutesOf(time: string): number {
+  const match = TIME.exec(time);
+  if (!match) {
+    throw new RangeError(`heure invalide : « ${time} », attendu HH:MM`);
+  }
+  return Number(match[1]) * HOUR_MINUTES + Number(match[2]);
+}
+
+/**
+ * Rend la durée de présence d'un jour, de l'arrivée au départ.
+ *
+ * L'ordre des deux heures n'est pas vérifié : la table `presence` impose déjà
+ * `depart > arrivee`.
+ *
+ * @param arrival - L'heure d'arrivée `HH:MM`, ou `null` si elle n'est pas pointée.
+ * @param departure - L'heure de départ `HH:MM`, ou `null` si elle n'est pas pointée.
+ * @returns La durée en minutes, ou `null` si l'une des deux heures manque : un jour incomplet
+ *   n'a pas de durée.
+ * @throws {RangeError} si une heure présente n'est pas une heure `HH:MM` valide.
+ */
+export function dayDuration(
+  arrival: string | null,
+  departure: string | null,
+): number | null {
+  if (arrival === null || departure === null) return null;
+  return minutesOf(departure) - minutesOf(arrival);
+}
+
+/**
+ * Rend le total de présence d'une semaine.
+ *
+ * @param durations - Les durées des jours, telles que les rend {@link dayDuration} : les jours
+ *   incomplets (`null`) ne comptent pas.
+ * @returns La somme en minutes, `0` si aucun jour n'est complet.
+ */
+export function weekTotal(durations: readonly (number | null)[]): number {
+  return durations.reduce<number>(
+    (total, minutes) => total + (minutes ?? 0),
+    0,
+  );
+}
+
+/**
+ * Écrit une durée en heures et minutes, minutes sur deux chiffres : 425 → « 7 h 05 ».
+ *
+ * @param minutes - Un nombre entier de minutes, positif ou nul.
+ * @returns Le texte `H h MM` ; les heures ne passent jamais en jours (2400 → « 40 h 00 »).
+ */
+export function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / HOUR_MINUTES);
+  const rest = minutes % HOUR_MINUTES;
+  return `${hours} h ${String(rest).padStart(2, "0")}`;
 }
