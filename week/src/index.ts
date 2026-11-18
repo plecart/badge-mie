@@ -117,6 +117,20 @@ export function isoWeek(date: string): number {
   return Math.floor((thursday - januaryFirst) / (7 * DAY_MS)) + 1;
 }
 
+/**
+ * Rend les dates des jours ouvrés d'une semaine, du lundi au vendredi.
+ *
+ * @param monday - Le lundi `AAAA-MM-JJ` de la semaine, tel que le rend {@link mondayOf}.
+ * @returns Cinq dates `AAAA-MM-JJ` consécutives, qui peuvent changer de mois ou d'année.
+ * @throws {RangeError} si `monday` n'est pas une date réelle.
+ */
+export function weekDates(monday: string): string[] {
+  const start = parseDate(monday);
+  return Array.from({ length: WORKDAYS }, (_, index) =>
+    formatDate(start + index * DAY_MS),
+  );
+}
+
 /** Un jour ouvré de la semaine affichée, situé par rapport à aujourd'hui. */
 export interface WeekDay {
   /** La date `AAAA-MM-JJ`. */
@@ -137,16 +151,14 @@ export interface WeekDay {
  * @throws {RangeError} si `monday` ou `today` n'est pas une date réelle.
  */
 export function weekDays(monday: string, today: string): WeekDay[] {
-  const start = parseDate(monday);
-  const now = parseDate(today);
-  return Array.from({ length: WORKDAYS }, (_, index) => {
-    const time = start + index * DAY_MS;
-    return {
-      date: formatDate(time),
-      isToday: time === now,
-      isFuture: time > now,
-    };
-  });
+  const dates = weekDates(monday);
+  // `today` n'est lu que pour être validé : deux dates `AAAA-MM-JJ` s'ordonnent comme leur texte.
+  parseDate(today);
+  return dates.map((date) => ({
+    date,
+    isToday: date === today,
+    isFuture: date > today,
+  }));
 }
 
 const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
