@@ -20,8 +20,8 @@ Toute référence croisée cite un **§ ou un titre de section**, jamais un num�
 ## Stack
 - langages : TypeScript
 - frameworks : Expo (React Native) pour `app/` ; Hono sur une Neon Function pour `api/`
-- gestionnaire de paquets : npm (workspaces `app/` et `api/`)
-- runtime + version : node 24 (le runtime des Neon Functions) — épinglage à poser à la première PR de code
+- gestionnaire de paquets : npm (workspaces `week/` — le Calendrier de semaine, partagé par l'API et l'app —, `api/`, puis `app/` au lot 2 de #3)
+- runtime + version : node 24 (le runtime des Neon Functions) — source unique : `devEngines.runtime` du `package.json` racine (`^24.3.0`), que npm fait respecter sur le poste et que `actions/setup-node` lit en CI (`node-version-file: package.json`)
 
 ## Commandes du projet
 Lues par `cycle-pr`, `execution-qa` et la génération de CI. `n/a` = étape absente du projet.
@@ -39,14 +39,15 @@ Lues par `cycle-pr`, `execution-qa` et la génération de CI. `n/a` = étape abs
 
 ## Qualité
 - seuil de couverture : aucun
-- règles sensibles à la plateforme : à établir à la première PR de code (poste Windows, CI Linux)
+- règles sensibles à la plateforme (poste Windows, CI Linux) : fins de ligne forcées en LF par `.gitattributes` (`core.autocrlf` du poste ferait rougir `format:check`) ; un fichier écrit par Python sous Windows sort en CRLF sans `newline="
+"` ; la suite Vitest épingle `TZ` sur `Pacific/Honolulu` (UTC−10, sans heure d'été) pour qu'un calcul de date fait en heure locale rougisse partout ; sous Git Bash, un préfixe `TZ=… node` n'est pas pris en compte par Node
 - gates bloquants en CI : audit, lint, format:check, typecheck, test
 - services requis en CI : aucun
 
 ## Périmètre
 - domaines (nom métier → chemin) — servent aussi de thèmes/milestones à `triage` :
   - Pointage : `app/` — l'écran de la semaine, le bouton de pointage, l'édition d'une heure, la file hors ligne
-  - Données : `api/`, `neon.ts`, schéma SQL — la Neon Function, le jeton, la table `presence`
+  - Données : `api/`, `week/`, `neon.ts`, schéma SQL — la Neon Function, le jeton, la table `presence`, le Calendrier de semaine
 - zones sensibles (arrêt humain — cadence dans `.claude/rules/contraintes.md`) : écrans à valider visuellement
 - hors périmètre : iOS, version web, publication sur un store, plusieurs utilisateurs ou authentification, pointage automatique par géorepérage
 - surfaces exposées — ce que la QA a le droit de vérifier :
