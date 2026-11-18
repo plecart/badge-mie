@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { isIsoDate, isoWeek, mondayOf, weekDays } from "@badge-mie/week";
+import {
+  dayDuration,
+  formatDuration,
+  isIsoDate,
+  isoWeek,
+  mondayOf,
+  weekDays,
+  weekTotal,
+} from "@badge-mie/week";
 
 describe("isIsoDate", () => {
   it.each(["2026-11-16", "2024-02-29", "0099-12-31"])(
@@ -77,6 +85,64 @@ describe("dates invalides", () => {
   ])("%s lève une RangeError qui nomme la date", (_, call) => {
     expect(call).toThrow(
       new RangeError("date invalide : « 2026-02-30 », attendu AAAA-MM-JJ"),
+    );
+  });
+});
+
+describe("dayDuration", () => {
+  it("rend la présence d'un jour complet en minutes", () => {
+    expect(dayDuration("08:12", "15:54")).toBe(462);
+  });
+
+  it.each([
+    ["arrivée seule", "08:12", null],
+    ["départ seul", null, "15:54"],
+    ["aucune heure", null, null],
+  ])("rend null pour un jour incomplet : %s", (_, arrival, departure) => {
+    expect(dayDuration(arrival, departure)).toBeNull();
+  });
+});
+
+describe("weekTotal", () => {
+  it("additionne les durées des jours complets et ignore les autres", () => {
+    const durations = [
+      dayDuration("08:00", "15:05"),
+      dayDuration("08:12", "15:54"),
+      dayDuration("09:00", "17:30"),
+      dayDuration("08:00", null),
+    ];
+    expect(weekTotal(durations)).toBe(1397);
+  });
+
+  it("rend 0 pour une semaine sans jour complet", () => {
+    expect(weekTotal([null, null])).toBe(0);
+  });
+});
+
+describe("formatDuration", () => {
+  it.each([
+    [425, "7 h 05"],
+    [462, "7 h 42"],
+    [1397, "23 h 17"],
+    [2400, "40 h 00"],
+  ])("écrit %i minutes « %s »", (minutes, text) => {
+    expect(formatDuration(minutes)).toBe(text);
+  });
+});
+
+describe("heures invalides", () => {
+  it.each(["8:12", "24:00", "07:60", "08:12:00", ""])(
+    "dayDuration lève une RangeError qui nomme l'arrivée « %s »",
+    (arrival) => {
+      expect(() => dayDuration(arrival, "15:54")).toThrow(
+        new RangeError(`heure invalide : « ${arrival} », attendu HH:MM`),
+      );
+    },
+  );
+
+  it("dayDuration lève une RangeError qui nomme le départ", () => {
+    expect(() => dayDuration("08:12", "24:00")).toThrow(
+      new RangeError("heure invalide : « 24:00 », attendu HH:MM"),
     );
   });
 });
