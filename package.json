@@ -1,0 +1,31 @@
+{
+  "name": "badge-mie",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "week",
+    "api"
+  ],
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^24.3.0",
+      "onFail": "error"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "prettier": "^3.10.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.1"
+  }
+}

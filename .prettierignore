@@ -1,0 +1,6 @@
+# Prose versionnée (sources de vérité, ADR, guides) : jamais reformatée.
+*.md
+# Harnais Claude Code : skills, scripts et réglages vendus, worktrees des sessions.
+.claude/
+# Écrit par npm.
+package-lock.json
