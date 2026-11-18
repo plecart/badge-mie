@@ -3,13 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy": "neon deploy --env .env.local --no-env-pull --project-id odd-dust-57204582"
   },
   "dependencies": {
     "@badge-mie/week": "*",
-    "hono": "^4.13.19"
+    "@neon/functions": "^0.11.0",
+    "hono": "^4.13.19",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
-    "@types/node": "^24.19.2"
+    "@neon/config": "^1.14.4",
+    "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
+    "neon": "^9.7.1"
   }
 }
