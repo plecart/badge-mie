@@ -23,7 +23,7 @@ app/ios/
 **/.env
 **/.env.*
 !**/.env.example
-**/.neon/
+**/.neon
 
 # --- Claude Code : état local de la session ---
 .claude/settings.local.json
