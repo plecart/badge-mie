@@ -26,13 +26,13 @@ Toute référence croisée cite un **§ ou un titre de section**, jamais un num�
 ## Commandes du projet
 Lues par `cycle-pr`, `execution-qa` et la génération de CI. `n/a` = étape absente du projet.
 - install      : npm ci                         # vérifiée le 2026-11-18, sortie 0
-- test         : npm test                       # non vérifiée — Vitest, logique pure
-- test ciblé   : npm test -- <chemin|motif>     # non vérifiée
+- test         : npm test                       # vérifiée le 2026-11-18, sortie 0 — Vitest, logique pure
+- test ciblé   : npm test -- <chemin|motif>     # vérifiée le 2026-11-18, sortie 0 — motif = filtre sur le chemin du fichier
 - test brut    : n/a
 - lint         : npm run lint                   # vérifiée le 2026-11-18, sortie 0 — ESLint
 - format       : npm run format                 # vérifiée le 2026-11-18, sortie 0 — Prettier, écrit
 - format:check : npm run format:check           # vérifiée le 2026-11-18, sortie 0 — Prettier, vérifie sans écrire
-- typecheck    : npm run typecheck              # non vérifiée — `tsc --noEmit` de chaque workspace
+- typecheck    : npm run typecheck              # vérifiée le 2026-11-18, sortie 0 — `tsc --noEmit` de chaque workspace
 - audit        : npm audit --audit-level=high   # vérifiée le 2026-11-18, sortie 0
 - build        : n/a                            # l'APK se construit par EAS Build (cloud), hors CI
 - run local    : npm run start -w app           # non vérifiée — Expo, puis Expo Go sur le téléphone
