@@ -1,5 +1,14 @@
 {
   "name": "@badge-mie/api",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.13.19"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2"
+  }
 }
