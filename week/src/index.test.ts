@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addWeeks,
   dayDuration,
   formatDuration,
   isIsoDate,
@@ -105,6 +106,20 @@ describe("weekDates", () => {
   });
 });
 
+describe("addWeeks", () => {
+  it.each([
+    ["2026-11-16", -1, "2026-11-09"],
+    ["2026-11-09", 1, "2026-11-16"],
+    ["2027-01-04", -1, "2026-12-28"],
+    ["2026-11-30", 5, "2027-01-04"],
+  ])(
+    "rend le lundi de %s décalé de %i semaine(s) : %s",
+    (monday, weeks, shifted) => {
+      expect(addWeeks(monday, weeks)).toBe(shifted);
+    },
+  );
+});
+
 describe("weekRangeLabel", () => {
   it.each([
     ["2026-11-16", "16 – 20 novembre"],
@@ -167,6 +182,7 @@ describe("lundis invalides", () => {
     ["weekDates", () => weekDates("2026-11-18")],
     ["weekDays", () => weekDays("2026-11-18", "2026-11-18")],
     ["weekRangeLabel", () => weekRangeLabel("2026-11-18")],
+    ["addWeeks", () => addWeeks("2026-11-18", 1)],
   ])("%s lève une RangeError sur un mercredi", (_, call) => {
     expect(call).toThrow(
       new RangeError("lundi invalide : « 2026-11-18 », attendu un lundi"),
