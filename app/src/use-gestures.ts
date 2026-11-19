@@ -16,7 +16,12 @@ import type { PresenceDay } from "@badge-mie/week";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { ImpactFeedbackStyle, impactAsync } from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
-import { editMessage, PUNCH_LABELS, punchMessage } from "./labels";
+import {
+  editMessage,
+  PUNCH_LABELS,
+  punchMessage,
+  REFUSAL_TEXTS,
+} from "./labels";
 import {
   editTime,
   type Outcome,
@@ -115,7 +120,7 @@ export function useGestures({
     message: string,
   ): Promise<boolean> {
     if ("refusal" in outcome) {
-      setBar({ message: outcome.refusal });
+      setBar({ message: REFUSAL_TEXTS[outcome.refusal] });
       return false;
     }
     if (!(await save(outcome.day))) return false;

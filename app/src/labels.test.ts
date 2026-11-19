@@ -7,6 +7,7 @@ import {
   pendingText,
   PUNCH_LABELS,
   punchMessage,
+  REFUSAL_TEXTS,
 } from "./labels";
 
 describe("PUNCH_LABELS", () => {
@@ -21,6 +22,15 @@ describe("PUNCH_LABELS", () => {
       expect(PUNCH_LABELS[action]).toBe(label);
     },
   );
+});
+
+describe("REFUSAL_TEXTS", () => {
+  it.each([
+    ["departureMustFollowArrival", "Le départ doit suivre l'arrivée"],
+    ["clearDepartureFirst", "Effacez d'abord le départ de ce jour"],
+  ] as const)("dit le refus %s par « %s »", (refusal, text) => {
+    expect(REFUSAL_TEXTS[refusal]).toBe(text);
+  });
 });
 
 describe("punchMessage", () => {

@@ -18,20 +18,21 @@ import {
 } from "@badge-mie/week";
 import type { WeekView } from "./week-store";
 
-/** Le motif d'un refus de l'ordre des heures, affiché tel quel. */
-export const DEPARTURE_MUST_FOLLOW_ARRIVAL = "Le départ doit suivre l'arrivée";
-
-/** Le motif du refus d'effacer l'arrivée d'une journée qui a un départ, affiché tel quel. */
-export const CLEAR_DEPARTURE_FIRST = "Effacez d'abord le départ de ce jour";
-
 /**
  * L'action du bouton de pointage pour une journée : pointer l'arrivée, pointer le départ, rien
  * quand la journée est terminée (`done`), rien le samedi ni le dimanche (`weekend`).
  */
 export type PunchAction = "arrival" | "departure" | "done" | "weekend";
 
+/**
+ * Le motif d'un refus : `departureMustFollowArrival`, un départ qui ne suivrait pas l'arrivée ;
+ * `clearDepartureFirst`, l'effacement de l'arrivée d'une journée qui a un départ. Son texte est
+ * dans `./labels`.
+ */
+export type Refusal = "departureMustFollowArrival" | "clearDepartureFirst";
+
 /** L'issue d'un pointage ou d'une correction : la journée qui en résulte, ou le motif du refus. */
-export type Outcome = { day: PresenceDay } | { refusal: string };
+export type Outcome = { day: PresenceDay } | { refusal: Refusal };
 
 /** Une heure d'une journée, celle que corrige {@link editTime}. */
 export type TimeField = "arrivee" | "depart";
@@ -95,7 +96,7 @@ export function canPunch(
  *   // { day: { jour: "2026-11-18", arrivee: "08:30", depart: null } }
  * @param day - La journée à pointer.
  * @param time - L'heure `HH:MM` du pointage, telle que la rend `currentTime`.
- * @returns La journée pointée, ou le refus {@link DEPARTURE_MUST_FOLLOW_ARRIVAL}.
+ * @returns La journée pointée, ou le refus `departureMustFollowArrival`.
  * @throws {RangeError} si l'action ne se pointe pas ({@link canPunch}) : le bouton est alors
  *   désactivé, et l'appel est une erreur de l'appelant. Aussi si `day.jour` n'est pas une date
  *   réelle, et dans les cas de {@link editTime}.
@@ -117,9 +118,9 @@ export function punch(day: PresenceDay, time: string): Outcome {
  * @param day - La journée à corriger.
  * @param field - L'heure à corriger : `arrivee` ou `depart`.
  * @param time - La nouvelle heure `HH:MM`, ou `null` pour l'effacer.
- * @returns La journée corrigée ; ou le refus {@link CLEAR_DEPARTURE_FIRST} pour l'effacement de
- *   l'arrivée d'une journée qui a un départ ; ou le refus {@link DEPARTURE_MUST_FOLLOW_ARRIVAL}
- *   quand le départ de la journée corrigée ne suit pas son arrivée.
+ * @returns La journée corrigée ; ou le refus `clearDepartureFirst` pour l'effacement de
+ *   l'arrivée d'une journée qui a un départ ; ou le refus `departureMustFollowArrival` quand le
+ *   départ de la journée corrigée ne suit pas son arrivée.
  * @throws {RangeError} si `time` n'est ni `null` ni une heure `HH:MM` : la journée partirait
  *   vers un serveur qui la refuserait toujours. Aussi si la journée corrigée porte ses deux
  *   heures et que l'autre n'est pas une heure `HH:MM` (voir {@link departureFollowsArrival}).
@@ -133,12 +134,12 @@ export function editTime(
     throw new RangeError(`heure invalide : « ${time} », attendu HH:MM`);
   }
   if (field === "arrivee" && time === null && day.depart !== null) {
-    return { refusal: CLEAR_DEPARTURE_FIRST };
+    return { refusal: "clearDepartureFirst" };
   }
   const next = { ...day, [field]: time };
   return departureFollowsArrival(next.arrivee, next.depart)
     ? { day: next }
-    : { refusal: DEPARTURE_MUST_FOLLOW_ARRIVAL };
+    : { refusal: "departureMustFollowArrival" };
 }
 
 /**
