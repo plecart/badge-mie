@@ -8,7 +8,7 @@ import {
   writeDay,
 } from "./api";
 import { stubFetch, useFakeTimers } from "./fake-fetch";
-import { memoryStorage } from "./memory-storage";
+import { memoryStorage, storageHolding } from "./memory-storage";
 import { createSendQueue } from "./send-queue";
 import { type KeyValueStorage, loadWeek, type WeekView } from "./week-store";
 
@@ -368,7 +368,7 @@ describe("lecture de la file d'envoi", () => {
   /** Une file sur un stockage qui rend `text` pour toute clé. */
   function queueReading(text: string) {
     return createSendQueue({
-      storage: { getItem: async () => text, setItem: async () => {} },
+      storage: storageHolding(text),
       send: unreachable,
     });
   }
