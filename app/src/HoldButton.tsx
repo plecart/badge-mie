@@ -51,7 +51,8 @@ const ACTIONS = [{ name: "activate" }];
  * @param style - La forme et le fond du bouton, aux coins de {@link BUTTON}.
  * @param ringColor - La couleur du contour dessiné.
  * @param hint - L'indication lue par TalkBack.
- * @param onDone - L'action : à l'appui abouti, celle du dernier rendu ; à l'activation par TalkBack.
+ * @param onDone - L'action : à l'appui abouti, celle du dernier rendu ; à l'activation par
+ *   TalkBack.
  * @param onInterrupted - Appelé quand l'appui s'interrompt avant la fin.
  * @param children - Le contenu du bouton.
  */
