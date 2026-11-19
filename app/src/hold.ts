@@ -6,8 +6,9 @@
  */
 
 /**
- * La durée d'un appui maintenu qui pointe : environ 1 s (issue #14, décision du 2026-11-19 à
- * l'arrêt visuel de la PR #16).
+ * La durée d'un appui maintenu qui pointe : environ 1 s (ADR-0001, « Propositions UX » : « Dans
+ * l'app, un appui maintenu déclenche le pointage : environ 1 s, avec une progression dessinée sur
+ * le contour du bouton… » ; issue #14, décision du 2026-11-19 à l'arrêt visuel de la PR #16).
  */
 const HOLD_MS = 1000;
 
