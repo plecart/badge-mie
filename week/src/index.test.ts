@@ -8,6 +8,7 @@ import {
   mondayOf,
   weekDates,
   weekDays,
+  weekRangeLabel,
   weekTotal,
 } from "@badge-mie/week";
 
@@ -90,6 +91,25 @@ describe("weekDates", () => {
   });
 });
 
+describe("weekRangeLabel", () => {
+  it.each([
+    ["2026-11-16", "16 – 20 novembre"],
+    ["2026-01-05", "5 – 9 janvier"],
+  ])("écrit la semaine du %s dans un seul mois : « %s »", (monday, label) => {
+    expect(weekRangeLabel(monday)).toBe(label);
+  });
+
+  it.each([
+    ["2026-11-30", "30 nov. – 4 déc."],
+    ["2026-12-28", "28 déc. – 1 janv."],
+  ])(
+    "abrège les deux mois de la semaine du %s, à cheval : « %s »",
+    (monday, label) => {
+      expect(weekRangeLabel(monday)).toBe(label);
+    },
+  );
+});
+
 describe("weekDays", () => {
   it("marque aujourd'hui et les jours à venir de la semaine en cours", () => {
     expect(weekDays("2026-11-16", "2026-11-18")).toEqual([
@@ -120,6 +140,7 @@ describe("dates invalides", () => {
     ["weekDates", () => weekDates("2026-02-30")],
     ["weekDays (lundi)", () => weekDays("2026-02-30", "2026-11-18")],
     ["weekDays (aujourd'hui)", () => weekDays("2026-11-16", "2026-02-30")],
+    ["weekRangeLabel", () => weekRangeLabel("2026-02-30")],
   ])("%s lève une RangeError qui nomme la date", (_, call) => {
     expect(call).toThrow(
       new RangeError("date invalide : « 2026-02-30 », attendu AAAA-MM-JJ"),
@@ -131,6 +152,7 @@ describe("lundis invalides", () => {
   it.each([
     ["weekDates", () => weekDates("2026-11-18")],
     ["weekDays", () => weekDays("2026-11-18", "2026-11-18")],
+    ["weekRangeLabel", () => weekRangeLabel("2026-11-18")],
   ])("%s lève une RangeError sur un mercredi", (_, call) => {
     expect(call).toThrow(
       new RangeError("lundi invalide : « 2026-11-18 », attendu un lundi"),

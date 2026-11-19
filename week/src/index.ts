@@ -1,6 +1,6 @@
 /**
- * Calendrier de semaine : la logique pure de l'écran de la semaine, partagée par l'API et
- * l'application.
+ * Calendrier de semaine : la logique pure de l'écran de la semaine et la journée de présence,
+ * partagées par l'API et l'application.
  *
  * Conventions : une date est une chaîne `AAAA-MM-JJ`, une heure une chaîne `HH:MM`. Tous les
  * calculs de date se font en UTC, si bien qu'aucun résultat ne dépend du fuseau de la machine.
@@ -164,6 +164,70 @@ export function weekDates(monday: string): string[] {
   );
 }
 
+/** Les mois en toutes lettres, de janvier à décembre. */
+const MONTHS = [
+  "janvier",
+  "février",
+  "mars",
+  "avril",
+  "mai",
+  "juin",
+  "juillet",
+  "août",
+  "septembre",
+  "octobre",
+  "novembre",
+  "décembre",
+];
+
+/** Les mois abrégés, de janvier à décembre ; les mois courts restent entiers. */
+const SHORT_MONTHS = [
+  "janv.",
+  "févr.",
+  "mars",
+  "avr.",
+  "mai",
+  "juin",
+  "juil.",
+  "août",
+  "sept.",
+  "oct.",
+  "nov.",
+  "déc.",
+];
+
+/**
+ * Entre les deux bornes d'une plage : un tiret demi-cadratin (U+2013), entouré d'espaces
+ * ordinaires.
+ */
+const RANGE_SEPARATOR = " – ";
+
+/** Le jour et le mois abrégé d'une date UTC : « 4 déc. ». */
+function shortDate(date: Date): string {
+  return `${date.getUTCDate()} ${SHORT_MONTHS[date.getUTCMonth()]}`;
+}
+
+/**
+ * Rend le libellé de la plage d'une semaine, du lundi au vendredi, pour l'en-tête de l'écran.
+ *
+ * Le mois s'écrit en toutes lettres une seule fois quand la semaine tient dans un mois, et en
+ * abrégé à chaque borne sinon ; l'année n'est jamais écrite.
+ *
+ * @example weekRangeLabel("2026-11-16") // « 16 – 20 novembre »
+ * @example weekRangeLabel("2026-11-30") // « 30 nov. – 4 déc. »
+ * @example weekRangeLabel("2026-12-28") // « 28 déc. – 1 janv. »
+ * @param monday - Le lundi `AAAA-MM-JJ` de la semaine, tel que le rend {@link mondayOf}.
+ * @throws {RangeError} si `monday` n'est pas une date réelle, ou pas un lundi.
+ */
+export function weekRangeLabel(monday: string): string {
+  const start = new Date(parseMonday(monday));
+  const end = new Date(start.getTime() + (WORKDAYS - 1) * DAY_MS);
+  if (start.getUTCMonth() === end.getUTCMonth()) {
+    return `${start.getUTCDate()}${RANGE_SEPARATOR}${end.getUTCDate()} ${MONTHS[end.getUTCMonth()]}`;
+  }
+  return `${shortDate(start)}${RANGE_SEPARATOR}${shortDate(end)}`;
+}
+
 /** Un jour ouvré de la semaine affichée, situé par rapport à aujourd'hui. */
 export interface WeekDay {
   /** La date `AAAA-MM-JJ`. */
@@ -192,6 +256,19 @@ export function weekDays(monday: string, today: string): WeekDay[] {
     isToday: date === today,
     isFuture: date > today,
   }));
+}
+
+/**
+ * Une journée de présence, la valeur échangée partout, de la table `presence` à l'application
+ * (PRD #1, « Interactions », « Journée »). Une heure non pointée vaut `null`.
+ */
+export interface PresenceDay {
+  /** La date `AAAA-MM-JJ`. */
+  jour: string;
+  /** L'heure d'arrivée `HH:MM`. */
+  arrivee: string | null;
+  /** L'heure de départ `HH:MM`. */
+  depart: string | null;
 }
 
 const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;

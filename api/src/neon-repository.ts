@@ -5,9 +5,10 @@
  * déploiement de la Function.
  */
 
+import type { PresenceDay } from "@badge-mie/week";
 import { attachDatabasePool } from "@neon/functions";
 import { Pool } from "pg";
-import type { PresenceDay, PresenceRepository } from "./app";
+import type { PresenceRepository } from "./app";
 
 /**
  * Les journées d'une plage de dates, bornes comprises. Postgres rend la date et les heures en

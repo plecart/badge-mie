@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createApp, type PresenceDay } from "./app";
+import type { PresenceDay } from "@badge-mie/week";
+import { createApp } from "./app";
 
 const TOKEN = "jeton-de-test";
 const AUTHORIZED = { Authorization: `Bearer ${TOKEN}` };
