@@ -1,8 +1,8 @@
 /**
- * Aujourd'hui et l'heure courante, lus sur l'horloge du téléphone. {@link today} et
- * {@link currentTime} sont les deux seules lectures de l'horloge de l'application :
- * `@badge-mie/week` et le Pointage du jour reçoivent la date et l'heure en argument et ne les
- * lisent jamais.
+ * Aujourd'hui et l'heure courante, lus sur l'horloge du téléphone, et l'instant d'une date à une
+ * heure, pour le sélecteur d'heure. {@link today} et {@link currentTime} sont les deux seules
+ * lectures de l'horloge de l'application : `@badge-mie/week` et le Pointage du jour reçoivent la
+ * date et l'heure en argument et ne les lisent jamais.
  */
 
 /** Écrit un nombre sur `length` chiffres, complété de zéros à gauche. */
@@ -35,4 +35,26 @@ export function today(now: Date = new Date()): string {
  */
 export function currentTime(now: Date = new Date()): string {
   return `${digits(now.getHours(), 2)}:${digits(now.getMinutes(), 2)}`;
+}
+
+/**
+ * Rend l'instant d'une date à une heure, en heure locale : l'inverse de {@link today} et de
+ * {@link currentTime}, pour préremplir le sélecteur d'heure. Ne lit pas l'horloge.
+ *
+ * Le constructeur local de `Date`, comme {@link today} : une date-heure écrite en ISO sans fuseau
+ * se lit en heure locale ou en UTC selon sa forme.
+ *
+ * @example currentTime(instantAt("2026-11-18", "08:05")) // « 08:05 »
+ * @param date - Une date `AAAA-MM-JJ` réelle.
+ * @param time - Une heure `HH:MM` de `00:00` à `23:59`.
+ * @returns L'instant de `date` à `time`, secondes à zéro, dans le fuseau du téléphone.
+ */
+export function instantAt(date: string, time: string): Date {
+  return new Date(
+    Number(date.slice(0, 4)),
+    Number(date.slice(5, 7)) - 1,
+    Number(date.slice(8, 10)),
+    Number(time.slice(0, 2)),
+    Number(time.slice(3, 5)),
+  );
 }

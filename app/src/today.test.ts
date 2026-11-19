@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentTime, today } from "./today";
+import { currentTime, instantAt, today } from "./today";
 
 describe("today", () => {
   it("rend la date locale du téléphone, le soir, quand la date UTC est déjà le lendemain", () => {
@@ -22,5 +22,15 @@ describe("currentTime", () => {
     ["à la dernière minute du jour", new Date(2026, 10, 18, 23, 59), "23:59"],
   ])("rend l'heure locale du téléphone à la minute, %s", (_, now, time) => {
     expect(currentTime(now)).toBe(time);
+  });
+});
+
+describe("instantAt", () => {
+  it("rend l'instant local d'une date à une heure, que today et currentTime relisent", () => {
+    const instant = instantAt("2026-11-18", "08:05");
+    expect([today(instant), currentTime(instant)]).toEqual([
+      "2026-11-18",
+      "08:05",
+    ]);
   });
 });

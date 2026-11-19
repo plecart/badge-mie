@@ -1,6 +1,6 @@
 import type { PresenceDay } from "@badge-mie/week";
 import { describe, expect, it } from "vitest";
-import { editTime, punch, punchAction } from "./punch";
+import { canPunch, editTime, punch, punchAction } from "./punch";
 
 /** Une journée du mercredi 18 novembre 2026, aux heures données. */
 function wednesday(arrivee: string | null, depart: string | null): PresenceDay {
@@ -36,6 +36,17 @@ describe("punchAction", () => {
     ).toThrow(
       new RangeError("date invalide : « 2026-02-30 », attendu AAAA-MM-JJ"),
     );
+  });
+});
+
+describe("canPunch", () => {
+  it.each([
+    ["arrival", true],
+    ["departure", true],
+    ["done", false],
+    ["weekend", false],
+  ] as const)("dit si l'action %s se pointe : %s", (action, expected) => {
+    expect(canPunch(action)).toBe(expected);
   });
 });
 

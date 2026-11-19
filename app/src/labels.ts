@@ -93,13 +93,14 @@ export function clockLine(date: string, time: string): string {
 }
 
 /**
- * Rend le nom, pour l'accessibilité, du geste qui corrige une heure d'un jour.
+ * Rend l'indication, pour l'accessibilité, du geste qui corrige une heure d'un jour : le nom de
+ * l'heure touchable reste son texte visible.
  *
- * @example editLabel("arrivee", "2026-11-18") // « Modifier l'arrivée du mercredi 18 novembre »
+ * @example editHint("arrivee", "2026-11-18") // « Modifier l'arrivée du mercredi 18 novembre »
  * @param field - L'heure à corriger.
  * @param date - La date `AAAA-MM-JJ` du jour.
  * @throws {RangeError} si `date` n'est pas une date réelle, comme {@link dayLabel}.
  */
-export function editLabel(field: TimeField, date: string): string {
+export function editHint(field: TimeField, date: string): string {
   return `Modifier ${field === "arrivee" ? "l'arrivée" : "le départ"} du ${dayLabel(date)}`;
 }
