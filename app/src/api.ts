@@ -91,7 +91,8 @@ export function isWeek(value: unknown, monday: string): value is PresenceDay[] {
  * @throws {TokenRejectedError} sur un 401, quel que soit le corps.
  * @throws {ServerUnreachableError} sur tout autre statut hors 2xx, ou sur un corps qui n'est pas
  *   la semaine demandée (voir {@link isWeek}).
- * @throws {RangeError} si `monday` n'est pas un lundi réel.
+ * @throws {RangeError} sur un 2xx, si `monday` n'est pas un lundi réel : c'est une erreur de
+ *   l'appelant.
  */
 export function parseWeekResponse(
   status: number,
@@ -114,7 +115,8 @@ export function parseWeekResponse(
  * @throws {TokenRejectedError} si le serveur refuse le jeton.
  * @throws {ServerUnreachableError} si `fetch` échoue (réseau coupé), ou pour toute autre réponse
  *   que {@link parseWeekResponse} refuse.
- * @throws {RangeError} si `monday` n'est pas un lundi réel, une fois la réponse reçue.
+ * @throws {RangeError} si `monday` n'est pas un lundi réel et que le serveur rend pourtant un 2xx.
+ *   Il rend 400 pour un autre jour, qui lève alors {@link ServerUnreachableError}.
  */
 export async function readWeek(
   token: string,

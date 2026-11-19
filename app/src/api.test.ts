@@ -71,6 +71,12 @@ describe("parseWeekResponse", () => {
     expect(parseWeekResponse(299, WEEK, MONDAY)).toEqual(WEEK);
   });
 
+  it("lève une RangeError sur un 2xx quand le lundi demandé n'en est pas un", () => {
+    expect(() => parseWeekResponse(200, WEEK, "2026-11-18")).toThrow(
+      new RangeError("lundi invalide : « 2026-11-18 », attendu un lundi"),
+    );
+  });
+
   it.each([
     ["un corps illisible", undefined],
     ["un objet", { jours: WEEK }],
