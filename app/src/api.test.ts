@@ -1,6 +1,9 @@
 import type { PresenceDay } from "@badge-mie/week";
 import { describe, expect, it } from "vitest";
 import {
+  DayRejectedError,
+  dayRequest,
+  parseDayResponse,
   parseWeekResponse,
   ServerUnreachableError,
   TokenRejectedError,
@@ -130,4 +133,56 @@ describe("parseWeekResponse", () => {
       ServerUnreachableError,
     );
   });
+});
+
+describe("dayRequest", () => {
+  const DAY: PresenceDay = {
+    jour: "2026-11-18",
+    arrivee: "08:30",
+    depart: null,
+  };
+
+  it("écrit la journée par un PUT sur la route de son jour", () => {
+    const { url, init } = dayRequest("jeton-de-test", DAY);
+    expect([init.method, url]).toEqual(["PUT", `${API_URL}/jours/2026-11-18`]);
+  });
+
+  it("porte le jeton en en-tête Authorization Bearer, et le type JSON du corps", () => {
+    const headers = new Headers(dayRequest("jeton-de-test", DAY).init.headers);
+    expect([headers.get("Authorization"), headers.get("Content-Type")]).toEqual(
+      ["Bearer jeton-de-test", "application/json"],
+    );
+  });
+
+  it("porte les deux heures en corps, une heure non pointée à null", () => {
+    const { init } = dayRequest("jeton-de-test", DAY);
+    expect(JSON.parse(String(init.body))).toEqual({
+      arrivee: "08:30",
+      depart: null,
+    });
+  });
+});
+
+describe("parseDayResponse", () => {
+  it.each([200, 204, 299])("accepte l'écriture sur un statut %i", (status) => {
+    expect(parseDayResponse(status)).toBeUndefined();
+  });
+
+  it("lève TokenRejectedError quand le serveur refuse le jeton (401)", () => {
+    expect(() => parseDayResponse(401)).toThrow(TokenRejectedError);
+  });
+
+  it.each([400, 404, 499])(
+    "lève DayRejectedError, le refus durable, sur un statut %i",
+    (status) => {
+      expect(() => parseDayResponse(status)).toThrow(DayRejectedError);
+    },
+  );
+
+  it.each([500, 503, 302, 199])(
+    "lève ServerUnreachableError sur un statut %i",
+    (status) => {
+      expect(() => parseDayResponse(status)).toThrow(ServerUnreachableError);
+    },
+  );
 });
