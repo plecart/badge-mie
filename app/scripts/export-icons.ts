@@ -1,8 +1,12 @@
 /**
- * Exporte l'icône adaptative Android depuis sa source unique, `assets/icon.svg` (PRD #1,
- * « Icône ») : le premier plan tel quel, et la couche monochrome des icônes à thème d'Android 13+,
- * le même motif d'une seule couleur. Les deux PNG sont commités ; `app.json` les déclare sous
- * `android.adaptiveIcon`.
+ * Exporte les icônes de l'app depuis leur source unique, `assets/icon.svg` (PRD #1, « Icône »).
+ * Trois PNG, tous commités :
+ * - l'icône d'application, `icon.png` : le motif sur le fond de l'icône adaptative, déclaré par
+ *   `expo.icon` ;
+ * - le premier plan de l'icône adaptative : le motif tel quel ;
+ * - la couche monochrome des icônes à thème d'Android 13+ : le même motif, d'une seule couleur.
+ *
+ * Les deux derniers sont déclarés sous `android.adaptiveIcon` dans `app.json`.
  *
  * Lancé par `npm run icons -w app` : Node 24 exécute le TypeScript tel quel. Importé, le module
  * n'écrit rien ; ses tests rendent la source par {@link renderIcon}.
@@ -36,9 +40,33 @@ export function renderIcon(svg: string) {
   }).render();
 }
 
+/**
+ * Pose le motif sur un fond uni qui couvre tout le calque : l'icône d'application carrée, sans
+ * transparence, que montrent les lanceurs sans icône adaptative et les outils d'Expo.
+ *
+ * @param svg - Le texte du SVG source, à fond transparent.
+ * @param color - La couleur du fond, la même que celle de l'icône adaptative.
+ * @returns Le SVG, un rectangle plein inséré sous le motif.
+ */
+export function withBackground(svg: string, color: string): string {
+  return svg.replace(
+    /<svg[^>]*>/,
+    (open) => `${open}<rect width="100%" height="100%" fill="${color}"/>`,
+  );
+}
+
 if (import.meta.main) {
   const asset = (name: string) => new URL(`../assets/${name}`, import.meta.url);
   const svg = readFileSync(asset("icon.svg"), "utf8");
+  // Le fond vient d'`app.json`, seule source de la couleur de l'icône adaptative.
+  const config = JSON.parse(
+    readFileSync(new URL("../app.json", import.meta.url), "utf8"),
+  );
+  const background: string = config.expo.android.adaptiveIcon.backgroundColor;
+  writeFileSync(
+    asset("icon.png"),
+    renderIcon(withBackground(svg, background)).asPng(),
+  );
   writeFileSync(asset("icon-foreground.png"), renderIcon(svg).asPng());
   // ponytail: ne recolore que l'accent ; une seconde couleur ajoutée à la source garderait sa
   // teinte dans la couche monochrome, passer alors par un filtre feFlood + feComposite.
