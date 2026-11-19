@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ICON_SIZE, renderIcon, withBackground } from "./export-icons";
+import {
+  ICON_SIZE,
+  monochrome,
+  renderIcon,
+  withBackground,
+} from "./export-icons";
 
 /** Le centre du rendu, en pixels. */
 const CENTER = ICON_SIZE / 2;
@@ -53,5 +58,15 @@ describe("icône d'application", () => {
     const opaque = pixels.filter((_, index) => index % RGBA === ALPHA);
     expect(opaque.every((alpha) => alpha === 255)).toBe(true);
     expect([...pixels.subarray(0, ALPHA)]).toEqual([0xe0, 0xee, 0xe6]);
+  });
+});
+
+describe("couche monochrome", () => {
+  it("rend noir chaque remplissage, quelle que soit sa couleur", () => {
+    const { pixels } = renderIcon(
+      monochrome(withBackground(source, "#123456")),
+    );
+    const colors = pixels.filter((_, index) => index % RGBA !== ALPHA);
+    expect(colors.every((value) => value === 0)).toBe(true);
   });
 });
