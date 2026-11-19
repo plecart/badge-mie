@@ -21,7 +21,13 @@
  * balayage ne convient pas.
  */
 
-import { type ReactNode, useEffectEvent, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react";
 import {
   Animated,
   Easing,
@@ -32,7 +38,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import { fillMs, rewindMs } from "./hold";
+import { fillMs, rewindMs, whenFinished } from "./hold";
 import { BUTTON } from "./theme";
 
 /** L'épaisseur du contour dessiné. */
@@ -77,6 +83,13 @@ export function HoldButton({
   // Vrai quand l'appui en cours a abouti : son relâchement n'interrompt rien.
   const completed = useRef(false);
 
+  // Démonté pendant un appui, le bouton l'arrête : `stop` rend `{ finished: false }` au rappel de
+  // l'animation, une seule fois, et l'appui n'aboutit pas (`whenFinished` ; `stopAnimation` de
+  // `AnimatedValue.js`, `stop` de `TimingAnimation.js`, `__notifyAnimationEnd` d'`Animation.js`,
+  // react-native 0.88.1, lu le 2026-11-19). Sans lui, l'arrêt ne tiendrait qu'au détachement des
+  // nœuds animés, compté par références et différé d'une microtâche (`createAnimatedPropsHook.js`).
+  useEffect(() => () => progress.stopAnimation(), [progress]);
+
   /** Anime la progression vers `toValue`, en une durée tirée d'où elle en est. */
   function animate(
     toValue: number,
@@ -89,9 +102,7 @@ export function HoldButton({
         duration: duration(from),
         easing: Easing.linear,
         useNativeDriver: false,
-      }).start(({ finished }) => {
-        if (finished) onEnd?.();
-      }),
+      }).start(onEnd && whenFinished(onEnd)),
     );
   }
 

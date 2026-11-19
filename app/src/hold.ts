@@ -1,7 +1,8 @@
 /**
  * L'appui maintenu du bouton de pointage (ADR-0001, « Propositions UX ») : sa durée, et le rythme
  * de sa progression, une fraction de 0 (vide) à 1 (appui abouti), qui se remplit pendant l'appui et
- * revient en arrière quand il s'interrompt. Module pur : `./HoldButton` la dessine.
+ * revient en arrière quand il s'interrompt, puis ce que déclenche sa fin. Module pur :
+ * `./HoldButton` la dessine.
  */
 
 /**
@@ -31,4 +32,19 @@ export function fillMs(progress: number): number {
  */
 export function rewindMs(progress: number): number {
   return (progress * HOLD_MS) / REWIND_SPEEDUP;
+}
+
+/**
+ * Rend le rappel de fin d'une animation de la progression, qui n'appelle `onEnd` que si elle est
+ * allée au bout : arrêtée avant — appui interrompu, autre animation lancée, bouton démonté —, elle
+ * ne déclenche rien.
+ *
+ * @param onEnd - Ce que déclenche la progression allée au bout.
+ */
+export function whenFinished(
+  onEnd: () => void,
+): (result: { finished: boolean }) => void {
+  return ({ finished }) => {
+    if (finished) onEnd();
+  };
 }
