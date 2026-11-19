@@ -161,7 +161,9 @@ export function useGestures({
   /**
    * Ouvre le sélecteur d'heure natif sur une heure d'une journée, prérempli avec cette heure, ou
    * avec l'heure courante si elle est vide ; « Effacer » n'y apparaît que sur une heure
-   * renseignée. Fermé sans choix, il ne change rien.
+   * renseignée. Fermé sans choix, il ne change rien : sans `onDismiss` ni `onChange`,
+   * `DateTimePickerAndroid.open` n'appelle rien (`@react-native-community/datetimepicker` 9.2.1,
+   * lu le 2026-11-19).
    */
   function edit(day: PresenceDay, field: TimeField) {
     const time = day[field];

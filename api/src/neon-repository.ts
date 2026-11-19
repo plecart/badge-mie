@@ -25,10 +25,12 @@ const READ_DAYS = `
 
 /**
  * Crée ou remplace la ligne d'un jour, en une requête : sur un jour qui a déjà sa ligne,
- * `on conflict` remplace les deux heures et date la modification. Postgres lit la date et les
- * heures envoyées en texte (`AAAA-MM-JJ`, `HH:MM`) d'après le type de leur colonne, et `pg` envoie
- * un `null` JavaScript en `NULL`. Le `check` de la table refuserait un départ qui ne suit pas
- * l'arrivée : la route l'a déjà écarté.
+ * `on conflict` remplace les deux heures et date la modification. `pg` envoie les paramètres sans
+ * type (`pg-protocol` 1.16.1) et un `null` JavaScript en `NULL` (`prepareValue` de `pg` 8.23.1,
+ * lu le 2026-11-19) : Postgres lit la date et les heures envoyées en texte (`AAAA-MM-JJ`, `HH:MM`)
+ * d'après le type de leur colonne, comme les dates de `READ_DAYS` (non vérifié contre Neon pour
+ * les heures). Le `check` de la table refuserait un départ qui ne suit pas l'arrivée : la route
+ * l'a déjà écarté.
  */
 const WRITE_DAY = `
   insert into presence (jour, arrivee, depart)
