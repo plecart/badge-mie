@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ICON_SIZE, renderIcon } from "./export-icons";
+import { ICON_SIZE, renderIcon, withBackground } from "./export-icons";
 
 /** Le centre du rendu, en pixels. */
 const CENTER = ICON_SIZE / 2;
@@ -44,5 +44,14 @@ describe("icône adaptative", () => {
 
   it("a son motif visible dans la zone sûre", () => {
     expect(visiblePixels(source).inside).toBeGreaterThan(0);
+  });
+});
+
+describe("icône d'application", () => {
+  it("est opaque d'un bord à l'autre, sur le fond de l'icône adaptative", () => {
+    const { pixels } = renderIcon(withBackground(source, "#E0EEE6"));
+    const opaque = pixels.filter((_, index) => index % RGBA === ALPHA);
+    expect(opaque.every((alpha) => alpha === 255)).toBe(true);
+    expect([...pixels.subarray(0, ALPHA)]).toEqual([0xe0, 0xee, 0xe6]);
   });
 });
