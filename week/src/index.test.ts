@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addWeeks,
   dayDuration,
+  departureFollowsArrival,
   formatDuration,
   isIsoDate,
   isMonday,
@@ -205,6 +206,27 @@ describe("dayDuration", () => {
   });
 });
 
+describe("departureFollowsArrival", () => {
+  it("admet un départ après l'arrivée", () => {
+    expect(departureFollowsArrival("08:30", "17:00")).toBe(true);
+  });
+
+  it.each([
+    ["égal à l'arrivée", "09:00", "09:00"],
+    ["avant l'arrivée", "10:00", "09:00"],
+  ])("refuse un départ %s", (_, arrival, departure) => {
+    expect(departureFollowsArrival(arrival, departure)).toBe(false);
+  });
+
+  it.each([
+    ["arrivée seule", "08:30", null],
+    ["départ seul", null, "17:00"],
+    ["aucune heure", null, null],
+  ])("admet un jour incomplet : %s", (_, arrival, departure) => {
+    expect(departureFollowsArrival(arrival, departure)).toBe(true);
+  });
+});
+
 describe("weekTotal", () => {
   it("additionne les durées des jours complets et ignore les autres", () => {
     const durations = [
@@ -247,4 +269,16 @@ describe("heures invalides", () => {
       new RangeError("heure invalide : « 24:00 », attendu HH:MM"),
     );
   });
+
+  it.each([
+    ["l'arrivée", "8:30", "17:00", "8:30"],
+    ["le départ", "08:30", "24:00", "24:00"],
+  ])(
+    "departureFollowsArrival lève une RangeError qui nomme %s",
+    (_, arrival, departure, invalid) => {
+      expect(() => departureFollowsArrival(arrival, departure)).toThrow(
+        new RangeError(`heure invalide : « ${invalid} », attendu HH:MM`),
+      );
+    },
+  );
 });

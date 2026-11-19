@@ -290,8 +290,8 @@ const HOUR_MINUTES = 60;
 /**
  * Dit si un texte est une heure au format `HH:MM`.
  *
- * À appeler à une frontière de confiance, comme {@link isIsoDate} : {@link dayDuration} lève sur
- * une autre heure.
+ * À appeler à une frontière de confiance, comme {@link isIsoDate} : {@link dayDuration} et
+ * {@link departureFollowsArrival} lèvent sur une autre heure.
  *
  * @param value - Le texte à vérifier.
  * @returns `true` pour une heure de `00:00` à `23:59`, l'heure et les minutes sur deux chiffres ;
@@ -319,8 +319,8 @@ function minutesOf(time: string): number {
 /**
  * Rend la durée de présence d'un jour, de l'arrivée au départ.
  *
- * L'ordre des deux heures n'est pas vérifié : la table `presence` impose déjà
- * `depart > arrivee`.
+ * L'ordre des deux heures n'est pas vérifié ici, mais par {@link departureFollowsArrival} : sur
+ * un départ égal ou antérieur à l'arrivée, la durée sort nulle ou négative.
  *
  * @param arrival - L'heure d'arrivée `HH:MM`, ou `null` si elle n'est pas pointée.
  * @param departure - L'heure de départ `HH:MM`, ou `null` si elle n'est pas pointée.
@@ -334,6 +334,30 @@ export function dayDuration(
 ): number | null {
   if (arrival === null || departure === null) return null;
   return minutesOf(departure) - minutesOf(arrival);
+}
+
+/**
+ * Dit si le départ d'une journée suit son arrivée : la règle d'ordre de la table `presence`,
+ * `check (arrivee is null or depart is null or depart > arrivee)` (ADR-0001, « Décision »,
+ * point 5). Toute vérification de l'ordre de deux heures passe par ici, pour qu'il n'y ait
+ * qu'une règle.
+ *
+ * @example departureFollowsArrival("08:30", "17:00") // true
+ * @example departureFollowsArrival("09:00", "09:00") // false
+ * @example departureFollowsArrival(null, "17:00") // true
+ * @param arrival - L'heure d'arrivée `HH:MM`, ou `null` si elle n'est pas pointée.
+ * @param departure - L'heure de départ `HH:MM`, ou `null` si elle n'est pas pointée.
+ * @returns `true` si l'une des deux heures manque, ou si le départ est strictement postérieur à
+ *   l'arrivée, à la minute ; `false` pour un départ égal ou antérieur à l'arrivée.
+ * @throws {RangeError} si les deux heures sont présentes et que l'une n'est pas une heure
+ *   `HH:MM` valide, comme {@link dayDuration}.
+ */
+export function departureFollowsArrival(
+  arrival: string | null,
+  departure: string | null,
+): boolean {
+  const minutes = dayDuration(arrival, departure);
+  return minutes === null || minutes > 0;
 }
 
 /**
