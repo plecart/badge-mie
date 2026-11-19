@@ -9,7 +9,12 @@
  * stockage en mémoire dans les tests.
  */
 
-import { mondayOf, type PresenceDay, weekDates } from "@badge-mie/week";
+import {
+  emptyDay,
+  mondayOf,
+  type PresenceDay,
+  weekDates,
+} from "@badge-mie/week";
 import { isWeek, ServerUnreachableError, TokenRejectedError } from "./api";
 
 /** Un stockage clé-valeur de textes, de la forme d'`AsyncStorage`. */
@@ -93,8 +98,7 @@ export async function saveDay(
 ): Promise<void> {
   const monday = mondayOf(day.jour);
   const days =
-    (await readLocalWeek(storage, monday)) ??
-    weekDates(monday).map((jour) => ({ jour, arrivee: null, depart: null }));
+    (await readLocalWeek(storage, monday)) ?? weekDates(monday).map(emptyDay);
   await saveWeek(
     storage,
     monday,

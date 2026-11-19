@@ -12,8 +12,8 @@
  * (ouverture, retour du réseau, premier plan) appellent {@link SendQueue.flush} (décision 8 de #4).
  */
 
-import { isIsoDate, type PresenceDay } from "@badge-mie/week";
-import { DayRejectedError, isPresenceDay, TokenRejectedError } from "./api";
+import { isPresenceDay, type PresenceDay } from "@badge-mie/week";
+import { DayRejectedError, TokenRejectedError } from "./api";
 import { type KeyValueStorage, saveDay } from "./week-store";
 
 /** La clé de stockage de la file, distincte de celles des semaines. */
@@ -25,8 +25,8 @@ type Entries = Map<string, PresenceDay>;
 /**
  * Lit le texte rangé de la file. C'est une frontière de confiance, comme l'état local d'une
  * semaine : un texte absent, illisible ou qui n'est pas un objet compte comme une file vide, et
- * une entrée dont la clé n'est pas une date réelle, ou dont la valeur n'est pas une journée de
- * cette date (voir {@link isPresenceDay}), compte comme absente.
+ * une entrée dont la valeur n'est pas la journée de sa clé, date réelle comprise (voir
+ * {@link isPresenceDay}), compte comme absente.
  */
 function parseEntries(text: string | null): Entries {
   let value: unknown;
@@ -37,9 +37,8 @@ function parseEntries(text: string | null): Entries {
   }
   if (typeof value !== "object" || value === null) return new Map();
   return new Map(
-    Object.entries(value).filter(
-      (entry): entry is [string, PresenceDay] =>
-        isIsoDate(entry[0]) && isPresenceDay(entry[1], entry[0]),
+    Object.entries(value).filter((entry): entry is [string, PresenceDay] =>
+      isPresenceDay(entry[1], entry[0]),
     ),
   );
 }
