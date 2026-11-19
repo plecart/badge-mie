@@ -1,0 +1,47 @@
+import { readFileSync } from "node:fs";
+import semver from "semver";
+import { describe, expect, it } from "vitest";
+
+/**
+ * Lit un fichier JSON relatif à ce fichier de test.
+ *
+ * @param path chemin relatif au dossier `app/`
+ * @returns le contenu analysé ; lève si le fichier manque ou n'est pas du JSON
+ */
+function readJson(path: string): unknown {
+  return JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
+}
+
+/** L'exigence de runtime du workspace : `devEngines.runtime.version` du `package.json` racine. */
+const required = (
+  readJson("../package.json") as {
+    devEngines: { runtime: { version: string } };
+  }
+).devEngines.runtime.version;
+
+/** Les profils de build EAS, chacun avec sa version de Node éventuelle. */
+const profiles = Object.entries(
+  (readJson("./eas.json") as { build: Record<string, { node?: string }> })
+    .build,
+);
+
+/**
+ * EAS Build installe tout le workspace depuis la racine (`npm ci`), où npm fait respecter
+ * `devEngines.runtime`. L'image Android d'EAS porte Node 22, et EAS ne lit pas `devEngines` :
+ * chaque profil fixe donc sa version de Node par son champ `node` (docs.expo.dev/eas/json),
+ * seconde source que ce test tient alignée sur l'exigence de la racine — le jugement est celui
+ * de `semver`, la bibliothèque même avec laquelle npm lit `devEngines`.
+ */
+describe("eas.json — la version de Node de chaque profil de build", () => {
+  it("déclare au moins un profil", () => {
+    expect(profiles).not.toEqual([]);
+  });
+
+  it.each(profiles)(
+    "le profil « %s » fixe une version exacte qui satisfait devEngines",
+    (_name, { node = "" }) => {
+      expect(semver.valid(node)).not.toBeNull();
+      expect(semver.satisfies(node, required)).toBe(true);
+    },
+  );
+});

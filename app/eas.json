@@ -4,6 +4,7 @@
   },
   "build": {
     "apk": {
+      "node": "24.22.3",
       "android": {
         "buildType": "apk"
       }
