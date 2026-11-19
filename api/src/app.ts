@@ -8,7 +8,7 @@ import {
   departureFollowsArrival,
   isIsoDate,
   isMonday,
-  isTime,
+  isTimeOrNull,
   type PresenceDay,
   weekDates,
 } from "@badge-mie/week";
@@ -72,11 +72,6 @@ async function readWeek(
   }));
 }
 
-/** Vrai pour une heure qu'admet le corps d'un `PUT` : `null` (non pointée) ou `HH:MM`. */
-function isHourOrNull(value: unknown): value is string | null {
-  return value === null || (typeof value === "string" && isTime(value));
-}
-
 /**
  * Lit les deux heures du corps d'un `PUT /jours/:date`.
  *
@@ -98,7 +93,7 @@ function parseHours(
   }
   if (typeof body !== "object" || body === null) return undefined;
   const { arrivee, depart } = body as Record<string, unknown>;
-  return isHourOrNull(arrivee) && isHourOrNull(depart)
+  return isTimeOrNull(arrivee) && isTimeOrNull(depart)
     ? { arrivee, depart }
     : undefined;
 }

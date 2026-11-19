@@ -10,7 +10,7 @@
 
 import {
   departureFollowsArrival,
-  isTime,
+  isTimeOrNull,
   mondayOf,
   type PresenceDay,
   weekDates,
@@ -90,7 +90,7 @@ export function editTime(
   field: "arrivee" | "depart",
   time: string | null,
 ): Outcome {
-  if (time !== null && !isTime(time)) {
+  if (!isTimeOrNull(time)) {
     throw new RangeError(`heure invalide : « ${time} », attendu HH:MM`);
   }
   if (field === "arrivee" && time === null && day.depart !== null) {
