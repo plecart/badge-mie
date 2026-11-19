@@ -3,8 +3,8 @@
  * total et de l'indicateur d'envoi, les cinq cartes du lundi au vendredi et la bande du bas
  * (issue #3, « Décisions », point 7 ; issue #4, décision 1). Il s'ouvre sur la semaine en cours,
  * et passe à la nouvelle quand son horloge change de semaine, sauf s'il affiche une semaine passée
- * (`./current-week`). On y pointe aujourd'hui par le bouton du bas, et on y corrige une heure d'un
- * jour passé ou d'aujourd'hui en la touchant (`./use-gestures`). Chaque geste passe par la File
+ * (`./current-week`). On y pointe aujourd'hui en maintenant le bouton du bas, et on y corrige une
+ * heure d'un jour passé ou d'aujourd'hui en la touchant (`./use-gestures`). Chaque geste passe par la File
  * d'envoi, que l'écran relance à son ouverture, au retour du réseau et au retour au premier plan
  * (issue #4, décision 8).
  */

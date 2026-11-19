@@ -4,6 +4,8 @@ import {
   durationText,
   editHint,
   editMessage,
+  HOLD_HINT,
+  HOLD_TO_PUNCH,
   pendingText,
   PUNCH_LABELS,
   punchMessage,
@@ -30,6 +32,18 @@ describe("REFUSAL_TEXTS", () => {
     ["clearDepartureFirst", "Effacez d'abord le départ de ce jour"],
   ] as const)("dit le refus %s par « %s »", (refusal, text) => {
     expect(REFUSAL_TEXTS[refusal]).toBe(text);
+  });
+});
+
+describe("HOLD_TO_PUNCH", () => {
+  it("rappelle, après un appui interrompu, de maintenir le bouton", () => {
+    expect(HOLD_TO_PUNCH).toBe("Maintiens le bouton pour pointer");
+  });
+});
+
+describe("HOLD_HINT", () => {
+  it("annonce à TalkBack que le bouton se maintient hors de lui", () => {
+    expect(HOLD_HINT).toBe("Sans TalkBack, maintiens le bouton pour pointer");
   });
 });
 

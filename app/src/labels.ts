@@ -1,8 +1,8 @@
 /**
- * Les textes de l'écran de la semaine qui dépendent d'un état : le libellé du bouton de pointage,
- * le message de la barre du dernier geste, accepté ou refusé, la durée d'une carte, l'indicateur
- * d'envoi, la ligne sous le bouton (issue #4, décision 1). Module pur : l'écran les compose sans rien décider (PRD #1,
- * module 5).
+ * Les textes de l'écran de la semaine qui dépendent d'un état : le libellé du bouton de pointage et
+ * son indication pour TalkBack, le message de la barre du dernier geste, accepté, refusé ou
+ * interrompu, la durée d'une carte, l'indicateur d'envoi, la ligne sous le bouton (issue #4,
+ * décision 1). Module pur : l'écran les compose sans rien décider (PRD #1, module 5).
  */
 
 import { dayDuration, dayLabel, formatDuration } from "@badge-mie/week";
@@ -18,6 +18,19 @@ export const PUNCH_LABELS: Record<PunchAction, string> = {
   done: "Journée terminée",
   weekend: "Pas de pointage le week-end",
 };
+
+/**
+ * Le message d'un appui sur le bouton de pointage interrompu avant la fin, affiché seul dans la
+ * barre du dernier geste (ADR-0001, « Propositions UX ») : un toucher qui ne ferait rien
+ * ressemblerait à une panne (issue #14, décisions du 2026-11-19).
+ */
+export const HOLD_TO_PUNCH = "Maintiens le bouton pour pointer";
+
+/**
+ * L'indication, pour TalkBack, du bouton de pointage : sous TalkBack, son activation pointe
+ * directement ; sans lui, il se maintient.
+ */
+export const HOLD_HINT = "Sans TalkBack, maintiens le bouton pour pointer";
 
 /** Le message d'un geste refusé, affiché seul dans la barre du dernier geste. */
 export const REFUSAL_TEXTS: Record<Refusal, string> = {
