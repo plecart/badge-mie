@@ -1,6 +1,7 @@
 import { type PresenceDay, weekDates } from "@badge-mie/week";
 import { describe, expect, it } from "vitest";
 import { ServerUnreachableError, TokenRejectedError } from "./api";
+import { memoryStorage } from "./memory-storage";
 import {
   type KeyValueStorage,
   loadWeek,
@@ -28,17 +29,6 @@ const POINTED: PresenceDay = {
 /** Une lecture sans réseau. */
 async function offline(): Promise<PresenceDay[]> {
   throw new ServerUnreachableError();
-}
-
-/** Un stockage clé-valeur en mémoire, vide au départ. */
-function memoryStorage(): KeyValueStorage {
-  const items = new Map<string, string>();
-  return {
-    getItem: async (key) => items.get(key) ?? null,
-    setItem: async (key, value) => {
-      items.set(key, value);
-    },
-  };
 }
 
 /** Les journées `days`, le mercredi remplacé par `POINTED`. */
