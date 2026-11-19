@@ -1,7 +1,7 @@
 import { type PresenceDay, weekDates } from "@badge-mie/week";
 import { describe, expect, it } from "vitest";
 import { ServerUnreachableError, TokenRejectedError } from "./api";
-import { memoryStorage } from "./memory-storage";
+import { memoryStorage, storageHolding } from "./memory-storage";
 import { pressPunch } from "./punch";
 import {
   type KeyValueStorage,
@@ -42,11 +42,6 @@ const REBUILT_WEEK: PresenceDay[] = [
   { jour: "2026-11-19", arrivee: null, depart: null },
   { jour: "2026-11-20", arrivee: null, depart: null },
 ];
-
-/** Un stockage dont la lecture rend toujours `text`, et dont l'écriture n'a pas d'effet. */
-function storageHolding(text: string | null): KeyValueStorage {
-  return { getItem: async () => text, setItem: async () => {} };
-}
 
 /** Un stockage dont la lecture lève : l'état local ne se lit pas. */
 const UNREADABLE: KeyValueStorage = {
