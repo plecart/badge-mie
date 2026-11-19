@@ -1,4 +1,4 @@
-import type { PresenceDay } from "@badge-mie/week";
+import { type PresenceDay, weekDates } from "@badge-mie/week";
 import { describe, expect, it } from "vitest";
 import {
   canPunch,
@@ -23,15 +23,8 @@ function wednesday(arrivee: string | null, depart: string | null): PresenceDay {
 
 /** La semaine affichée, lue, avec ce mercredi ; ses autres journées sont terminées. */
 function knownWeek(day: PresenceDay): WeekView {
-  const dates = [
-    "2026-11-16",
-    "2026-11-17",
-    "2026-11-18",
-    "2026-11-19",
-    "2026-11-20",
-  ];
   return {
-    days: dates.map((jour) =>
+    days: weekDates(MONDAY).map((jour) =>
       jour === day.jour ? day : { jour, arrivee: "08:00", depart: "17:00" },
     ),
     unreachable: false,
