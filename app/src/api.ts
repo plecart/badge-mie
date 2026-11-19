@@ -34,9 +34,11 @@ export class ServerUnreachableError extends Error {
 /**
  * Le serveur a refusé la journée : un statut 4xx autre que 401 en réponse à `PUT /jours/:date`.
  *
- * C'est un refus durable. La faute est dans la requête (RFC 9110 §15.5), que l'idempotence du
- * `PUT` rejouerait à l'identique : la rejouer ne la ferait pas passer. L'entrée reste pourtant en
- * file, jamais perdue (décision 7 de #4).
+ * Il se classe en refus durable (décision 7 de #4) : un 4xx dit la faute dans la requête
+ * (RFC 9110 §15.5), que l'idempotence du `PUT` rejouerait à l'identique. Deux 4xx sont pourtant
+ * transitoires, 408 (RFC 9110 §15.5.9) et 429 (RFC 6585 §4) : la même requête rejouée plus tard
+ * peut passer. Le classement ne change rien pour eux : l'entrée reste en file, jamais perdue, et
+ * repart à la relance suivante.
  */
 export class DayRejectedError extends Error {
   override name = "DayRejectedError";
@@ -192,7 +194,7 @@ export function dayRequest(token: string, day: PresenceDay): ApiRequest {
  *
  * @param status - Le statut HTTP de la réponse.
  * @throws {TokenRejectedError} sur un 401.
- * @throws {DayRejectedError} sur tout autre 4xx : le refus durable.
+ * @throws {DayRejectedError} sur tout autre 4xx, 408 et 429 compris : le refus classé durable.
  * @throws {ServerUnreachableError} sur tout statut hors 2xx et 4xx : 5xx, 1xx, 3xx.
  */
 export function parseDayResponse(status: number): void {
@@ -205,9 +207,11 @@ export function parseDayResponse(status: number): void {
 /**
  * Écrit une journée sur le serveur.
  *
- * Le corps de la réponse n'est pas lu. Sous Expo, `fetch` est `expo/fetch`, dont le module natif
- * Android lit le corps jusqu'au bout puis ferme la réponse, que JavaScript le lise ou non : ne
- * pas le lire ne retient pas la connexion.
+ * Le corps de la réponse n'est pas lu. Sous Expo, le `fetch` global est `expo/fetch`
+ * (`expo/src/winter/runtime.native.ts`, sauf `EXPO_PUBLIC_USE_RN_FETCH`), dont le module natif
+ * Android lit le corps jusqu'au bout puis ferme la réponse, que JavaScript le lise ou non
+ * (`onResponse` de `expo/android/src/main/java/expo/modules/fetch/NativeResponse.kt`, expo
+ * 58.0.26, lu le 2026-11-19) : ne pas le lire ne retient pas la connexion.
  *
  * @param token - Le jeton d'accès.
  * @param day - La journée à écrire.
