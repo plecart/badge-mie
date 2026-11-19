@@ -335,6 +335,19 @@ export function isTime(value: string): boolean {
 }
 
 /**
+ * Dit si une valeur est une heure de {@link PresenceDay} : une heure `HH:MM`, ou `null` pour une
+ * heure non pointée. À appeler avant de tenir pour telle une valeur décodée d'un JSON (corps de
+ * requête, réponse du serveur, état local) ou un argument reçu.
+ *
+ * @param value - La valeur à vérifier, de n'importe quel type.
+ * @returns `true` pour `null` ou une heure qu'admet {@link isTime} ; `false` pour toute autre
+ *   valeur, `undefined`, un nombre ou un tableau compris.
+ */
+export function isTimeOrNull(value: unknown): value is string | null {
+  return value === null || (typeof value === "string" && isTime(value));
+}
+
+/**
  * Minutes écoulées depuis minuit pour une heure `HH:MM`.
  *
  * @throws {RangeError} si `time` n'est pas une heure de `00:00` à `23:59` écrite `HH:MM`, sans

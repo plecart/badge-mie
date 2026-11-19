@@ -9,6 +9,7 @@ import {
   isMonday,
   isoWeek,
   isTime,
+  isTimeOrNull,
   mondayOf,
   weekDates,
   weekDays,
@@ -56,6 +57,20 @@ describe("isTime", () => {
     "refuse « %s », qui n'est pas une heure HH:MM",
     (value) => {
       expect(isTime(value)).toBe(false);
+    },
+  );
+});
+
+describe("isTimeOrNull", () => {
+  it.each([null, "08:30"])("accepte %j, une heure admise", (value) => {
+    expect(isTimeOrNull(value)).toBe(true);
+  });
+
+  // Chaque cas dans son tableau : `it.each` étale un tableau nu en arguments.
+  it.each([[830], [["08:30"]], ["8:30"], [undefined]])(
+    "refuse %j, qui n'est ni une heure HH:MM ni null",
+    (value) => {
+      expect(isTimeOrNull(value)).toBe(false);
     },
   );
 });
