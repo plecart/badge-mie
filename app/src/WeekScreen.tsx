@@ -67,7 +67,12 @@ export function WeekScreen({
     let current = true;
     loadWeek(
       monday,
-      { storage: AsyncStorage, read: (week) => readWeek(token, week) },
+      {
+        storage: AsyncStorage,
+        read: (week) => readWeek(token, week),
+        // En lecture seule, l'écran n'a pas de file d'envoi : aucun jour n'attend.
+        pending: async () => [],
+      },
       (view) => {
         if (current) setLoaded({ monday, view });
       },
