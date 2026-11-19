@@ -1,8 +1,9 @@
 /**
  * L'état local des semaines : les journées de chaque semaine, gardées sur le téléphone pour
  * s'afficher avant la réponse du serveur, ou à sa place sans réseau (PRD #1, « Interactions »,
- * « Lecture d'une semaine »). Une journée modifiée y entre par {@link saveDay} ; la réponse du
- * serveur y entre par {@link loadWeek}, sauf pour les jours en attente d'envoi, qui l'emportent.
+ * « Lecture d'une semaine »). Une journée enregistrée par la File d'envoi (`./send-queue`) y entre
+ * par {@link saveDay} ; la réponse du serveur y entre par {@link loadWeek}, sauf pour les jours en
+ * attente d'envoi, qui l'emportent.
  *
  * Le stockage est injecté : `@react-native-async-storage/async-storage` dans l'application, un
  * stockage en mémoire dans les tests.

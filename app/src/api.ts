@@ -90,7 +90,10 @@ export function weekRequest(token: string, monday: string): ApiRequest {
  * Vrai pour un objet dont `jour` vaut `date`, et dont `arrivee` et `depart` sont une heure `HH:MM`
  * ou `null`.
  */
-function isPresenceDay(value: unknown, date: string): value is PresenceDay {
+export function isPresenceDay(
+  value: unknown,
+  date: string,
+): value is PresenceDay {
   if (typeof value !== "object" || value === null) return false;
   const { jour, arrivee, depart } = value as Record<string, unknown>;
   return jour === date && isTimeOrNull(arrivee) && isTimeOrNull(depart);
