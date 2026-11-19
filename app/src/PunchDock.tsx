@@ -1,10 +1,12 @@
 /**
  * La bande du bas de l'écran de la semaine : la barre du dernier geste, le bouton du bas, puis la
  * date du jour et l'heure courante (issue #4, décision 1). Elle affiche ce qu'on lui passe, sans
- * rien décider.
+ * rien décider ; le bouton du bas agit au toucher, ou, actif et à appui maintenu, par
+ * `./HoldButton`.
  */
 
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { HoldButton } from "./HoldButton";
 import { BUTTON, BUTTON_LABEL, FONTS, type Palette } from "./theme";
 
 /** La hauteur d'« Annuler », cible tactile, que la barre garde aussi pour un refus, sans lui. */
@@ -16,9 +18,15 @@ const TOUCH_HEIGHT = 48;
  */
 export interface DockButton {
   label: string;
+  /** L'action du bouton : au toucher, ou, à appui maintenu, à l'appui abouti. */
   onPress: () => void;
   variant: "primary" | "secondary";
   disabled?: boolean;
+  /**
+   * Présent, le bouton actif se maintient pour agir : `hint` l'annonce à TalkBack, sous lequel
+   * l'activation agit directement, et `onInterrupted` part à un appui interrompu avant la fin.
+   */
+  hold?: { hint: string; onInterrupted: () => void };
 }
 
 /**
@@ -70,12 +78,16 @@ export function PunchDock({
   );
 }
 
-/** Le bouton du bas, pleine largeur ; désactivé, il prend les couleurs éteintes. */
+/**
+ * Le bouton du bas, pleine largeur ; désactivé, il prend les couleurs éteintes et ne se maintient
+ * pas. Maintenu, son contour se dessine de la couleur de son libellé.
+ */
 function BottomButton({
   label,
   onPress,
   variant,
   disabled = false,
+  hold,
   palette,
 }: DockButton & { palette: Palette }) {
   const secondary = variant === "secondary";
@@ -84,19 +96,34 @@ function BottomButton({
     : disabled
       ? [palette.surface2, palette.muted]
       : [palette.accent, palette.accentInk];
+  const style = [
+    BUTTON,
+    { backgroundColor: background },
+    secondary && [styles.secondary, { borderColor: palette.line }],
+  ];
+  const text = <Text style={[BUTTON_LABEL, { color }]}>{label}</Text>;
+  if (hold && !disabled) {
+    return (
+      <HoldButton
+        style={style}
+        ringColor={color}
+        hint={hold.hint}
+        onDone={onPress}
+        onInterrupted={hold.onInterrupted}
+      >
+        {text}
+      </HoldButton>
+    );
+  }
   return (
     <Pressable
-      style={[
-        BUTTON,
-        { backgroundColor: background },
-        secondary && [styles.secondary, { borderColor: palette.line }],
-      ]}
+      style={style}
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
     >
-      <Text style={[BUTTON_LABEL, { color }]}>{label}</Text>
+      {text}
     </Pressable>
   );
 }

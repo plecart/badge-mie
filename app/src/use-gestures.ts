@@ -4,7 +4,9 @@
  * geste le confirme pendant {@link BAR_MS}, « Annuler » compris (issue #4, décisions 1 et 2).
  *
  * Ce que fait le bouton de pointage, actif ou non, et l'issue d'un appui, retour haptique compris,
- * se décident dans `./punch` ({@link punchButton}, {@link pressPunch}) : l'écran les exécute.
+ * se décident dans `./punch` ({@link punchButton}, {@link pressPunch}) : l'écran les exécute. Le
+ * bouton actif se maintient (`./HoldButton`) : l'appui abouti pointe, et un appui interrompu le
+ * rappelle seul dans la barre, sans rien changer d'autre.
  *
  * Aucun gestionnaire ne laisse remonter d'exception : les journées viennent d'une semaine vérifiée
  * à sa lecture, `pressPunch` reçoit le lundi de la semaine affichée et l'heure `HH:MM` de
@@ -18,6 +20,8 @@ import { ImpactFeedbackStyle, impactAsync } from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
 import {
   editMessage,
+  HOLD_HINT,
+  HOLD_TO_PUNCH,
   PUNCH_LABELS,
   punchMessage,
   REFUSAL_TEXTS,
@@ -129,9 +133,9 @@ export function useGestures({
   }
 
   /**
-   * Pointe aujourd'hui, la date et l'heure relues au moment du geste, comme le dit
-   * {@link pressPunch} : un appui traité après minuit lit le jour nouveau, et ne pointe rien hors
-   * des jours ouvrés de la semaine affichée.
+   * Pointe aujourd'hui, la date et l'heure relues au moment du geste — l'appui abouti, ou
+   * l'activation par TalkBack —, comme le dit {@link pressPunch} : un appui traité après minuit lit
+   * le jour nouveau, et ne pointe rien hors des jours ouvrés de la semaine affichée.
    *
    * Un appui reçu pendant l'enregistrement d'un pointage est ignoré : il lirait encore la journée
    * d'avant le premier, et la repointerait, une minute plus tard s'il tombe sur la minute
@@ -195,6 +199,10 @@ export function useGestures({
       onPress: () => void punchToday(),
       variant: "primary",
       disabled: !button.enabled,
+      hold: {
+        hint: HOLD_HINT,
+        onInterrupted: () => setBar({ message: HOLD_TO_PUNCH }),
+      },
     },
     edit,
   };
