@@ -34,6 +34,7 @@ Lues par `cycle-pr`, `execution-qa` et la génération de CI. `n/a` = étape abs
 - format:check : npm run format:check           # vérifiée le 2026-11-18, sortie 0 — Prettier, vérifie sans écrire
 - typecheck    : npm run typecheck              # vérifiée le 2026-11-18, sortie 0 — `tsc --noEmit` de chaque workspace
 - audit        : npm audit --audit-level=high   # vérifiée le 2026-11-18, sortie 0
+- deploy       : npm run deploy -w api           # vérifiée le 2026-11-19, sortie 0 — `neon deploy` de la Function sur la branche Neon liée ; lit `api/.env.local` (jeton, ignoré par git) ; `-- --branch <nom>` pour une autre branche
 - build        : n/a                            # l'APK se construit par EAS Build (cloud), hors CI
 - run local    : npm run start -w app           # non vérifiée — Expo, puis Expo Go sur le téléphone
 

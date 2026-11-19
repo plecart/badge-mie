@@ -200,8 +200,8 @@ Elles ne relèvent pas de l'architecture, mais elles en découlent. Les voici po
 ## Actions
 
 1. [x] Valider cet ADR (statut : Accepté).
-2. [ ] Créer le projet Neon en `aws-eu-central-1` et la table `presence`.
-3. [ ] Générer le jeton (32 octets aléatoires) et le poser en secret de la Function, jamais dans
+2. [x] Créer le projet Neon en `aws-eu-central-1` et la table `presence`.
+3. [x] Générer le jeton (32 octets aléatoires) et le poser en secret de la Function, jamais dans
        le dépôt.
 4. [ ] `init-projet` : stack TypeScript / Expo / Neon Function ; cet ADR devient une source de
        vérité de rang 1.
