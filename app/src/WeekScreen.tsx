@@ -135,8 +135,12 @@ export function WeekScreen({
     };
   }, [queue]);
 
-  const view = loaded?.monday === monday ? loaded.view : undefined;
-  const days = view?.days ?? null;
+  // Tant qu'elle n'a rien affiché, la semaine se charge.
+  const view: WeekView =
+    loaded?.monday === monday
+      ? loaded.view
+      : { days: null, unreachable: false };
+  const days = view.days;
   const isCurrent = monday >= currentMonday;
   const total = days
     ? formatDuration(
@@ -145,7 +149,8 @@ export function WeekScreen({
     : MISSING;
   const gestures = useGestures({
     queue,
-    days,
+    view,
+    monday,
     date: clock.date,
     onSaved: reload,
   });
@@ -188,7 +193,7 @@ export function WeekScreen({
             <SendIndicator count={pending} palette={palette} />
           )}
         </View>
-        {view?.unreachable && (
+        {view.unreachable && (
           <Text
             style={[styles.metaText, { color: palette.danger }]}
             accessibilityLiveRegion="polite"
@@ -207,7 +212,10 @@ export function WeekScreen({
               day={day}
               name={DAY_NAMES[index]}
               presence={presence}
-              // Jamais un jour futur, ni tant que la semaine n'est pas connue.
+              // Jamais un jour futur, ni tant que la semaine n'est pas connue, même injoignable,
+              // à la différence du pointage (`pressPunch`) : un jour passé a très probablement
+              // des heures sur le serveur, et une heure posée sur une journée supposée vide
+              // effacerait l'autre, le `PUT` portant la journée entière.
               onEdit={
                 presence && !day.isFuture
                   ? (field) => gestures.edit(presence, field)
