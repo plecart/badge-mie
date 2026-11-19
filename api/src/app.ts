@@ -112,9 +112,9 @@ function parseHours(
  * avant de lire le corps ; si le corps n'est pas un objet JSON dont les clés `arrivee` et `depart`
  * valent chacune `null` ou une heure `HH:MM` (les autres clés s'ignorent) ; ou si le départ ne
  * suit pas l'arrivée ({@link departureFollowsArrival}). Un départ sans arrivée est admis, comme
- * par la table `presence`. Une date future n'est pas contrôlée : l'application ne lit pas
- * l'horloge, et l'heure du téléphone fait foi, corrigeable à la main (PRD #1, « Hors
- * périmètre », horloge serveur de référence).
+ * par la table `presence`. Une date future n'est pas contrôlée : l'API ne lit pas l'horloge,
+ * et l'heure du téléphone fait foi, corrigeable à la main (PRD #1, « Hors périmètre », horloge
+ * serveur de référence).
  *
  * @param options.token - Le jeton fixe attendu.
  * @param options.repository - Le dépôt des présences.
