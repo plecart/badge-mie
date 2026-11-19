@@ -1,8 +1,8 @@
 /**
  * Le dépôt réel des présences : la table `presence` de la base Neon, lue et écrite par `pg`.
  *
- * Aucun test unitaire : c'est une frontière tierce (Postgres), éprouvée contre Neon au
- * déploiement de la Function.
+ * Seule la réécriture de l'URL de connexion (`withVerifiedTls`) a un test unitaire : le reste est
+ * une frontière tierce (Postgres), éprouvée contre Neon au déploiement de la Function.
  */
 
 import type { PresenceDay } from "@badge-mie/week";
@@ -47,16 +47,33 @@ const WRITE_DAY = `
 const MAX_CONNECTIONS = 5;
 
 /**
+ * Passe l'URL de connexion en `sslmode=verify-full`, quel que soit son mode (absent compris), et
+ * garde le reste. `pg` 8 lit déjà `require` ainsi, mais avertit à la première connexion de chaque
+ * processus que `pg` 9 lui rendra la sémantique libpq, sans vérifier le certificat (`pg` 8.23.1,
+ * `pg-connection-string` 2.14.1, lus le 2026-11-19) : explicite, le mode ne dépend plus du client.
+ *
+ * @throws {Error} si l'URL est illisible, sans la recopier : elle porte le mot de passe.
+ */
+export function withVerifiedTls(connectionString: string): string {
+  const url = URL.parse(connectionString);
+  if (!url) throw new Error("URL de connexion illisible");
+  url.searchParams.set("sslmode", "verify-full");
+  return url.href;
+}
+
+/**
  * Crée le dépôt sur son propre pool `pg`, à appeler une fois par processus : les requêtes
  * partagent ensuite ce pool. `attachDatabasePool` écoute ses erreurs, sans quoi la coupure d'une
  * connexion inactive ferait tomber le processus (doc Neon « Get started with Neon Functions »).
  *
  * @param connectionString - L'URL de connexion poolée (`DATABASE_URL`, injectée par Neon).
+ * @throws {Error} si l'URL est illisible (`withVerifiedTls`).
  */
 export function createNeonRepository(
   connectionString: string,
 ): PresenceRepository {
-  const pool = new Pool({ connectionString, max: MAX_CONNECTIONS });
+  const url = withVerifiedTls(connectionString);
+  const pool = new Pool({ connectionString: url, max: MAX_CONNECTIONS });
   attachDatabasePool(pool);
   return {
     async readDays(from, to) {
