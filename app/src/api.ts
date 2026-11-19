@@ -1,9 +1,10 @@
 /**
- * Client de l'API : la lecture d'une semaine, `GET /semaines/:lundi` (ADR-0001, « Décision »,
- * point 6).
+ * Client de l'API, ses deux routes (ADR-0001, « Décision », point 6) : la lecture d'une semaine,
+ * `GET /semaines/:lundi`, et l'écriture d'un jour, `PUT /jours/:date`.
  *
- * La requête et la lecture de la réponse sont des fonctions pures, testées ; {@link readWeek} n'est
- * que l'adaptateur mince qui les relie par `fetch`, non testé (PRD #1, « Décisions de test »).
+ * Pour chaque route, la requête et la lecture de la réponse sont des fonctions pures, testées ;
+ * {@link readWeek} et {@link writeDay} ne sont que les adaptateurs minces qui les relient par
+ * `fetch`, non testés (PRD #1, « Décisions de test »).
  */
 
 import { isTime, type PresenceDay, weekDates } from "@badge-mie/week";
@@ -18,8 +19,10 @@ export class TokenRejectedError extends Error {
 }
 
 /**
- * Le serveur n'a pas rendu de semaine lisible : réseau coupé, statut HTTP autre que 2xx et 401,
- * ou corps mal formé. Pour l'utilisateur, c'est « Serveur injoignable ».
+ * Le serveur n'a pas pu être joint, ou sa réponse n'est pas exploitable : réseau coupé ; pour la
+ * lecture d'une semaine, statut HTTP autre que 2xx et 401, ou corps mal formé ; pour l'écriture
+ * d'un jour, statut hors 2xx et 4xx (5xx, 1xx, 3xx). Pour l'utilisateur, c'est « Serveur
+ * injoignable ».
  */
 export class ServerUnreachableError extends Error {
   override name = "ServerUnreachableError";
@@ -29,19 +32,57 @@ export class ServerUnreachableError extends Error {
 }
 
 /**
+ * Le serveur a refusé la journée : un statut 4xx autre que 401 en réponse à `PUT /jours/:date`.
+ *
+ * C'est un refus durable. La faute est dans la requête (RFC 9110 §15.5), que l'idempotence du
+ * `PUT` rejouerait à l'identique : la rejouer ne la ferait pas passer. L'entrée reste pourtant en
+ * file, jamais perdue (décision 7 de #4).
+ */
+export class DayRejectedError extends Error {
+  override name = "DayRejectedError";
+  constructor() {
+    super("journée refusée");
+  }
+}
+
+/** Une requête prête pour `fetch` : son URL et ses options. */
+interface ApiRequest {
+  url: string;
+  init: RequestInit;
+}
+
+/** L'en-tête qui porte le jeton d'accès : `Authorization: Bearer <jeton>`. */
+function bearer(token: string): { Authorization: string } {
+  return { Authorization: `Bearer ${token}` };
+}
+
+/** Vrai pour un statut HTTP de succès, 2xx. */
+function isSuccess(status: number): boolean {
+  return status >= 200 && status <= 299;
+}
+
+/**
+ * Envoie une requête par `fetch`. Un `fetch` qui échoue (réseau coupé) lève
+ * {@link ServerUnreachableError}, qui garde l'erreur d'origine en `cause` ; toute réponse, quel
+ * que soit son statut, est rendue telle quelle.
+ */
+function send({ url, init }: ApiRequest): Promise<Response> {
+  return fetch(url, init).catch((cause: unknown) => {
+    throw new ServerUnreachableError({ cause });
+  });
+}
+
+/**
  * Construit la requête de lecture d'une semaine.
  *
  * @param token - Le jeton d'accès, porté en en-tête `Authorization: Bearer`.
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine ; le serveur rend 400 pour un autre jour.
  * @returns L'URL et les options de `fetch` ; la méthode est `GET`, celle par défaut.
  */
-export function weekRequest(
-  token: string,
-  monday: string,
-): { url: string; init: RequestInit } {
+export function weekRequest(token: string, monday: string): ApiRequest {
   return {
     url: `${API_URL}/semaines/${monday}`,
-    init: { headers: { Authorization: `Bearer ${token}` } },
+    init: { headers: bearer(token) },
   };
 }
 
@@ -100,7 +141,7 @@ export function parseWeekResponse(
   monday: string,
 ): PresenceDay[] {
   if (status === 401) throw new TokenRejectedError();
-  if (status < 200 || status > 299 || !isWeek(body, monday)) {
+  if (!isSuccess(status) || !isWeek(body, monday)) {
     throw new ServerUnreachableError();
   }
   return body;
@@ -122,10 +163,61 @@ export async function readWeek(
   token: string,
   monday: string,
 ): Promise<PresenceDay[]> {
-  const { url, init } = weekRequest(token, monday);
-  const response = await fetch(url, init).catch((cause: unknown) => {
-    throw new ServerUnreachableError({ cause });
-  });
+  const response = await send(weekRequest(token, monday));
   const body: unknown = await response.json().catch(() => undefined);
   return parseWeekResponse(response.status, body, monday);
+}
+
+/**
+ * Construit la requête d'écriture d'un jour : `PUT /jours/:date`, qui crée ou remplace la
+ * journée sur le serveur.
+ *
+ * @param token - Le jeton d'accès, porté en en-tête `Authorization: Bearer`.
+ * @param day - La journée à écrire ; `day.jour` fait la route, le serveur rend 400 pour une date
+ *   qui n'est pas réelle.
+ * @returns L'URL et les options de `fetch` : la méthode `PUT`, le corps JSON
+ *   `{ arrivee, depart }`, une heure non pointée écrite `null`, et son en-tête `Content-Type`.
+ */
+export function dayRequest(token: string, day: PresenceDay): ApiRequest {
+  return {
+    url: `${API_URL}/jours/${day.jour}`,
+    init: {
+      method: "PUT",
+      headers: { ...bearer(token), "Content-Type": "application/json" },
+      body: JSON.stringify({ arrivee: day.arrivee, depart: day.depart }),
+    },
+  };
+}
+
+/**
+ * Lit la réponse à {@link dayRequest}. Seul le statut compte : le serveur répond 204 sans corps.
+ *
+ * @param status - Le statut HTTP de la réponse.
+ * @throws {TokenRejectedError} sur un 401.
+ * @throws {DayRejectedError} sur tout autre 4xx : le refus durable.
+ * @throws {ServerUnreachableError} sur tout statut hors 2xx et 4xx : 5xx, 1xx, 3xx.
+ */
+export function parseDayResponse(status: number): void {
+  if (isSuccess(status)) return;
+  if (status === 401) throw new TokenRejectedError();
+  if (status >= 400 && status <= 499) throw new DayRejectedError();
+  throw new ServerUnreachableError();
+}
+
+/**
+ * Écrit une journée sur le serveur.
+ *
+ * Le corps de la réponse n'est pas lu. Sous Expo, `fetch` est `expo/fetch`, dont le module natif
+ * Android lit le corps jusqu'au bout puis ferme la réponse, que JavaScript le lise ou non : ne
+ * pas le lire ne retient pas la connexion.
+ *
+ * @param token - Le jeton d'accès.
+ * @param day - La journée à écrire.
+ * @throws {TokenRejectedError} si le serveur refuse le jeton.
+ * @throws {DayRejectedError} si le serveur refuse la journée.
+ * @throws {ServerUnreachableError} si `fetch` échoue (réseau coupé), ou sur toute autre réponse
+ *   que {@link parseDayResponse} refuse.
+ */
+export async function writeDay(token: string, day: PresenceDay): Promise<void> {
+  parseDayResponse((await send(dayRequest(token, day))).status);
 }
