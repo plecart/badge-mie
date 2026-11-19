@@ -3,28 +3,31 @@
  * l'annulation du dernier geste. Chacun s'enregistre par la File d'envoi, et la barre du dernier
  * geste le confirme pendant {@link BAR_MS}, « Annuler » compris (issue #4, décisions 1 et 2).
  *
+ * Ce que fait le bouton de pointage, actif ou non, et l'issue d'un appui, retour haptique compris,
+ * se décident dans `./punch` ({@link punchButton}, {@link pressPunch}) : l'écran les exécute.
+ *
  * Aucun gestionnaire ne laisse remonter d'exception : les journées viennent d'une semaine vérifiée
- * à sa lecture, `punch` n'est appelé que sur une action qui se pointe, `editTime` que sur une heure
- * `HH:MM` ou `null`, le sélecteur reçoit toujours un `Date`, et un échec du stockage s'affiche dans
- * la barre.
+ * à sa lecture, `pressPunch` reçoit le lundi de la semaine affichée et l'heure `HH:MM` de
+ * `currentTime`, `editTime` une heure `HH:MM` ou `null`, le sélecteur reçoit toujours un `Date`,
+ * et un échec du stockage s'affiche dans la barre.
  */
 
 import type { PresenceDay } from "@badge-mie/week";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { ImpactFeedbackStyle, impactAsync } from "expo-haptics";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { editMessage, PUNCH_LABELS, punchMessage } from "./labels";
 import {
-  canPunch,
   editTime,
   type Outcome,
-  punch,
-  punchAction,
+  pressPunch,
+  punchButton,
   type TimeField,
 } from "./punch";
 import type { DockButton } from "./PunchDock";
 import type { SendQueue } from "./send-queue";
 import { currentTime, instantAt, today } from "./today";
+import type { WeekView } from "./week-store";
 
 /** La durée d'affichage de la barre du dernier geste, et de son « Annuler » (PRD #1, story 20). */
 const BAR_MS = 5000;
@@ -42,8 +45,8 @@ interface Bar {
  * Rend les gestes de l'écran de la semaine.
  *
  * @param options.queue - La File d'envoi, par laquelle chaque geste s'enregistre.
- * @param options.days - Les journées de la semaine affichée, ou `null` tant qu'elle n'est pas
- *   connue : on ne pointe jamais une journée inconnue, qui écraserait celle du serveur.
+ * @param options.view - La vue de la semaine affichée.
+ * @param options.monday - Le lundi `AAAA-MM-JJ` de la semaine affichée.
  * @param options.date - La date du jour `AAAA-MM-JJ`, celle de l'horloge de l'écran.
  * @param options.onSaved - Appelé après chaque enregistrement, réussi ou non, pour relire la
  *   semaine affichée.
@@ -53,12 +56,14 @@ interface Bar {
  */
 export function useGestures({
   queue,
-  days,
+  view,
+  monday,
   date,
   onSaved,
 }: {
   queue: SendQueue;
-  days: PresenceDay[] | null;
+  view: WeekView;
+  monday: string;
   date: string;
   onSaved: () => void;
 }): {
@@ -68,6 +73,8 @@ export function useGestures({
   edit: (day: PresenceDay, field: TimeField) => void;
 } {
   const [bar, setBar] = useState<Bar | null>(null);
+  // Vrai pendant l'enregistrement d'un pointage.
+  const punching = useRef(false);
 
   // Un nouveau geste remplace la barre et relance son délai.
   useEffect(() => {
@@ -76,13 +83,7 @@ export function useGestures({
     return () => clearTimeout(timer);
   }, [bar]);
 
-  /** La journée d'une date dans la semaine affichée ; `undefined` si elle n'y est pas connue. */
-  const dayOf = (isoDate: string) => days?.find((day) => day.jour === isoDate);
-  const todayDay = dayOf(date);
-  // Le week-end, ou tant que la semaine n'est pas connue, l'action se lit sur une journée vide.
-  const action = punchAction(
-    todayDay ?? { jour: date, arrivee: null, depart: null },
-  );
+  const button = punchButton(view, monday, date);
 
   /**
    * Enregistre une journée par la file.
@@ -123,22 +124,32 @@ export function useGestures({
   }
 
   /**
-   * Pointe aujourd'hui, la date et l'heure relues au moment du geste. Ne fait rien si la journée
-   * n'est pas connue ou n'a rien à pointer : un appui traité après minuit ne pointe jamais une
-   * journée inconnue ni terminée. Un second appui reçu avant que la semaine relue s'affiche lit
-   * encore la journée d'avant le premier : il la pointe de nouveau, à la même heure ou à la
-   * minute suivante, et son « Annuler » rétablit la journée d'avant les deux.
+   * Pointe aujourd'hui, la date et l'heure relues au moment du geste, comme le dit
+   * {@link pressPunch} : un appui traité après minuit lit le jour nouveau, et ne pointe rien hors
+   * des jours ouvrés de la semaine affichée.
+   *
+   * Un appui reçu pendant l'enregistrement d'un pointage est ignoré : il lirait encore la journée
+   * d'avant le premier, et la repointerait, une minute plus tard s'il tombe sur la minute
+   * suivante. Code d'écran, sans test.
    */
   async function punchToday() {
-    const day = dayOf(today());
-    if (day === undefined) return;
-    const punched = punchAction(day);
-    if (!canPunch(punched)) return;
+    if (punching.current) return;
     const time = currentTime();
-    if (await settle(day, punch(day, time), punchMessage(punched, time))) {
-      // Le retour haptique accompagne le pointage seul (issue #4, décision 1) ; manqué, il ne
-      // change rien au pointage.
-      impactAsync(ImpactFeedbackStyle.Medium).catch(() => undefined);
+    const press = pressPunch(view, monday, today(), time);
+    if (press === null) return;
+    // ponytail: la garde tombe à la fin de l'enregistrement, avant l'affichage de la semaine
+    // relue ; un second appui dans cet intervalle repointe encore, et son « Annuler » rétablit la
+    // journée d'avant les deux. La tenir jusqu'à la vue suivante si le double appui se voit.
+    punching.current = true;
+    try {
+      const message = punchMessage(press.action, time);
+      const saved = await settle(press.before, press.outcome, message);
+      // Manqué, le retour haptique ne change rien au pointage.
+      if (saved && press.haptic) {
+        impactAsync(ImpactFeedbackStyle.Medium).catch(() => undefined);
+      }
+    } finally {
+      punching.current = false;
     }
   }
 
@@ -173,10 +184,10 @@ export function useGestures({
     message: bar?.message ?? null,
     onUndo: undoDay && (() => void undo(undoDay)),
     punchButton: {
-      label: PUNCH_LABELS[action],
+      label: PUNCH_LABELS[button.action],
       onPress: () => void punchToday(),
       variant: "primary",
-      disabled: todayDay === undefined || !canPunch(action),
+      disabled: !button.enabled,
     },
     edit,
   };
