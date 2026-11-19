@@ -1,8 +1,10 @@
 /**
  * L'écran de la semaine, variante « Pouce » du prototype : l'en-tête et ses flèches, la ligne du
- * total, les cinq cartes du lundi au vendredi et la bande du bas (issue #3, « Décisions », point 7).
- * En lecture seule : les heures deviennent touchables, et la bande reçoit le bouton de pointage,
- * avec #4.
+ * total et de l'indicateur d'envoi, les cinq cartes du lundi au vendredi et la bande du bas
+ * (issue #3, « Décisions », point 7 ; issue #4, décision 1). On y pointe aujourd'hui par le bouton
+ * du bas, et on y corrige une heure d'un jour passé ou d'aujourd'hui en la touchant
+ * (`./use-gestures`). Chaque geste passe par la File d'envoi, que l'écran relance à son ouverture,
+ * au retour du réseau et au retour au premier plan (issue #4, décision 8).
  */
 
 import {
@@ -11,21 +13,31 @@ import {
   formatDuration,
   isoWeek,
   mondayOf,
-  type PresenceDay,
-  type WeekDay,
   weekDays,
   weekRangeLabel,
   weekTotal,
 } from "@badge-mie/week";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useEffectEvent, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { addNetworkStateListener } from "expo-network";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import {
+  AppState,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { readWeek, TokenRejectedError } from "./api";
-import { durationText, MISSING } from "./labels";
-import { BUTTON, BUTTON_LABEL, FONTS, type Palette, usePalette } from "./theme";
-import { today } from "./today";
+import { readWeek, TokenRejectedError, writeDay } from "./api";
+import { DayCard } from "./DayCard";
+import { clockLine, MISSING, pendingText } from "./labels";
+import { PunchDock } from "./PunchDock";
+import { createSendQueue } from "./send-queue";
+import { FONTS, type Palette, usePalette } from "./theme";
+import { useClock } from "./use-clock";
+import { useGestures } from "./use-gestures";
 import { loadWeek, type WeekView } from "./week-store";
 
 /** Les jours abrégés des cinq cartes, du lundi au vendredi. */
@@ -34,16 +46,14 @@ const DAY_NAMES = ["Lun.", "Mar.", "Mer.", "Jeu.", "Ven."];
 /** L'opacité de la flèche « Semaine suivante » sur la semaine en cours. */
 const DISABLED_OPACITY = 0.28;
 
-/** L'opacité des cases d'un jour futur. */
-const FUTURE_OPACITY = 0.45;
-
 /** Le corps du sur-titre de l'en-tête, et son espacement de 0,08em. */
 const OVERLINE_SIZE = 11;
 const OVERLINE_SPACING = 0.08 * OVERLINE_SIZE;
 
 /**
- * @param token - Le jeton d'accès, pour lire les semaines sur le serveur.
- * @param onTokenRejected - Appelé quand le serveur refuse le jeton.
+ * @param token - Le jeton d'accès, pour lire et écrire les journées sur le serveur.
+ * @param onTokenRejected - Appelé quand le serveur refuse le jeton, à la lecture d'une semaine
+ *   comme à l'envoi de la file ; il peut l'être plusieurs fois pour un même refus.
  */
 export function WeekScreen({
   token,
@@ -53,12 +63,30 @@ export function WeekScreen({
   onTokenRejected: () => void;
 }) {
   const palette = usePalette();
-  const date = today();
-  const currentMonday = mondayOf(date);
+  const clock = useClock();
+  const currentMonday = mondayOf(clock.date);
   const [monday, setMonday] = useState(currentMonday);
   // Chaque vue garde le lundi qui l'a demandée : celle d'une autre semaine n'est pas affichée.
   const [loaded, setLoaded] = useState<{ monday: string; view: WeekView }>();
+  // Incrémenté pour relire la semaine affichée : après un geste, au retour au premier plan.
+  const [reloads, setReloads] = useState(0);
+  const reload = () => setReloads((count) => count + 1);
+  // Le nombre de jours en attente d'envoi, `null` tant que la file ne l'a pas dit.
+  const [pending, setPending] = useState<number | null>(null);
   const reportTokenRejected = useEffectEvent(onTokenRejected);
+
+  // Une file par jeton, qui envoie avec lui ; `reportTokenRejected` appelle toujours le dernier
+  // `onTokenRejected` reçu.
+  const queue = useMemo(
+    () =>
+      createSendQueue({
+        storage: AsyncStorage,
+        send: (day) => writeDay(token, day),
+        onChange: setPending,
+        onTokenRejected: reportTokenRejected,
+      }),
+    [token],
+  );
 
   useEffect(() => {
     // Un chargement remplacé (autre semaine, ou la même redemandée) n'affiche plus rien.
@@ -68,8 +96,7 @@ export function WeekScreen({
       {
         storage: AsyncStorage,
         read: (week) => readWeek(token, week),
-        // En lecture seule, l'écran n'a pas de file d'envoi : aucun jour n'attend.
-        pending: async () => [],
+        pending: queue.pendingDays,
       },
       (view) => {
         if (current) setLoaded({ monday, view });
@@ -81,7 +108,32 @@ export function WeekScreen({
     return () => {
       current = false;
     };
-  }, [monday, token]);
+  }, [monday, token, queue, reloads]);
+
+  // Les déclencheurs de la relance (issue #4, décision 8) : l'ouverture de l'écran, le retour du
+  // réseau, le retour au premier plan, qui relit aussi la semaine affichée. `record` relance de
+  // lui-même.
+  useEffect(() => {
+    void queue.flush();
+    queue.pendingDays().then(
+      // Le compte lu ici ne remplace pas celui qu'une écriture de la file a pu dire avant lui.
+      (days) => setPending((count) => count ?? days.length),
+      // Une file qui ne se lit pas laisse l'indicateur caché.
+      () => undefined,
+    );
+    const network = addNetworkStateListener(({ isConnected }) => {
+      if (isConnected) void queue.flush();
+    });
+    const appState = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      reload();
+      void queue.flush();
+    });
+    return () => {
+      network.remove();
+      appState.remove();
+    };
+  }, [queue]);
 
   const view = loaded?.monday === monday ? loaded.view : undefined;
   const days = view?.days ?? null;
@@ -91,6 +143,12 @@ export function WeekScreen({
         weekTotal(days.map((day) => dayDuration(day.arrivee, day.depart))),
       )
     : MISSING;
+  const gestures = useGestures({
+    queue,
+    days,
+    date: clock.date,
+    onSaved: reload,
+  });
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.bg }]}>
@@ -119,12 +177,17 @@ export function WeekScreen({
       </View>
 
       <View style={styles.meta}>
-        <Text style={[styles.metaText, { color: palette.muted }]}>
-          Total{" "}
-          <Text style={[styles.totalValue, { color: palette.fg }]}>
-            {total}
+        <View style={styles.totalLine}>
+          <Text style={[styles.metaText, { color: palette.muted }]}>
+            Total{" "}
+            <Text style={[styles.totalValue, { color: palette.fg }]}>
+              {total}
+            </Text>
           </Text>
-        </Text>
+          {pending !== null && (
+            <SendIndicator count={pending} palette={palette} />
+          )}
+        </View>
         {view?.unreachable && (
           <Text
             style={[styles.metaText, { color: palette.danger }]}
@@ -136,37 +199,41 @@ export function WeekScreen({
       </View>
 
       <ScrollView contentContainerStyle={styles.cards}>
-        {weekDays(monday, date).map((day, index) => (
-          <DayCard
-            key={day.date}
-            day={day}
-            name={DAY_NAMES[index]}
-            presence={days?.[index]}
-            palette={palette}
-          />
-        ))}
+        {weekDays(monday, clock.date).map((day, index) => {
+          const presence = days?.[index];
+          return (
+            <DayCard
+              key={day.date}
+              day={day}
+              name={DAY_NAMES[index]}
+              presence={presence}
+              // Jamais un jour futur, ni tant que la semaine n'est pas connue.
+              onEdit={
+                presence && !day.isFuture
+                  ? (field) => gestures.edit(presence, field)
+                  : undefined
+              }
+              palette={palette}
+            />
+          );
+        })}
       </ScrollView>
 
-      <View style={[styles.dock, { borderTopColor: palette.line }]}>
-        {isCurrent ? (
-          // La place du bouton de pointage, qui arrive avec #4.
-          <View style={{ height: BUTTON.height }} />
-        ) : (
-          <Pressable
-            style={[
-              BUTTON,
-              styles.secondary,
-              { backgroundColor: palette.surface, borderColor: palette.line },
-            ]}
-            onPress={() => setMonday(currentMonday)}
-            accessibilityRole="button"
-          >
-            <Text style={[BUTTON_LABEL, { color: palette.fg }]}>
-              Revenir à cette semaine
-            </Text>
-          </Pressable>
-        )}
-      </View>
+      <PunchDock
+        message={gestures.message}
+        onUndo={gestures.onUndo}
+        button={
+          isCurrent
+            ? gestures.punchButton
+            : {
+                label: "Revenir à cette semaine",
+                onPress: () => setMonday(currentMonday),
+                variant: "secondary",
+              }
+        }
+        clock={clockLine(clock.date, clock.time)}
+        palette={palette}
+      />
     </SafeAreaView>
   );
 }
@@ -207,84 +274,28 @@ function RoundButton({
 }
 
 /**
- * La carte d'un jour : son nom et son numéro, ses deux heures, sa durée.
+ * L'indicateur d'envoi, à côté du total : un point vert quand aucun jour n'attend l'envoi, orange
+ * sinon, et son texte (PRD #1, stories 39 et 40).
  *
- * @param presence - La journée lue, ou `undefined` tant que rien n'est arrivé.
+ * @param count - Le nombre de jours en attente d'envoi.
  */
-function DayCard({
-  day,
-  name,
-  presence,
+function SendIndicator({
+  count,
   palette,
 }: {
-  day: WeekDay;
-  name: string | undefined;
-  presence: PresenceDay | undefined;
-  palette: Palette;
-}) {
-  const arrival = presence?.arrivee ?? null;
-  const departure = presence?.depart ?? null;
-  const background = day.isToday
-    ? palette.accentSoft
-    : day.isFuture
-      ? "transparent"
-      : palette.surface;
-
-  return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: background,
-          borderColor: day.isToday ? palette.accent : palette.line,
-        },
-      ]}
-    >
-      <View style={styles.dayColumn}>
-        <Text style={[styles.dayName, { color: palette.muted }]}>{name}</Text>
-        <Text style={[styles.dayNumber, { color: palette.fg }]}>
-          {Number(day.date.slice(8))}
-        </Text>
-      </View>
-      <TimeSlot label="Arrivée" time={arrival} day={day} palette={palette} />
-      <TimeSlot label="Départ" time={departure} day={day} palette={palette} />
-      <Text style={[styles.duration, { color: palette.muted }]}>
-        {durationText(arrival, departure, day.isToday)}
-      </Text>
-    </View>
-  );
-}
-
-/** Une case d'heure : son libellé, puis l'heure, ou « — » si elle manque. */
-function TimeSlot({
-  label,
-  time,
-  day,
-  palette,
-}: {
-  label: string;
-  time: string | null;
-  day: WeekDay;
+  count: number;
   palette: Palette;
 }) {
   return (
-    <View
-      style={[
-        styles.slot,
-        {
-          backgroundColor: day.isToday ? palette.surface : palette.surface2,
-          opacity: day.isFuture ? FUTURE_OPACITY : 1,
-        },
-      ]}
-    >
-      <Text style={[styles.slotLabel, { color: palette.muted }]}>{label}</Text>
-      <Text
+    <View style={styles.indicator}>
+      <View
         style={[
-          styles.slotTime,
-          { color: time === null ? palette.muted : palette.fg },
+          styles.dot,
+          { backgroundColor: count === 0 ? palette.accent : palette.pending },
         ]}
-      >
-        {time ?? MISSING}
+      />
+      <Text style={[styles.metaText, { color: palette.muted }]}>
+        {pendingText(count)}
       </Text>
     </View>
   );
@@ -315,39 +326,10 @@ const styles = StyleSheet.create({
   },
   range: { fontFamily: FONTS.digits, fontSize: 19 },
   meta: { paddingHorizontal: 16, paddingVertical: 12, gap: 4 },
+  totalLine: { flexDirection: "row", alignItems: "center", gap: 16 },
+  indicator: { flexDirection: "row", alignItems: "center", gap: 6 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
   metaText: { fontFamily: FONTS.text, fontSize: 13 },
   totalValue: { fontFamily: FONTS.digitsStrong },
   cards: { paddingHorizontal: 16, paddingBottom: 16, gap: 8 },
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  dayColumn: { width: 44 },
-  dayName: { fontFamily: FONTS.text, fontSize: 12 },
-  dayNumber: { fontFamily: FONTS.digits, fontSize: 20 },
-  slot: {
-    flex: 1,
-    height: 52,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    justifyContent: "center",
-  },
-  slotLabel: {
-    fontFamily: FONTS.text,
-    fontSize: 10,
-    textTransform: "uppercase",
-  },
-  slotTime: { fontFamily: FONTS.digits, fontSize: 20 },
-  duration: {
-    width: 64,
-    textAlign: "right",
-    fontFamily: FONTS.text,
-    fontSize: 13,
-  },
-  dock: { borderTopWidth: 1, padding: 16 },
-  secondary: { borderWidth: 1 },
 });

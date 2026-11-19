@@ -1,6 +1,7 @@
 /**
  * Le thème des écrans : les palettes claire et sombre et les polices du prototype « Pouce »,
- * reprises telles quelles (issue #3, « Décisions », point 7).
+ * reprises telles quelles (issue #3, « Décisions », point 7), plus l'orange de l'indicateur
+ * d'envoi (issue #4, décision 1).
  */
 
 import { Inter_400Regular } from "@expo-google-fonts/inter/400Regular";
@@ -21,6 +22,8 @@ export interface Palette {
   accentInk: string;
   accentSoft: string;
   danger: string;
+  /** Le point orange de l'indicateur d'envoi, quand des jours attendent l'envoi. */
+  pending: string;
 }
 
 const LIGHT: Palette = {
@@ -34,6 +37,7 @@ const LIGHT: Palette = {
   accentInk: "#FFFFFF",
   accentSoft: "#E0EEE6",
   danger: "#B3402E",
+  pending: "#B8661A",
 };
 
 const DARK: Palette = {
@@ -47,6 +51,7 @@ const DARK: Palette = {
   accentInk: "#0E1311",
   accentSoft: "#1A2C25",
   danger: "#F08A78",
+  pending: "#F0A35E",
 };
 
 /**

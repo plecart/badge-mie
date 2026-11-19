@@ -50,6 +50,19 @@ export function punchAction(day: PresenceDay): PunchAction {
 }
 
 /**
+ * Dit si une action du bouton de pointage pointe une heure : le bouton n'est actif, et
+ * {@link punch} n'est permis, que pour elle.
+ *
+ * @param action - L'action, telle que la rend {@link punchAction}.
+ * @returns `true` pour `arrival` et `departure`, `false` pour `done` et `weekend`.
+ */
+export function canPunch(
+  action: PunchAction,
+): action is "arrival" | "departure" {
+  return action === "arrival" || action === "departure";
+}
+
+/**
  * Pointe une journée : pose l'heure sur l'arrivée ou le départ, selon {@link punchAction}.
  *
  * Un départ qui ne suit pas l'arrivée est refusé, comme à la correction à la main : c'est le
@@ -60,13 +73,13 @@ export function punchAction(day: PresenceDay): PunchAction {
  * @param day - La journée à pointer.
  * @param time - L'heure `HH:MM` du pointage, telle que la rend `currentTime`.
  * @returns La journée pointée, ou le refus {@link DEPARTURE_MUST_FOLLOW_ARRIVAL}.
- * @throws {RangeError} si l'action est `done` ou `weekend` : le bouton est alors désactivé, et
- *   l'appel est une erreur de l'appelant. Aussi si `day.jour` n'est pas une date réelle, et dans
- *   les cas de {@link editTime}.
+ * @throws {RangeError} si l'action ne se pointe pas ({@link canPunch}) : le bouton est alors
+ *   désactivé, et l'appel est une erreur de l'appelant. Aussi si `day.jour` n'est pas une date
+ *   réelle, et dans les cas de {@link editTime}.
  */
 export function punch(day: PresenceDay, time: string): Outcome {
   const action = punchAction(day);
-  if (action === "done" || action === "weekend") {
+  if (!canPunch(action)) {
     throw new RangeError(`rien à pointer le ${day.jour} : ${action}`);
   }
   return editTime(day, action === "arrival" ? "arrivee" : "depart", time);

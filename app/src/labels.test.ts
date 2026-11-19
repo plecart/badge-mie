@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   clockLine,
   durationText,
-  editLabel,
+  editHint,
   editMessage,
   pendingText,
   PUNCH_LABELS,
@@ -90,11 +90,11 @@ describe("clockLine", () => {
   });
 });
 
-describe("editLabel", () => {
+describe("editHint", () => {
   it.each([
     ["arrivee", "Modifier l'arrivée du mercredi 18 novembre"],
     ["depart", "Modifier le départ du mercredi 18 novembre"],
-  ] as const)("nomme le geste qui corrige %s : « %s »", (field, label) => {
-    expect(editLabel(field, "2026-11-18")).toBe(label);
+  ] as const)("indique le geste qui corrige %s : « %s »", (field, hint) => {
+    expect(editHint(field, "2026-11-18")).toBe(hint);
   });
 });
