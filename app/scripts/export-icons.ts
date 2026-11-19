@@ -18,11 +18,11 @@ import { Resvg } from "@resvg/resvg-js";
 /** Le côté des PNG exportés, en pixels : la taille que recommande Expo pour une icône. */
 export const ICON_SIZE = 1024;
 
-/** La couleur du motif dans la source : l'accent du thème clair. */
-const ACCENT = "#2C6A54";
-
 /** La couleur unie de la couche monochrome ; le lanceur la teinte selon le thème choisi. */
 const MONOCHROME = "#000000";
+
+/** Un remplissage de couleur `#RRGGBB`, la forme qu'emploie la source. */
+const HEX_FILL = /fill="#[0-9A-Fa-f]{6}"/g;
 
 /**
  * Rend un SVG carré en image de {@link ICON_SIZE} pixels de côté.
@@ -38,6 +38,19 @@ export function renderIcon(svg: string) {
     fitTo: { mode: "width", value: ICON_SIZE },
     font: { loadSystemFonts: false },
   }).render();
+}
+
+/**
+ * Rend la couche monochrome d'un SVG : chaque remplissage passe à la couleur unie, quelle que soit
+ * sa couleur d'origine.
+ *
+ * @param svg - Le texte du SVG source.
+ * @returns Le SVG, chaque attribut `fill="#RRGGBB"` remplacé par {@link MONOCHROME}.
+ */
+export function monochrome(svg: string): string {
+  // ponytail: seuls les `fill="#RRGGBB"` sont recolorés ; une couleur écrite autrement (nommée,
+  // en `style`, en `stroke`) garderait sa teinte, passer alors par un filtre feFlood + feComposite.
+  return svg.replace(HEX_FILL, `fill="${MONOCHROME}"`);
 }
 
 /**
@@ -68,10 +81,8 @@ if (import.meta.main) {
     renderIcon(withBackground(svg, background)).asPng(),
   );
   writeFileSync(asset("icon-foreground.png"), renderIcon(svg).asPng());
-  // ponytail: ne recolore que l'accent ; une seconde couleur ajoutée à la source garderait sa
-  // teinte dans la couche monochrome, passer alors par un filtre feFlood + feComposite.
   writeFileSync(
     asset("icon-monochrome.png"),
-    renderIcon(svg.replaceAll(ACCENT, MONOCHROME)).asPng(),
+    renderIcon(monochrome(svg)).asPng(),
   );
 }
