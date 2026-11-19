@@ -32,7 +32,9 @@ Il y a aussi des contraintes qui ne sont pas écrites mais qui pèsent sur le ch
 
 1. **Client : Expo (React Native + TypeScript)**. L'APK est construit dans le cloud par EAS Build
    (profil qui produit un `.apk`), sans boîte à outils Android en local. Pendant le développement,
-   l'application tourne sur le téléphone via Expo Go.
+   l'application tourne sur le téléphone via Expo Go tant qu'elle n'embarque aucun code natif. Le
+   widget d'écran d'accueil en embarque : dès qu'il entre, le développement passe sur un build de
+   développement (`expo-dev-client`), construit lui aussi par EAS Build.
 2. **Backend : une Neon Function** (Hono, Node.js) dans la région `aws-eu-central-1`, à côté de
    la base. Elle reçoit `DATABASE_URL` automatiquement. **L'application ne parle jamais
    directement à Postgres.**
@@ -190,8 +192,13 @@ Elles ne relèvent pas de l'architecture, mais elles en découlent. Les voici po
 - **Le bouton vise toujours aujourd'hui.** Les autres jours se corrigent en touchant leur heure.
 - **Toucher une heure ouvre le sélecteur d'heure natif d'Android**, prérempli. Une heure vide
   touchée s'ouvre sur l'heure courante.
-- **« Annuler » pendant quelques secondes** après un pointage (barre en bas), plutôt qu'une
-  confirmation avant : on garde le pointage en un geste et l'erreur reste réparable.
+- **Dans l'app, un appui maintenu** déclenche le pointage : environ 1,5 s, avec une progression
+  dessinée sur le contour du bouton, qui revient en arrière si le doigt se lève avant la fin ; un
+  toucher bref affiche « Maintiens le bouton pour pointer ».
+- **Sur le widget**, qui ne reçoit que des touchers, **deux touchers** : le premier arme le bouton,
+  de façon visible, le second pointe.
+- **« Annuler » reste visible quelques secondes** après un pointage (barre en bas) : l'appui
+  maintenu évite le pointage accidentel, « Annuler » répare une heure fausse.
 - **Aujourd'hui mis en évidence** dans les 5 lignes ; un retour haptique au pointage ; un petit
   indicateur « en attente d'envoi » quand la file hors ligne n'est pas vide.
 - **À décider :** le total d'heures de la semaine (une ligne de plus) et la navigation vers les
