@@ -11,8 +11,9 @@
 import {
   departureFollowsArrival,
   emptyDay,
+  isIsoDate,
   isTimeOrNull,
-  mondayOf,
+  isWorkday,
   type PresenceDay,
   weekDates,
 } from "@badge-mie/week";
@@ -62,13 +63,16 @@ export interface PunchPress {
  * Rend l'action que propose le bouton de pointage pour une journée.
  *
  * @param day - La journée, d'ordinaire celle d'aujourd'hui.
- * @returns `weekend` un samedi ou un dimanche ; sinon `arrival` tant que l'arrivée n'est pas
- *   pointée, même si le départ l'est, `departure` quand seule l'arrivée l'est, `done` quand les
- *   deux le sont.
+ * @returns `weekend` un samedi ou un dimanche ({@link isWorkday}) ; sinon `arrival` tant que
+ *   l'arrivée n'est pas pointée, même si le départ l'est, `departure` quand seule l'arrivée
+ *   l'est, `done` quand les deux le sont.
  * @throws {RangeError} si `day.jour` n'est pas une date réelle.
  */
 export function punchAction(day: PresenceDay): PunchAction {
-  if (!weekDates(mondayOf(day.jour)).includes(day.jour)) return "weekend";
+  if (!isIsoDate(day.jour)) {
+    throw new RangeError(`date invalide : « ${day.jour} », attendu AAAA-MM-JJ`);
+  }
+  if (!isWorkday(day.jour)) return "weekend";
   if (day.arrivee === null) return "arrival";
   return day.depart === null ? "departure" : "done";
 }
