@@ -170,6 +170,7 @@ describe("dates invalides", () => {
     ["weekDays (lundi)", () => weekDays("2026-02-30", "2026-11-18")],
     ["weekDays (aujourd'hui)", () => weekDays("2026-11-16", "2026-02-30")],
     ["weekRangeLabel", () => weekRangeLabel("2026-02-30")],
+    ["addWeeks", () => addWeeks("2026-02-30", 1)],
   ])("%s lève une RangeError qui nomme la date", (_, call) => {
     expect(call).toThrow(
       new RangeError("date invalide : « 2026-02-30 », attendu AAAA-MM-JJ"),
