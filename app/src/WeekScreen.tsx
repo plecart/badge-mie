@@ -1,10 +1,12 @@
 /**
  * L'écran de la semaine, variante « Pouce » du prototype : l'en-tête et ses flèches, la ligne du
  * total et de l'indicateur d'envoi, les cinq cartes du lundi au vendredi et la bande du bas
- * (issue #3, « Décisions », point 7 ; issue #4, décision 1). On y pointe aujourd'hui par le bouton
- * du bas, et on y corrige une heure d'un jour passé ou d'aujourd'hui en la touchant
- * (`./use-gestures`). Chaque geste passe par la File d'envoi, que l'écran relance à son ouverture,
- * au retour du réseau et au retour au premier plan (issue #4, décision 8).
+ * (issue #3, « Décisions », point 7 ; issue #4, décision 1). Il s'ouvre sur la semaine en cours,
+ * et passe à la nouvelle quand son horloge change de semaine, sauf s'il affiche une semaine passée
+ * (`./current-week`). On y pointe aujourd'hui par le bouton du bas, et on y corrige une heure d'un
+ * jour passé ou d'aujourd'hui en la touchant (`./use-gestures`). Chaque geste passe par la File
+ * d'envoi, que l'écran relance à son ouverture, au retour du réseau et au retour au premier plan
+ * (issue #4, décision 8).
  */
 
 import {
@@ -31,6 +33,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { readWeek, TokenRejectedError, writeDay } from "./api";
+import { followCurrentWeek } from "./current-week";
 import { DayCard } from "./DayCard";
 import { clockLine, MISSING, pendingText } from "./labels";
 import { PunchDock } from "./PunchDock";
@@ -66,6 +69,18 @@ export function WeekScreen({
   const clock = useClock();
   const currentMonday = mondayOf(clock.date);
   const [monday, setMonday] = useState(currentMonday);
+  // La semaine en cours du rendu précédent. À son changement, le lundi affiché se règle par
+  // `followCurrentWeek` dans le rendu même, sans effet : React applique un `setState` du composant
+  // pendant son rendu par un nouveau rendu immédiat, avant tout affichage
+  // (`enqueueRenderPhaseUpdate` et `renderWithHooksAgain` de `ReactFabric-prod.js`, react-native
+  // 0.88.1, lu le 2026-11-19).
+  const [previousCurrent, setPreviousCurrent] = useState(currentMonday);
+  if (currentMonday !== previousCurrent) {
+    setPreviousCurrent(currentMonday);
+    setMonday((displayed) =>
+      followCurrentWeek(displayed, previousCurrent, currentMonday),
+    );
+  }
   // Chaque vue garde le lundi qui l'a demandée : celle d'une autre semaine n'est pas affichée.
   const [loaded, setLoaded] = useState<{ monday: string; view: WeekView }>();
   // Incrémenté pour relire la semaine affichée : après un geste, au retour au premier plan.
