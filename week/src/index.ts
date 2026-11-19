@@ -275,6 +275,21 @@ const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const HOUR_MINUTES = 60;
 
 /**
+ * Dit si un texte est une heure au format `HH:MM`.
+ *
+ * À appeler à une frontière de confiance, comme {@link isIsoDate} : {@link dayDuration} lève sur
+ * une autre heure.
+ *
+ * @param value - Le texte à vérifier.
+ * @returns `true` pour une heure de `00:00` à `23:59`, l'heure et les minutes sur deux chiffres ;
+ *   `false` pour une heure avec secondes (`08:00:00`), sur un chiffre (`8:00`) ou hors bornes
+ *   (`24:00`, `07:60`).
+ */
+export function isTime(value: string): boolean {
+  return TIME.test(value);
+}
+
+/**
  * Minutes écoulées depuis minuit pour une heure `HH:MM`.
  *
  * @throws {RangeError} si `time` n'est pas une heure de `00:00` à `23:59` écrite `HH:MM`, sans

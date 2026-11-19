@@ -8,6 +8,8 @@ import {
 } from "./api";
 import { API_URL } from "./api-url";
 
+const MONDAY = "2026-11-16";
+
 const WEEK: PresenceDay[] = [
   { jour: "2026-11-16", arrivee: "08:30", depart: "17:12" },
   { jour: "2026-11-17", arrivee: "08:45", depart: null },
@@ -20,6 +22,9 @@ const WEEK: PresenceDay[] = [
 function withFirstDay(day: unknown): unknown[] {
   return [day, ...WEEK.slice(1)];
 }
+
+/** Des heures qui ne sont pas `HH:MM` : avec secondes, sur un chiffre, hors bornes. */
+const MALFORMED_TIMES = ["08:00:00", "8:00", "24:00"];
 
 describe("weekRequest", () => {
   it("vise la route de la semaine du lundi", () => {
@@ -38,7 +43,7 @@ describe("weekRequest", () => {
 
 describe("parseWeekResponse", () => {
   it("rend les cinq journées d'une réponse 200", () => {
-    expect(parseWeekResponse(200, WEEK)).toEqual(WEEK);
+    expect(parseWeekResponse(200, WEEK, MONDAY)).toEqual(WEEK);
   });
 
   it.each([
@@ -47,21 +52,23 @@ describe("parseWeekResponse", () => {
   ])(
     "lève TokenRejectedError quand le serveur refuse le jeton (401), corps %s",
     (_, body) => {
-      expect(() => parseWeekResponse(401, body)).toThrow(TokenRejectedError);
+      expect(() => parseWeekResponse(401, body, MONDAY)).toThrow(
+        TokenRejectedError,
+      );
     },
   );
 
   it.each([500, 503, 404, 300, 199])(
     "lève ServerUnreachableError sur un statut %i, même avec cinq journées",
     (status) => {
-      expect(() => parseWeekResponse(status, WEEK)).toThrow(
+      expect(() => parseWeekResponse(status, WEEK, MONDAY)).toThrow(
         ServerUnreachableError,
       );
     },
   );
 
   it("accepte tout statut 2xx", () => {
-    expect(parseWeekResponse(299, WEEK)).toEqual(WEEK);
+    expect(parseWeekResponse(299, WEEK, MONDAY)).toEqual(WEEK);
   });
 
   it.each([
@@ -87,14 +94,34 @@ describe("parseWeekResponse", () => {
       withFirstDay({ jour: 20261116, arrivee: null, depart: null }),
     ],
     [
+      "un jour qui n'est pas une date réelle",
+      withFirstDay({ jour: "2026-11-31", arrivee: null, depart: null }),
+    ],
+    [
+      "un jour d'une autre semaine",
+      withFirstDay({ jour: "2026-11-23", arrivee: null, depart: null }),
+    ],
+    [
       "une arrivée qui n'est ni un texte ni null",
-      withFirstDay({ jour: "2026-11-16", arrivee: 830, depart: null }),
+      withFirstDay({ jour: "2026-11-16", arrivee: ["08:30"], depart: null }),
     ],
     [
       "un départ qui n'est ni un texte ni null",
       withFirstDay({ jour: "2026-11-16", arrivee: null, depart: false }),
     ],
+    ...MALFORMED_TIMES.flatMap((time): [string, unknown][] => [
+      [
+        `une arrivée « ${time} »`,
+        withFirstDay({ jour: "2026-11-16", arrivee: time, depart: null }),
+      ],
+      [
+        `un départ « ${time} »`,
+        withFirstDay({ jour: "2026-11-16", arrivee: null, depart: time }),
+      ],
+    ]),
   ])("lève ServerUnreachableError sur un 200 qui porte %s", (_, body) => {
-    expect(() => parseWeekResponse(200, body)).toThrow(ServerUnreachableError);
+    expect(() => parseWeekResponse(200, body, MONDAY)).toThrow(
+      ServerUnreachableError,
+    );
   });
 });

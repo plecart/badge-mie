@@ -12,8 +12,9 @@ export type TokenCheckOutcome = "accepted" | "rejected" | "unreachable";
 /**
  * Vérifie un jeton saisi en lisant une semaine avec lui.
  *
- * Si la lecture réussit, le jeton est enregistré, puis la semaine lue l'est dans l'état local :
- * l'écran de la semaine s'ouvre ensuite sur ses journées, sans attendre le serveur. Sinon, rien
+ * Si la lecture réussit, la semaine lue est enregistrée dans l'état local, puis le jeton : l'écran
+ * de la semaine s'ouvre ensuite sur ses journées, sans attendre le serveur, et un échec du premier
+ * enregistrement ne laisse pas dans le coffre un jeton que l'écran n'a pas accepté. Sinon, rien
  * n'est enregistré.
  *
  * @param token - Le jeton saisi.
@@ -46,7 +47,7 @@ export async function checkToken(
     if (error instanceof ServerUnreachableError) return "unreachable";
     throw error;
   }
-  await saveToken(token);
   await saveWeek(monday, days);
+  await saveToken(token);
   return "accepted";
 }

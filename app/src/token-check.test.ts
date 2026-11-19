@@ -80,6 +80,22 @@ describe("checkToken", () => {
     });
   });
 
+  it("n'enregistre pas le jeton quand la semaine lue ne peut pas l'être", async () => {
+    const { saved, saveToken } = recorder();
+    const failure = new Error("stockage plein");
+
+    await expect(
+      checkToken(GOOD_TOKEN, MONDAY, {
+        read: server,
+        saveToken,
+        saveWeek: async () => {
+          throw failure;
+        },
+      }),
+    ).rejects.toBe(failure);
+    expect(saved.tokens).toEqual([]);
+  });
+
   it("laisse remonter toute autre erreur, sans rien enregistrer", async () => {
     const { saved, ...saves } = recorder();
     const failure = new TypeError("panne inattendue");
