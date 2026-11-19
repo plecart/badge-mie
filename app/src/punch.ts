@@ -10,6 +10,7 @@
 
 import {
   departureFollowsArrival,
+  emptyDay,
   isTimeOrNull,
   mondayOf,
   type PresenceDay,
@@ -138,11 +139,6 @@ export function editTime(
   return departureFollowsArrival(next.arrivee, next.depart)
     ? { day: next }
     : { refusal: DEPARTURE_MUST_FOLLOW_ARRIVAL };
-}
-
-/** Une journée sans heure. */
-function emptyDay(jour: string): PresenceDay {
-  return { jour, arrivee: null, depart: null };
 }
 
 /**

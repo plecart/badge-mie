@@ -348,6 +348,34 @@ export function isTimeOrNull(value: unknown): value is string | null {
 }
 
 /**
+ * Dit si une valeur est la journée de présence d'une date, comme {@link isTimeOrNull} pour une
+ * heure : à appeler avant de tenir pour telle une valeur décodée d'un JSON.
+ *
+ * @param value - La valeur à vérifier, de n'importe quel type.
+ * @param date - La date que la journée doit porter.
+ * @returns `true` pour un objet dont `jour` vaut `date`, date réelle ({@link isIsoDate}), et dont
+ *   `arrivee` et `depart` passent {@link isTimeOrNull} ; `false` pour toute autre valeur.
+ */
+export function isPresenceDay(
+  value: unknown,
+  date: string,
+): value is PresenceDay {
+  if (typeof value !== "object" || value === null) return false;
+  const { jour, arrivee, depart } = value as Record<string, unknown>;
+  return (
+    jour === date &&
+    isIsoDate(date) &&
+    isTimeOrNull(arrivee) &&
+    isTimeOrNull(depart)
+  );
+}
+
+/** Rend la journée `jour` sans aucune heure pointée. */
+export function emptyDay(jour: string): PresenceDay {
+  return { jour, arrivee: null, depart: null };
+}
+
+/**
  * Minutes écoulées depuis minuit pour une heure `HH:MM`.
  *
  * @throws {RangeError} si `time` n'est pas une heure de `00:00` à `23:59` écrite `HH:MM`, sans

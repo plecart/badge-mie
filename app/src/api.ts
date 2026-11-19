@@ -7,7 +7,7 @@
  * `fetch`, non testés (PRD #1, « Décisions de test »).
  */
 
-import { isTimeOrNull, type PresenceDay, weekDates } from "@badge-mie/week";
+import { isPresenceDay, type PresenceDay, weekDates } from "@badge-mie/week";
 import { API_URL } from "./api-url";
 
 /** Le serveur a refusé le jeton (HTTP 401) : il faut le ressaisir. */
@@ -86,19 +86,6 @@ export function weekRequest(token: string, monday: string): ApiRequest {
     url: `${API_URL}/semaines/${monday}`,
     init: { headers: bearer(token) },
   };
-}
-
-/**
- * Vrai pour un objet dont `jour` vaut `date`, et dont `arrivee` et `depart` sont une heure `HH:MM`
- * ou `null`.
- */
-export function isPresenceDay(
-  value: unknown,
-  date: string,
-): value is PresenceDay {
-  if (typeof value !== "object" || value === null) return false;
-  const { jour, arrivee, depart } = value as Record<string, unknown>;
-  return jour === date && isTimeOrNull(arrivee) && isTimeOrNull(depart);
 }
 
 /**
