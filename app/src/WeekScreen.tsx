@@ -60,7 +60,7 @@ export function WeekScreen({
   const [monday, setMonday] = useState(currentMonday);
   // Chaque vue garde le lundi qui l'a demandée : celle d'une autre semaine n'est pas affichée.
   const [loaded, setLoaded] = useState<{ monday: string; view: WeekView }>();
-  const rejectToken = useEffectEvent(onTokenRejected);
+  const reportTokenRejected = useEffectEvent(onTokenRejected);
 
   useEffect(() => {
     // Un chargement remplacé (autre semaine, ou la même redemandée) n'affiche plus rien.
@@ -72,17 +72,8 @@ export function WeekScreen({
         if (current) setLoaded({ monday, view });
       },
     ).catch((error: unknown) => {
-      if (!current) return;
-      if (error instanceof TokenRejectedError) return rejectToken();
-      // Un état local qui ne se lit ni ne s'écrit : la semaine déjà affichée reste, et l'échec se
-      // dit comme un serveur injoignable.
-      setLoaded((previous) => ({
-        monday,
-        view: {
-          days: previous?.monday === monday ? previous.view.days : null,
-          unreachable: true,
-        },
-      }));
+      // Seul un jeton refusé remonte de `loadWeek`.
+      if (current && error instanceof TokenRejectedError) reportTokenRejected();
     });
     return () => {
       current = false;
