@@ -21,7 +21,7 @@ Toute référence croisée cite un **§ ou un titre de section**, jamais un num�
 - langages : TypeScript
 - frameworks : Expo (React Native) pour `app/` ; Hono sur une Neon Function pour `api/`
 - gestionnaire de paquets : npm (workspaces `week/` — le Calendrier de semaine et la journée de présence, partagés par l'API et l'app —, `api/`, et `app/`, dont les dépendances Expo SDK 58 sont posées par `npx expo install`)
-- runtime + version : node 24 (le runtime des Neon Functions) — source unique : `devEngines.runtime` du `package.json` racine (`^24.3.0`), que npm fait respecter sur le poste et que `actions/setup-node` lit en CI (`node-version-file: package.json`) ; EAS Build ne la lit pas (son image Android porte Node 22) : le champ `node` de chaque profil d'`app/eas.json` en est une copie en version exacte, que `app/eas.test.ts` garde alignée sur `devEngines.runtime`
+- runtime + version : node 24 (le runtime des Neon Functions) — source unique : `devEngines.runtime` du `package.json` racine (`^24.3.0`), que npm fait respecter sur le poste et que `actions/setup-node` lit en CI (`node-version-file: package.json`) ; EAS Build ne la lit pas (son image Android porte Node 22 — docs.expo.dev/build-reference/infrastructure, « Android server images », lu le 2026-11-19) : le champ `node` de chaque profil d'`app/eas.json` en est une copie en version exacte, que `app/eas.test.ts` garde alignée sur `devEngines.runtime`
 
 ## Commandes du projet
 Lues par `cycle-pr`, `execution-qa` et la génération de CI. `n/a` = étape absente du projet.
