@@ -9,8 +9,8 @@
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** Du lundi au vendredi. */
-const WORKDAYS = 5;
+/** Le nombre de jours ouvrés d'une semaine, du lundi au vendredi. */
+export const WORKDAYS = 5;
 
 /**
  * Formate un instant UTC en date `AAAA-MM-JJ`.

@@ -20,7 +20,7 @@ Toute référence croisée cite un **§ ou un titre de section**, jamais un num�
 ## Stack
 - langages : TypeScript
 - frameworks : Expo (React Native) pour `app/` ; Hono sur une Neon Function pour `api/`
-- gestionnaire de paquets : npm (workspaces `week/` — le Calendrier de semaine, partagé par l'API et l'app —, `api/`, puis `app/` au lot 2 de #3)
+- gestionnaire de paquets : npm (workspaces `week/` — le Calendrier de semaine et la journée de présence, partagés par l'API et l'app —, `api/`, et `app/`, dont les dépendances Expo SDK 58 sont posées par `npx expo install`)
 - runtime + version : node 24 (le runtime des Neon Functions) — source unique : `devEngines.runtime` du `package.json` racine (`^24.3.0`), que npm fait respecter sur le poste et que `actions/setup-node` lit en CI (`node-version-file: package.json`)
 
 ## Commandes du projet
