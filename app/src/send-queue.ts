@@ -59,13 +59,15 @@ export interface SendQueue {
    * Enregistre l'état complet d'une journée (`enregistrer`) : l'entrée de son jour est écrite dans
    * la file avant tout envoi, à la place de la précédente ; la journée est rangée dans l'état
    * local de sa semaine (décision 6 de #4) ; `onChange` reçoit le nombre de jours en attente ;
-   * puis la relance part, sans être attendue.
+   * puis la relance part, sans être attendue. Ces deux derniers temps suivent l'écriture de la
+   * file, même si celle de l'état local échoue.
    *
    * @param day - La journée, telle que la rend le Pointage du jour : une date réelle d'un jour
    *   ouvré, deux heures `HH:MM` ou `null`.
    * @returns Une promesse résolue une fois la file et l'état local écrits.
    * @throws l'erreur du stockage si l'une des deux écritures échoue : écrite d'abord, l'entrée
-   *   de la file reste quand seule la seconde échoue, et part à la relance suivante.
+   *   de la file reste quand seule la seconde échoue, se compte dans `onChange` et part à la
+   *   relance.
    */
   record(day: PresenceDay): Promise<void>;
   /**
@@ -183,9 +185,13 @@ export function createSendQueue({
 
   async function record(day: PresenceDay): Promise<void> {
     const pending = await update((entries) => entries.set(day.jour, day));
-    await saveDay(storage, day);
-    onChange?.(pending);
-    void flush();
+    try {
+      await saveDay(storage, day);
+    } finally {
+      // L'entrée est en file, que l'état local se soit écrit ou non : elle se dit et part.
+      onChange?.(pending);
+      void flush();
+    }
   }
 
   return { record, flush, pendingDays };

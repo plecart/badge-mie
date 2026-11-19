@@ -310,7 +310,7 @@ describe("createSendQueue", () => {
     expect(await queue.pendingDays()).toEqual([WEDNESDAY_DAY]);
   });
 
-  it("garde en file un pointage dont l'état local n'a pas pu s'écrire", async () => {
+  it("garde en file un pointage dont l'état local n'a pas pu s'écrire, le dit en attente et le relance", async () => {
     const memory = memoryStorage();
     let writes = 0;
     // La première écriture, celle de la file, passe ; la seconde, celle de la semaine, échoue.
@@ -321,11 +321,21 @@ describe("createSendQueue", () => {
         await memory.setItem(key, value);
       },
     };
-    const queue = createSendQueue({ storage, send: unreachable });
+    const counts: number[] = [];
+    const { send, call } = heldSend();
+    const queue = createSendQueue({
+      storage,
+      send,
+      onChange: (pending) => counts.push(pending),
+    });
 
     await expect(queue.record(MONDAY_DAY)).rejects.toThrow("stockage plein");
 
-    expect(await queue.pendingDays()).toEqual([MONDAY_DAY]);
+    expect([await queue.pendingDays(), counts, (await call(1)).day]).toEqual([
+      [MONDAY_DAY],
+      [1],
+      MONDAY_DAY,
+    ]);
   });
 });
 
