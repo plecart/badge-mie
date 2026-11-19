@@ -35,7 +35,7 @@ describe("mode TLS de la connexion à la base", () => {
 
   it("crée le pool sur l'URL réécrite", () => {
     createNeonRepository(BASE + "?sslmode=require");
-    expect(Pool).toHaveBeenCalledWith(
+    expect(Pool).toHaveBeenLastCalledWith(
       expect.objectContaining({
         connectionString: BASE + "?sslmode=verify-full",
       }),
