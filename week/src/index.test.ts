@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addWeeks,
   dayDuration,
+  dayLabel,
   departureFollowsArrival,
   formatDuration,
   isIsoDate,
@@ -140,6 +141,23 @@ describe("weekRangeLabel", () => {
   );
 });
 
+describe("dayLabel", () => {
+  it("écrit un jour ouvré en toutes lettres, sans l'année", () => {
+    expect(dayLabel("2026-11-18")).toBe("mercredi 18 novembre");
+  });
+
+  it.each([
+    ["2026-11-21", "samedi 21 novembre"],
+    ["2026-11-22", "dimanche 22 novembre"],
+  ])("écrit aussi un jour du week-end, le %s : « %s »", (date, label) => {
+    expect(dayLabel(date)).toBe(label);
+  });
+
+  it("écrit le 1er du mois sans zéro", () => {
+    expect(dayLabel("2025-12-01")).toBe("lundi 1 décembre");
+  });
+});
+
 describe("weekDays", () => {
   it("marque aujourd'hui et les jours à venir de la semaine en cours", () => {
     expect(weekDays("2026-11-16", "2026-11-18")).toEqual([
@@ -172,6 +190,7 @@ describe("dates invalides", () => {
     ["weekDays (aujourd'hui)", () => weekDays("2026-11-16", "2026-02-30")],
     ["weekRangeLabel", () => weekRangeLabel("2026-02-30")],
     ["addWeeks", () => addWeeks("2026-02-30", 1)],
+    ["dayLabel", () => dayLabel("2026-02-30")],
   ])("%s lève une RangeError qui nomme la date", (_, call) => {
     expect(call).toThrow(
       new RangeError("date invalide : « 2026-02-30 », attendu AAAA-MM-JJ"),

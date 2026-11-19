@@ -177,6 +177,17 @@ export function addWeeks(monday: string, weeks: number): string {
   return formatDate(parseMonday(monday) + weeks * WEEK_MS);
 }
 
+/** Les jours de la semaine en toutes lettres, dans l'ordre de `getUTCDay` : dimanche d'abord. */
+const WEEKDAY_NAMES = [
+  "dimanche",
+  "lundi",
+  "mardi",
+  "mercredi",
+  "jeudi",
+  "vendredi",
+  "samedi",
+];
+
 /** Les mois en toutes lettres, de janvier à décembre. */
 const MONTHS = [
   "janvier",
@@ -215,6 +226,11 @@ const SHORT_MONTHS = [
  */
 const RANGE_SEPARATOR = " – ";
 
+/** Le jour et le mois en toutes lettres d'une date UTC : « 4 décembre ». */
+function longDate(date: Date): string {
+  return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}`;
+}
+
 /** Le jour et le mois abrégé d'une date UTC : « 4 déc. ». */
 function shortDate(date: Date): string {
   return `${date.getUTCDate()} ${SHORT_MONTHS[date.getUTCMonth()]}`;
@@ -236,9 +252,25 @@ export function weekRangeLabel(monday: string): string {
   const start = new Date(parseMonday(monday));
   const end = new Date(start.getTime() + (WORKDAYS - 1) * DAY_MS);
   if (start.getUTCMonth() === end.getUTCMonth()) {
-    return `${start.getUTCDate()}${RANGE_SEPARATOR}${end.getUTCDate()} ${MONTHS[end.getUTCMonth()]}`;
+    return `${start.getUTCDate()}${RANGE_SEPARATOR}${longDate(end)}`;
   }
   return `${shortDate(start)}${RANGE_SEPARATOR}${shortDate(end)}`;
+}
+
+/**
+ * Rend le libellé d'un jour, pour la date affichée sous le bouton de pointage.
+ *
+ * Le jour de la semaine et le mois s'écrivent en toutes lettres et en minuscules, le numéro sans
+ * zéro ; l'année n'est jamais écrite. Tous les jours ont un libellé, le week-end compris.
+ *
+ * @example dayLabel("2026-11-18") // « mercredi 18 novembre »
+ * @example dayLabel("2025-12-01") // « lundi 1 décembre »
+ * @param date - Une date `AAAA-MM-JJ` réelle, de n'importe quel jour de la semaine.
+ * @throws {RangeError} si `date` n'est pas une date réelle.
+ */
+export function dayLabel(date: string): string {
+  const day = new Date(parseDate(date));
+  return `${WEEKDAY_NAMES[day.getUTCDay()]} ${longDate(day)}`;
 }
 
 /** Un jour ouvré de la semaine affichée, situé par rapport à aujourd'hui. */

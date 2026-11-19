@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { today } from "./today";
+import { currentTime, today } from "./today";
 
 describe("today", () => {
   it("rend la date locale du téléphone, le soir, quand la date UTC est déjà le lendemain", () => {
@@ -8,5 +8,19 @@ describe("today", () => {
 
   it("écrit le mois et le jour sur deux chiffres", () => {
     expect(today(new Date(2026, 0, 5, 9, 0))).toBe("2026-01-05");
+  });
+});
+
+describe("currentTime", () => {
+  it.each([
+    [
+      "sur deux chiffres, secondes tronquées",
+      new Date(2026, 10, 18, 8, 5, 59),
+      "08:05",
+    ],
+    ["à minuit", new Date(2026, 10, 18, 0, 0), "00:00"],
+    ["à la dernière minute du jour", new Date(2026, 10, 18, 23, 59), "23:59"],
+  ])("rend l'heure locale du téléphone à la minute, %s", (_, now, time) => {
+    expect(currentTime(now)).toBe(time);
   });
 });
