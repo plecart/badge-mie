@@ -1,8 +1,8 @@
 /**
  * Le dépôt réel des présences : la table `presence` de la base Neon, lue et écrite par `pg`.
  *
- * Seule la réécriture de l'URL de connexion (`withVerifiedTls`) a un test unitaire : le reste est
- * une frontière tierce (Postgres), éprouvée contre Neon au déploiement de la Function.
+ * La réécriture de l'URL de connexion et sa remise au pool ont un test unitaire, `pg` simulé ; les
+ * requêtes, frontière tierce (Postgres), s'éprouvent contre Neon au déploiement de la Function.
  */
 
 import type { PresenceDay } from "@badge-mie/week";
