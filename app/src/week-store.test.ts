@@ -126,6 +126,28 @@ describe("loadWeek", () => {
     ]);
   });
 
+  it("affiche la réponse du serveur même quand l'état local ne peut pas la garder", async () => {
+    const failure = new Error("stockage plein");
+    const storage: KeyValueStorage = {
+      getItem: async () => null,
+      setItem: async () => {
+        throw failure;
+      },
+    };
+    const views: WeekView[] = [];
+
+    await expect(
+      loadWeek(MONDAY, { storage, read: async () => SERVER }, (view) =>
+        views.push(view),
+      ),
+    ).rejects.toBe(failure);
+
+    expect(views).toEqual([
+      { days: null, unreachable: false },
+      { days: SERVER, unreachable: false },
+    ]);
+  });
+
   it("tient un état local illisible pour absent", async () => {
     const corrupted: KeyValueStorage = {
       getItem: async () => "[{ pas du JSON",
@@ -133,6 +155,18 @@ describe("loadWeek", () => {
     };
 
     const views = await viewsOf(MONDAY, { storage: corrupted, read: offline });
+
+    expect(views).toEqual([
+      { days: null, unreachable: false },
+      { days: null, unreachable: true },
+    ]);
+  });
+
+  it("tient un état local de forme inattendue pour absent", async () => {
+    const storage = memoryStorage();
+    await saveWeek(storage, MONDAY, weekArrivingAt(MONDAY, "08:00:00"));
+
+    const views = await viewsOf(MONDAY, { storage, read: offline });
 
     expect(views).toEqual([
       { days: null, unreachable: false },

@@ -6,7 +6,7 @@
  * que l'adaptateur mince qui les relie par `fetch`, non testé (PRD #1, « Décisions de test »).
  */
 
-import { type PresenceDay, WORKDAYS } from "@badge-mie/week";
+import { isTime, type PresenceDay, weekDates } from "@badge-mie/week";
 import { API_URL } from "./api-url";
 
 /** Le serveur a refusé le jeton (HTTP 401) : il faut le ressaisir. */
@@ -45,24 +45,38 @@ export function weekRequest(
   };
 }
 
-/** Vrai pour une heure en texte ou `null` ; le format `HH:MM` n'est pas vérifié. */
-function isTextOrNull(value: unknown): boolean {
-  return value === null || typeof value === "string";
+/** Vrai pour une heure `HH:MM` ou `null`. */
+function isTimeOrNull(value: unknown): boolean {
+  return value === null || (typeof value === "string" && isTime(value));
 }
 
-/** Vrai pour un objet dont `jour` est un texte, et `arrivee` et `depart` un texte ou `null`. */
-function isPresenceDay(value: unknown): value is PresenceDay {
+/**
+ * Vrai pour un objet dont `jour` vaut `date`, et dont `arrivee` et `depart` sont une heure `HH:MM`
+ * ou `null`.
+ */
+function isPresenceDay(value: unknown, date: string): value is PresenceDay {
   if (typeof value !== "object" || value === null) return false;
   const { jour, arrivee, depart } = value as Record<string, unknown>;
-  return (
-    typeof jour === "string" && isTextOrNull(arrivee) && isTextOrNull(depart)
-  );
+  return jour === date && isTimeOrNull(arrivee) && isTimeOrNull(depart);
 }
 
-/** Vrai pour un tableau de cinq journées bien formées. */
-function isWeek(body: unknown): body is PresenceDay[] {
+/**
+ * Dit si une valeur reçue ou relue est la semaine attendue : le serveur l'envoie, l'état local la
+ * garde, et aucune des deux sources n'est crue sur parole.
+ *
+ * @param value - La valeur à vérifier, telle que `JSON.parse` l'a rendue.
+ * @param monday - Le lundi `AAAA-MM-JJ` de la semaine demandée.
+ * @returns `true` pour un tableau de cinq journées dont `jour` est, dans l'ordre, chaque date du
+ *   lundi au vendredi de cette semaine, et dont `arrivee` et `depart` sont une heure `HH:MM` ou
+ *   `null` ; `false` pour toute autre valeur.
+ * @throws {RangeError} si `monday` n'est pas un lundi réel : c'est une erreur de l'appelant.
+ */
+export function isWeek(value: unknown, monday: string): value is PresenceDay[] {
+  const dates = weekDates(monday);
   return (
-    Array.isArray(body) && body.length === WORKDAYS && body.every(isPresenceDay)
+    Array.isArray(value) &&
+    value.length === dates.length &&
+    dates.every((date, index) => isPresenceDay(value[index], date))
   );
 }
 
@@ -72,18 +86,20 @@ function isWeek(body: unknown): body is PresenceDay[] {
  *
  * @param status - Le statut HTTP de la réponse.
  * @param body - Le corps décodé en JSON, ou `undefined` s'il n'a pas pu l'être.
+ * @param monday - Le lundi `AAAA-MM-JJ` de la semaine demandée.
  * @returns Les cinq journées de la semaine, telles que le serveur les a rendues.
  * @throws {TokenRejectedError} sur un 401, quel que soit le corps.
  * @throws {ServerUnreachableError} sur tout autre statut hors 2xx, ou sur un corps qui n'est pas
- *   un tableau de cinq journées dont `jour` est un texte, et `arrivee` et `depart` un texte ou
- *   `null`.
+ *   la semaine demandée (voir {@link isWeek}).
+ * @throws {RangeError} si `monday` n'est pas un lundi réel.
  */
 export function parseWeekResponse(
   status: number,
   body: unknown,
+  monday: string,
 ): PresenceDay[] {
   if (status === 401) throw new TokenRejectedError();
-  if (status < 200 || status > 299 || !isWeek(body)) {
+  if (status < 200 || status > 299 || !isWeek(body, monday)) {
     throw new ServerUnreachableError();
   }
   return body;
@@ -98,6 +114,7 @@ export function parseWeekResponse(
  * @throws {TokenRejectedError} si le serveur refuse le jeton.
  * @throws {ServerUnreachableError} si `fetch` échoue (réseau coupé), ou pour toute autre réponse
  *   que {@link parseWeekResponse} refuse.
+ * @throws {RangeError} si `monday` n'est pas un lundi réel, une fois la réponse reçue.
  */
 export async function readWeek(
   token: string,
@@ -108,5 +125,5 @@ export async function readWeek(
     throw new ServerUnreachableError({ cause });
   });
   const body: unknown = await response.json().catch(() => undefined);
-  return parseWeekResponse(response.status, body);
+  return parseWeekResponse(response.status, body, monday);
 }

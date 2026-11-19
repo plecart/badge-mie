@@ -5,6 +5,7 @@ import {
   isIsoDate,
   isMonday,
   isoWeek,
+  isTime,
   mondayOf,
   weekDates,
   weekDays,
@@ -41,6 +42,19 @@ describe("isIsoDate", () => {
   ])("refuse « %s », qui n'est pas une date réelle AAAA-MM-JJ", (value) => {
     expect(isIsoDate(value)).toBe(false);
   });
+});
+
+describe("isTime", () => {
+  it.each(["00:00", "08:05", "23:59"])("accepte l'heure %s", (value) => {
+    expect(isTime(value)).toBe(true);
+  });
+
+  it.each(["08:00:00", "8:00", "24:00", "07:60", "08h00", ""])(
+    "refuse « %s », qui n'est pas une heure HH:MM",
+    (value) => {
+      expect(isTime(value)).toBe(false);
+    },
+  );
 });
 
 describe("mondayOf", () => {
