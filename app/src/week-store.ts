@@ -88,10 +88,15 @@ function overlay(days: PresenceDay[], pending: PresenceDay[]): PresenceDay[] {
   return days.map((day) => byDate.get(day.jour) ?? day);
 }
 
+/** Les cinq journées vides de la semaine de `monday`, du lundi au vendredi. */
+function emptyWeek(monday: string): PresenceDay[] {
+  return weekDates(monday).map(emptyDay);
+}
+
 /**
- * Rend la semaine reconstruite à la place d'un état local manquant ou illisible : ses cinq
- * journées vides si un jour en attente d'envoi est de cette semaine — il prouve que ce téléphone y
- * a pointé —, `null` sinon.
+ * Rend la semaine reconstruite à la place d'un état local manquant ou illisible : la semaine vide
+ * que {@link saveDay} y aurait créée, si un jour en attente d'envoi est de cette semaine — il
+ * prouve que ce téléphone y a pointé —, `null` sinon.
  *
  * @param pending - Les jours en attente d'envoi, de toutes les semaines.
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine.
@@ -101,7 +106,7 @@ function rebuiltWeek(
   monday: string,
 ): PresenceDay[] | null {
   return pending.some((day) => mondayOf(day.jour) === monday)
-    ? weekDates(monday).map(emptyDay)
+    ? emptyWeek(monday)
     : null;
 }
 
@@ -117,8 +122,7 @@ export async function saveDay(
   day: PresenceDay,
 ): Promise<void> {
   const monday = mondayOf(day.jour);
-  const days =
-    (await readLocalWeek(storage, monday)) ?? weekDates(monday).map(emptyDay);
+  const days = (await readLocalWeek(storage, monday)) ?? emptyWeek(monday);
   await saveWeek(
     storage,
     monday,
