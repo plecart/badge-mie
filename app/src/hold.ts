@@ -4,8 +4,11 @@
  * revient en arrière quand il s'interrompt. Module pur : `./HoldButton` la dessine.
  */
 
-/** La durée d'un appui maintenu qui pointe : environ 1,5 s (issue #14, décisions du 2026-11-19). */
-const HOLD_MS = 1500;
+/**
+ * La durée d'un appui maintenu qui pointe : environ 1 s (issue #14, décision du 2026-11-19 à
+ * l'arrêt visuel de la PR #16).
+ */
+const HOLD_MS = 1000;
 
 /** Combien de fois plus vite la progression revient en arrière qu'elle ne s'est remplie. */
 const REWIND_SPEEDUP = 3;
