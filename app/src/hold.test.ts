@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { fillMs, rewindMs } from "./hold";
 
 describe("fillMs", () => {
-  it("fait durer 1 500 ms un appui maintenu parti d'une progression vide", () => {
-    expect(fillMs(0)).toBe(1500);
+  it("fait durer 1 000 ms un appui maintenu parti d'une progression vide", () => {
+    expect(fillMs(0)).toBe(1000);
   });
 
   it.each([
-    [0.25, 1125],
-    [0.5, 750],
+    [0.25, 750],
+    [0.5, 500],
     [1, 0],
   ])(
     "laisse à un appui repris à la progression %d %i ms à maintenir",
@@ -20,9 +20,8 @@ describe("fillMs", () => {
 
 describe("rewindMs", () => {
   it.each([
-    [1, 500],
-    [0.5, 250],
-    [0.25, 125],
+    [0.75, 250],
+    [0.375, 125],
     [0, 0],
   ])(
     "ramène à vide la progression %d en %i ms, trois fois plus vite qu'elle ne s'est remplie",
@@ -30,4 +29,8 @@ describe("rewindMs", () => {
       expect(rewindMs(progress)).toBe(ms);
     },
   );
+
+  it("ramène à vide une progression pleine en un tiers de seconde", () => {
+    expect(rewindMs(1)).toBeCloseTo(333.33);
+  });
 });
