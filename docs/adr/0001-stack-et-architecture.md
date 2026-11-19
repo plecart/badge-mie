@@ -206,6 +206,6 @@ Elles ne relèvent pas de l'architecture, mais elles en découlent. Les voici po
 4. [ ] `init-projet` : stack TypeScript / Expo / Neon Function ; cet ADR devient une source de
        vérité de rang 1.
 5. [x] Prototyper l'écran unique (voir les propositions UX) avant le PRD : variante « Pouce » retenue.
-6. [ ] Vérifier par context7, au moment de coder, les versions et l'API d'Expo SDK, d'EAS Build,
-       d'`expo-secure-store`, du sélecteur d'heure et de Neon Functions. Aucune version n'est
-       figée ici.
+6. [x] Vérifier par context7 ou la documentation officielle, au moment de coder, les versions et
+       l'API d'Expo SDK, d'EAS Build, d'`expo-secure-store`, du sélecteur d'heure et de Neon
+       Functions. Aucune version n'est figée ici.
