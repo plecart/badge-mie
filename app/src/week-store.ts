@@ -29,7 +29,10 @@ export interface KeyValueStorage {
 export interface WeekView {
   /** Les journées de la semaine, ou `null` tant qu'aucune n'est connue. */
   days: PresenceDay[] | null;
-  /** Vrai quand le serveur est injoignable et qu'aucun état local ne le remplace. */
+  /**
+   * Vrai quand le serveur est injoignable et qu'aucun état local ne le remplace ; la semaine que
+   * {@link loadWeek} reconstruit depuis les jours en attente compte comme un état local.
+   */
   unreachable: boolean;
 }
 
@@ -86,6 +89,23 @@ function overlay(days: PresenceDay[], pending: PresenceDay[]): PresenceDay[] {
 }
 
 /**
+ * Rend la semaine reconstruite à la place d'un état local manquant ou illisible : ses cinq
+ * journées vides si un jour en attente d'envoi est de cette semaine — il prouve que ce téléphone y
+ * a pointé —, `null` sinon.
+ *
+ * @param pending - Les jours en attente d'envoi, de toutes les semaines.
+ * @param monday - Le lundi `AAAA-MM-JJ` de la semaine.
+ */
+function rebuiltWeek(
+  pending: PresenceDay[],
+  monday: string,
+): PresenceDay[] | null {
+  return pending.some((day) => mondayOf(day.jour) === monday)
+    ? weekDates(monday).map(emptyDay)
+    : null;
+}
+
+/**
  * Range une journée dans l'état local de sa semaine, à la place de la précédente.
  *
  * @param storage - Le stockage clé-valeur.
@@ -110,20 +130,24 @@ export async function saveDay(
  * Charge une semaine pour l'écran : l'état local d'abord, puis la réponse du serveur, l'un et
  * l'autre sous les jours en attente d'envoi.
  *
- * `show` est d'abord appelé avec l'état local (`days: null` s'il n'y en a pas), puis avec la
- * réponse du serveur, enregistrée ensuite dans l'état local telle qu'affichée. Si le serveur est
- * injoignable ({@link ServerUnreachableError}), le second appel reprend l'état local, laissé
- * intact, avec `unreachable` vrai s'il n'y en a pas. Toute autre panne — un état local qui ne se
- * lit ni ne s'écrit, une lecture qui échoue autrement — se dit comme un serveur injoignable : un
- * dernier appel garde les journées déjà affichées par ce chargement (`null` si l'état local ne
- * s'est pas lu, et c'est alors le seul appel), avec `unreachable` vrai.
+ * `show` est d'abord appelé avec l'état local, puis avec la réponse du serveur, enregistrée
+ * ensuite dans l'état local telle qu'affichée. Un état local manquant, illisible ou qui ne se lit
+ * pas laisse place à une semaine reconstruite, ses cinq journées vides, si la file porte au début
+ * du chargement au moins un jour de cette semaine, qui prouve que ce téléphone y a pointé ; sinon,
+ * à `days: null`. La semaine reconstruite n'est jamais enregistrée. Si le serveur est injoignable
+ * ({@link ServerUnreachableError}), le second appel reprend l'état local, laissé intact, avec
+ * `unreachable` vrai s'il n'y en a pas. Toute autre panne — un état local qui ne se lit ni ne
+ * s'écrit, une lecture qui échoue autrement — se dit comme un serveur injoignable : un dernier
+ * appel garde les journées déjà affichées par ce chargement, avec `unreachable` vrai ; si l'état
+ * local ne s'est pas lu, c'est le seul appel, et il porte la semaine reconstruite ou `null`.
  *
  * Chaque vue superpose les jours en attente de cette semaine à ses journées : un jour en attente
  * l'emporte sur la valeur du serveur comme sur celle de l'état local (PRD #1, story 38). Ce sont
  * les jours en attente au début du chargement, puis ceux du moment où la vue s'affiche, qui
  * l'emportent : un jour envoyé pendant la lecture peut manquer à la réponse du serveur. Une vue
- * sans journées (`days: null`) le reste. Si la file ne se lit pas, la vue s'affiche sans
- * superposition plutôt que pas du tout.
+ * sans journées (`days: null`) le reste, même si un jour de la semaine entre dans la file pendant
+ * le chargement. Si la file ne se lit pas, la vue s'affiche sans superposition plutôt que pas du
+ * tout.
  *
  * Chaque appel peut arriver après que l'écran est passé à une autre semaine : à l'appelant
  * d'ignorer une vue qui ne correspond plus à la semaine affichée.
@@ -156,10 +180,11 @@ export async function loadWeek(
   // envoyé pendant la lecture peut manquer à la réponse du serveur.
   const withPending = async (days: PresenceDay[]): Promise<PresenceDay[]> =>
     overlay(overlay(days, atStart), await pendingNow());
+  const rebuilt = rebuiltWeek(atStart, monday);
   // Les journées affichées en dernier par ce chargement.
   let shown: PresenceDay[] | null = null;
   try {
-    const local = await readLocalWeek(storage, monday);
+    const local = (await readLocalWeek(storage, monday)) ?? rebuilt;
     shown = local && (await withPending(local));
     show({ days: shown, unreachable: false });
     shown = await withPending(await read(monday));
@@ -171,9 +196,11 @@ export async function loadWeek(
   } catch (error) {
     if (error instanceof TokenRejectedError) throw error;
     const offline = error instanceof ServerUnreachableError;
+    // Un état local qui ne s'est pas lu n'a rien affiché : la semaine reconstruite le remplace.
+    const days = shown ?? rebuilt;
     show({
-      days: shown && (await withPending(shown)),
-      unreachable: !offline || shown === null,
+      days: days && (await withPending(days)),
+      unreachable: !offline || days === null,
     });
   }
 }

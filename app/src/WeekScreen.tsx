@@ -216,8 +216,9 @@ export function WeekScreen({
               // à la différence du pointage (`pressPunch`) : un jour passé a très probablement
               // des heures sur le serveur, et une heure posée sur une journée supposée vide
               // effacerait l'autre, le `PUT` portant la journée entière. La garde ne tient que
-              // jusqu'au premier pointage de la semaine : il crée son état local (`saveDay`), et
-              // ses jours passés deviennent alors éditables comme vides.
+              // jusqu'au premier pointage de la semaine : il crée son état local (`saveDay`) — ou,
+              // cet état perdu, la semaine reconstruite tant qu'il attend l'envoi (`loadWeek`) —,
+              // et ses jours passés deviennent alors éditables comme vides.
               onEdit={
                 presence && !day.isFuture
                   ? (field) => gestures.edit(presence, field)

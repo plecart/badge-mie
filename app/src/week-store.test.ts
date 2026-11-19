@@ -2,6 +2,7 @@ import { type PresenceDay, weekDates } from "@badge-mie/week";
 import { describe, expect, it } from "vitest";
 import { ServerUnreachableError, TokenRejectedError } from "./api";
 import { memoryStorage } from "./memory-storage";
+import { pressPunch } from "./punch";
 import {
   type KeyValueStorage,
   loadWeek,
@@ -25,6 +26,45 @@ const POINTED: PresenceDay = {
   arrivee: "07:45",
   depart: "16:30",
 };
+
+/** Le mardi de la semaine de `MONDAY`, en attente d'envoi : l'arrivée pointée, pas le départ. */
+const PENDING_TUESDAY: PresenceDay = {
+  jour: "2026-11-17",
+  arrivee: "08:30",
+  depart: null,
+};
+
+/** La semaine de `MONDAY` reconstruite depuis `PENDING_TUESDAY` : ses journées vides, sous lui. */
+const REBUILT_WEEK: PresenceDay[] = [
+  { jour: "2026-11-16", arrivee: null, depart: null },
+  PENDING_TUESDAY,
+  { jour: "2026-11-18", arrivee: null, depart: null },
+  { jour: "2026-11-19", arrivee: null, depart: null },
+  { jour: "2026-11-20", arrivee: null, depart: null },
+];
+
+/** Un stockage dont la lecture rend toujours `text`, et dont l'écriture n'a pas d'effet. */
+function storageHolding(text: string | null): KeyValueStorage {
+  return { getItem: async () => text, setItem: async () => {} };
+}
+
+/** Un stockage dont la lecture lève : l'état local ne se lit pas. */
+const UNREADABLE: KeyValueStorage = {
+  getItem: async () => {
+    throw new Error("stockage indisponible");
+  },
+  setItem: async () => {},
+};
+
+/** Les états locaux tenus pour absents : manquant, pas du JSON, pas de la forme d'une semaine. */
+const ABSENT_LOCAL: [string, KeyValueStorage][] = [
+  ["manquant", storageHolding(null)],
+  ["qui n'est pas du JSON", storageHolding("[{ pas du JSON")],
+  [
+    "qui n'a pas la forme d'une semaine",
+    storageHolding(JSON.stringify(weekArrivingAt(MONDAY, "08:00:00"))),
+  ],
+];
 
 /** Une lecture sans réseau. */
 async function offline(): Promise<PresenceDay[]> {
@@ -154,14 +194,10 @@ describe("loadWeek", () => {
   });
 
   it("signale le serveur injoignable quand l'état local ne se lit pas", async () => {
-    const storage: KeyValueStorage = {
-      getItem: async () => {
-        throw new Error("stockage indisponible");
-      },
-      setItem: async () => {},
-    };
-
-    const views = await viewsOf(MONDAY, { storage, read: async () => SERVER });
+    const views = await viewsOf(MONDAY, {
+      storage: UNREADABLE,
+      read: async () => SERVER,
+    });
 
     expect(views).toEqual([{ days: null, unreachable: true }]);
   });
@@ -184,12 +220,10 @@ describe("loadWeek", () => {
   });
 
   it("tient un état local illisible pour absent", async () => {
-    const corrupted: KeyValueStorage = {
-      getItem: async () => "[{ pas du JSON",
-      setItem: async () => {},
-    };
-
-    const views = await viewsOf(MONDAY, { storage: corrupted, read: offline });
+    const views = await viewsOf(MONDAY, {
+      storage: storageHolding("[{ pas du JSON"),
+      read: offline,
+    });
 
     expect(views).toEqual([
       { days: null, unreachable: false },
@@ -337,11 +371,69 @@ describe("loadWeek, avec des jours en attente d'envoi", () => {
     expect(views[1]).toEqual({ days: withPointed(LOCAL), unreachable: false });
   });
 
-  it("ne fabrique pas de semaine pour un jour en attente quand aucune n'est connue", async () => {
+  it.each(ABSENT_LOCAL)(
+    "montre dès la première vue le jour en attente parmi des journées vides, l'état local %s, sans réseau",
+    async (_, storage) => {
+      const views = await viewsOf(MONDAY, {
+        storage,
+        read: offline,
+        pending: async () => [PENDING_TUESDAY],
+      });
+
+      expect(views).toEqual([
+        { days: REBUILT_WEEK, unreachable: false },
+        { days: REBUILT_WEEK, unreachable: false },
+      ]);
+    },
+  );
+
+  it("montre le jour en attente parmi des journées vides, et signale le serveur injoignable, quand l'état local ne se lit pas", async () => {
+    const views = await viewsOf(MONDAY, {
+      storage: UNREADABLE,
+      read: offline,
+      pending: async () => [PENDING_TUESDAY],
+    });
+
+    expect(views).toEqual([{ days: REBUILT_WEEK, unreachable: true }]);
+  });
+
+  it("pointe le départ sur le jour en attente quand l'état local ne se lit pas, sans écraser son arrivée", async () => {
+    const views = await viewsOf(MONDAY, {
+      storage: UNREADABLE,
+      read: offline,
+      pending: async () => [PENDING_TUESDAY],
+    });
+
+    const press = pressPunch(views.at(-1)!, MONDAY, "2026-11-17", "17:05");
+
+    expect(press?.outcome).toEqual({
+      day: { jour: "2026-11-17", arrivee: "08:30", depart: "17:05" },
+    });
+  });
+
+  it("n'enregistre pas la semaine reconstruite sans réseau", async () => {
+    const storage = memoryStorage();
+    await viewsOf(MONDAY, {
+      storage,
+      read: offline,
+      pending: async () => [PENDING_TUESDAY],
+    });
+
+    const views = await viewsOf(MONDAY, { storage, read: offline });
+
+    expect(views[0]).toEqual({ days: null, unreachable: false });
+  });
+
+  it("ne fabrique pas de semaine pour un jour entré dans la file pendant le chargement", async () => {
+    let queue: PresenceDay[] = [];
+
     const views = await viewsOf(MONDAY, {
       storage: memoryStorage(),
-      read: offline,
-      pending: async () => [POINTED],
+      read: async () => {
+        queue = [PENDING_TUESDAY];
+        throw new ServerUnreachableError();
+      },
+      pending: async () => queue,
     });
 
     expect(views).toEqual([
@@ -349,6 +441,19 @@ describe("loadWeek, avec des jours en attente d'envoi", () => {
       { days: null, unreachable: true },
     ]);
   });
+
+  it.each([...ABSENT_LOCAL, ["qui ne se lit pas", UNREADABLE]])(
+    "ne fabrique pas de semaine pour un jour en attente d'une autre semaine, l'état local %s",
+    async (_, storage) => {
+      const views = await viewsOf(MONDAY, {
+        storage,
+        read: offline,
+        pending: async () => [{ ...PENDING_TUESDAY, jour: "2026-11-24" }],
+      });
+
+      expect(views.at(-1)).toEqual({ days: null, unreachable: true });
+    },
+  );
 
   it("montre la semaine sans jours en attente quand la file ne se lit pas", async () => {
     const storage = memoryStorage();
