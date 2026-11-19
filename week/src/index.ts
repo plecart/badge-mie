@@ -9,6 +9,7 @@
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
 /** Le nombre de jours ouvrés d'une semaine, du lundi au vendredi. */
 export const WORKDAYS = 5;
 
@@ -147,7 +148,7 @@ function parseMonday(monday: string): number {
 export function isoWeek(date: string): number {
   const thursday = mondayTime(parseDate(date)) + 3 * DAY_MS;
   const januaryFirst = utcDate(new Date(thursday).getUTCFullYear(), 1, 1);
-  return Math.floor((thursday - januaryFirst) / (7 * DAY_MS)) + 1;
+  return Math.floor((thursday - januaryFirst) / WEEK_MS) + 1;
 }
 
 /**
@@ -162,6 +163,18 @@ export function weekDates(monday: string): string[] {
   return Array.from({ length: WORKDAYS }, (_, index) =>
     formatDate(start + index * DAY_MS),
   );
+}
+
+/**
+ * Rend le lundi d'une autre semaine, pour passer d'une semaine à la suivante ou à la précédente.
+ *
+ * @param monday - Le lundi `AAAA-MM-JJ` de départ, tel que le rend {@link mondayOf}.
+ * @param weeks - Le nombre de semaines, négatif pour reculer.
+ * @returns Le lundi `AAAA-MM-JJ` décalé, qui peut changer de mois ou d'année.
+ * @throws {RangeError} si `monday` n'est pas une date réelle, ou pas un lundi.
+ */
+export function addWeeks(monday: string, weeks: number): string {
+  return formatDate(parseMonday(monday) + weeks * WEEK_MS);
 }
 
 /** Les mois en toutes lettres, de janvier à décembre. */
