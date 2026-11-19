@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Badge Mie",
+    "slug": "badge-mie",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "com.plecart.badgemie",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon-foreground.png",
+        "monochromeImage": "./assets/icon-monochrome.png",
+        "backgroundColor": "#E0EEE6"
+      }
+    },
+    "plugins": ["expo-secure-store"]
+  }
+}
