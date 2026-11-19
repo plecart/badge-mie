@@ -172,8 +172,8 @@ describe("parseDayResponse", () => {
     expect(() => parseDayResponse(401)).toThrow(TokenRejectedError);
   });
 
-  it.each([400, 404, 499])(
-    "lève DayRejectedError, le refus durable, sur un statut %i",
+  it.each([400, 404, 408, 429, 499])(
+    "lève DayRejectedError, le refus classé durable, sur un statut %i",
     (status) => {
       expect(() => parseDayResponse(status)).toThrow(DayRejectedError);
     },
