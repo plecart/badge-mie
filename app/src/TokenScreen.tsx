@@ -42,21 +42,14 @@ export function TokenScreen({
   async function validate() {
     setChecking(true);
     setFailure(null);
-    try {
-      const outcome = await checkToken(token, mondayOf(today()), {
-        read: readWeek,
-        saveToken,
-        saveWeek: (monday, days) => saveWeek(AsyncStorage, monday, days),
-      });
-      if (outcome === "accepted") onAccepted(token);
-      else setFailure(FAILURES[outcome]);
-    } catch {
-      // Un coffre ou un état local qui refuse l'écriture : rien n'est gardé, l'échec se dit comme
-      // un serveur injoignable.
-      setFailure(FAILURES.unreachable);
-    } finally {
-      setChecking(false);
-    }
+    const outcome = await checkToken(token, mondayOf(today()), {
+      read: readWeek,
+      saveToken,
+      saveWeek: (monday, days) => saveWeek(AsyncStorage, monday, days),
+    });
+    if (outcome === "accepted") return onAccepted(token);
+    setFailure(FAILURES[outcome]);
+    setChecking(false);
   }
 
   return (

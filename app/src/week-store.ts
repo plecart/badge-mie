@@ -8,7 +8,7 @@
  */
 
 import type { PresenceDay } from "@badge-mie/week";
-import { isWeek, ServerUnreachableError } from "./api";
+import { isWeek, ServerUnreachableError, TokenRejectedError } from "./api";
 
 /** Un stockage clé-valeur de textes, de la forme d'`AsyncStorage`. */
 export interface KeyValueStorage {
@@ -71,19 +71,23 @@ async function readLocalWeek(
 /**
  * Charge une semaine pour l'écran : l'état local d'abord, puis la réponse du serveur.
  *
- * `show` est appelé deux fois. La première avec l'état local (`days: null` s'il n'y en a pas). La
- * seconde avec la réponse du serveur, enregistrée ensuite dans l'état local ; ou, si le serveur
- * est injoignable, de nouveau avec l'état local, laissé intact, et `unreachable` vrai s'il n'y en
- * a pas. Le second appel peut arriver après que l'écran est passé à une autre semaine : à
- * l'appelant d'ignorer une vue qui ne correspond plus à la semaine affichée.
+ * `show` est d'abord appelé avec l'état local (`days: null` s'il n'y en a pas), puis avec la
+ * réponse du serveur, enregistrée ensuite dans l'état local. Si le serveur est injoignable
+ * ({@link ServerUnreachableError}), le second appel reprend l'état local, laissé intact, avec
+ * `unreachable` vrai s'il n'y en a pas. Toute autre panne — un état local qui ne se lit ni ne
+ * s'écrit, une lecture qui échoue autrement — se dit comme un serveur injoignable : un dernier
+ * appel garde les journées déjà affichées par ce chargement (`null` si l'état local ne s'est pas
+ * lu, et c'est alors le seul appel), avec `unreachable` vrai.
+ *
+ * Chaque appel peut arriver après que l'écran est passé à une autre semaine : à l'appelant
+ * d'ignorer une vue qui ne correspond plus à la semaine affichée.
  *
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine.
  * @param dependencies.storage - Le stockage de l'état local.
  * @param dependencies.read - La lecture de la semaine sur le serveur, jeton compris.
  * @param show - Affiche une vue de la semaine.
- * @throws {TokenRejectedError} si le serveur refuse le jeton ; l'état local n'est pas touché.
- *   Toute autre erreur que {@link ServerUnreachableError} remonte de même, y compris un échec de
- *   l'enregistrement, qui arrive après l'affichage de la réponse.
+ * @throws {TokenRejectedError} si le serveur refuse le jeton, seule erreur qui remonte ; l'état
+ *   local n'est pas touché.
  */
 export async function loadWeek(
   monday: string,
@@ -96,16 +100,17 @@ export async function loadWeek(
   },
   show: (view: WeekView) => void,
 ): Promise<void> {
-  const local = await readLocalWeek(storage, monday);
-  show({ days: local, unreachable: false });
-  let days: PresenceDay[];
+  // Les journées affichées en dernier par ce chargement.
+  let shown: PresenceDay[] | null = null;
   try {
-    days = await read(monday);
+    shown = await readLocalWeek(storage, monday);
+    show({ days: shown, unreachable: false });
+    shown = await read(monday);
+    show({ days: shown, unreachable: false });
+    await saveWeek(storage, monday, shown);
   } catch (error) {
-    if (!(error instanceof ServerUnreachableError)) throw error;
-    show({ days: local, unreachable: local === null });
-    return;
+    if (error instanceof TokenRejectedError) throw error;
+    const offline = error instanceof ServerUnreachableError;
+    show({ days: shown, unreachable: !offline || shown === null });
   }
-  show({ days, unreachable: false });
-  await saveWeek(storage, monday, days);
 }

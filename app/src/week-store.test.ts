@@ -126,25 +126,50 @@ describe("loadWeek", () => {
     ]);
   });
 
-  it("affiche la réponse du serveur même quand l'état local ne peut pas la garder", async () => {
-    const failure = new Error("stockage plein");
+  it("garde affichée la réponse du serveur, et signale le serveur injoignable, quand l'état local ne peut pas la garder", async () => {
     const storage: KeyValueStorage = {
       getItem: async () => null,
       setItem: async () => {
-        throw failure;
+        throw new Error("stockage plein");
       },
     };
-    const views: WeekView[] = [];
 
-    await expect(
-      loadWeek(MONDAY, { storage, read: async () => SERVER }, (view) =>
-        views.push(view),
-      ),
-    ).rejects.toBe(failure);
+    const views = await viewsOf(MONDAY, { storage, read: async () => SERVER });
 
     expect(views).toEqual([
       { days: null, unreachable: false },
       { days: SERVER, unreachable: false },
+      { days: SERVER, unreachable: true },
+    ]);
+  });
+
+  it("signale le serveur injoignable quand l'état local ne se lit pas", async () => {
+    const storage: KeyValueStorage = {
+      getItem: async () => {
+        throw new Error("stockage indisponible");
+      },
+      setItem: async () => {},
+    };
+
+    const views = await viewsOf(MONDAY, { storage, read: async () => SERVER });
+
+    expect(views).toEqual([{ days: null, unreachable: true }]);
+  });
+
+  it("garde affichée la semaine déjà lue, et signale le serveur injoignable, sur toute autre panne de la lecture", async () => {
+    const storage = memoryStorage();
+    await saveWeek(storage, MONDAY, LOCAL);
+
+    const views = await viewsOf(MONDAY, {
+      storage,
+      read: async () => {
+        throw new TypeError("panne inattendue");
+      },
+    });
+
+    expect(views).toEqual([
+      { days: LOCAL, unreachable: false },
+      { days: LOCAL, unreachable: true },
     ]);
   });
 

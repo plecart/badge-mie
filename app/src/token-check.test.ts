@@ -80,34 +80,50 @@ describe("checkToken", () => {
     });
   });
 
-  it("n'enregistre pas le jeton quand la semaine lue ne peut pas l'être", async () => {
+  it("signale un serveur injoignable, sans enregistrer le jeton, quand la semaine lue ne peut pas l'être", async () => {
     const { saved, saveToken } = recorder();
-    const failure = new Error("stockage plein");
 
-    await expect(
-      checkToken(GOOD_TOKEN, MONDAY, {
-        read: server,
-        saveToken,
-        saveWeek: async () => {
-          throw failure;
-        },
-      }),
-    ).rejects.toBe(failure);
-    expect(saved.tokens).toEqual([]);
+    const outcome = await checkToken(GOOD_TOKEN, MONDAY, {
+      read: server,
+      saveToken,
+      saveWeek: async () => {
+        throw new Error("stockage plein");
+      },
+    });
+
+    expect({ outcome, tokens: saved.tokens }).toEqual({
+      outcome: "unreachable",
+      tokens: [],
+    });
   });
 
-  it("laisse remonter toute autre erreur, sans rien enregistrer", async () => {
-    const { saved, ...saves } = recorder();
-    const failure = new TypeError("panne inattendue");
+  it("signale un serveur injoignable quand le coffre refuse le jeton", async () => {
+    const { saveWeek } = recorder();
 
-    await expect(
-      checkToken(GOOD_TOKEN, MONDAY, {
-        read: async () => {
-          throw failure;
-        },
-        ...saves,
-      }),
-    ).rejects.toBe(failure);
-    expect(saved).toEqual({ tokens: [], weeks: new Map() });
+    const outcome = await checkToken(GOOD_TOKEN, MONDAY, {
+      read: server,
+      saveToken: async () => {
+        throw new Error("coffre indisponible");
+      },
+      saveWeek,
+    });
+
+    expect(outcome).toBe("unreachable");
+  });
+
+  it("signale un serveur injoignable sur toute autre panne de la lecture, sans rien enregistrer", async () => {
+    const { saved, ...saves } = recorder();
+
+    const outcome = await checkToken(GOOD_TOKEN, MONDAY, {
+      read: async () => {
+        throw new TypeError("panne inattendue");
+      },
+      ...saves,
+    });
+
+    expect({ outcome, saved }).toEqual({
+      outcome: "unreachable",
+      saved: { tokens: [], weeks: new Map() },
+    });
   });
 });
