@@ -14,6 +14,12 @@
         "backgroundColor": "#E0EEE6"
       }
     },
-    "plugins": ["expo-secure-store"]
+    "plugins": ["expo-secure-store"],
+    "extra": {
+      "eas": {
+        "projectId": "30cdaf09-7bd3-4bfb-8044-cec7a176341d"
+      }
+    },
+    "owner": "pbernier42"
   }
 }
