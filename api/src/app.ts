@@ -9,6 +9,7 @@ import {
   isIsoDate,
   isMonday,
   isTimeOrNull,
+  isWorkday,
   type PresenceDay,
   weekDates,
 } from "@badge-mie/week";
@@ -107,10 +108,13 @@ function parseHours(
  * `PUT /jours/:date` crée ou remplace la journée `:date` par les heures `{ arrivee, depart }` de
  * son corps JSON, et rend 204 sans corps ; rejoué, il laisse le même état (ADR-0001,
  * « Décision », point 4). Il rend 400 sans rien écrire si `:date` n'est pas une date
- * `AAAA-MM-JJ` réelle, si le corps n'est pas un objet JSON dont les clés `arrivee` et `depart`
- * valent chacune `null` ou une heure `HH:MM` (les autres clés s'ignorent), ou si le départ ne
+ * `AAAA-MM-JJ` réelle ou tombe un samedi ou un dimanche ({@link isWorkday}), deux contrôles faits
+ * avant de lire le corps ; si le corps n'est pas un objet JSON dont les clés `arrivee` et `depart`
+ * valent chacune `null` ou une heure `HH:MM` (les autres clés s'ignorent) ; ou si le départ ne
  * suit pas l'arrivée ({@link departureFollowsArrival}). Un départ sans arrivée est admis, comme
- * par la table `presence` ; ni le jour de la semaine ni une date future ne sont contrôlés.
+ * par la table `presence`. Une date future n'est pas contrôlée : l'application ne lit pas
+ * l'horloge, et l'heure du téléphone fait foi, corrigeable à la main (PRD #1, « Hors
+ * périmètre », horloge serveur de référence).
  *
  * @param options.token - Le jeton fixe attendu.
  * @param options.repository - Le dépôt des présences.
@@ -137,6 +141,12 @@ export function createApp({
     const jour = c.req.param("date");
     if (!isIsoDate(jour)) {
       return c.text("date invalide : attendu une date AAAA-MM-JJ", 400);
+    }
+    if (!isWorkday(jour)) {
+      return c.text(
+        "date invalide : attendu un jour du lundi au vendredi",
+        400,
+      );
     }
     const hours = parseHours(await c.req.text());
     if (!hours) {

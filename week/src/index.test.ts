@@ -10,6 +10,7 @@ import {
   isoWeek,
   isTime,
   isTimeOrNull,
+  isWorkday,
   mondayOf,
   weekDates,
   weekDays,
@@ -97,6 +98,32 @@ describe("isMonday", () => {
   ])("dit si %s est un lundi AAAA-MM-JJ réel : %s", (value, expected) => {
     expect(isMonday(value)).toBe(expected);
   });
+});
+
+describe("isWorkday", () => {
+  it.each([
+    ["2026-11-16", true],
+    ["2026-11-17", true],
+    ["2026-11-18", true],
+    ["2026-11-19", true],
+    ["2026-11-20", true],
+    ["2026-11-21", false],
+    ["2026-11-22", false],
+    ["2026-12-28", true],
+    ["2026-12-29", true],
+    ["2026-12-30", true],
+    ["2026-12-31", true],
+    ["2027-01-01", true],
+    ["2027-01-02", false],
+    ["2027-01-03", false],
+    ["2026-02-30", false],
+    ["21-11-2026", false],
+  ])(
+    "dit si %s est un jour AAAA-MM-JJ réel du lundi au vendredi : %s",
+    (value, expected) => {
+      expect(isWorkday(value)).toBe(expected);
+    },
+  );
 });
 
 describe("isoWeek", () => {

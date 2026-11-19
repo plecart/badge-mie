@@ -122,6 +122,22 @@ export function isMonday(value: string): boolean {
 }
 
 /**
+ * Dit si un texte est un jour ouvré réel au format `AAAA-MM-JJ`, du lundi au vendredi.
+ *
+ * À appeler à une frontière de confiance, comme {@link isIsoDate} : elle ne lève sur aucun
+ * texte.
+ *
+ * @param value - Le texte à vérifier.
+ * @returns `true` pour un jour du lundi au vendredi, l'un de ceux que rend {@link weekDates} pour
+ *   sa semaine ; `false` pour un samedi, un dimanche, ou pour un texte qui n'est pas une date
+ *   réelle (voir {@link isIsoDate}).
+ */
+export function isWorkday(value: string): boolean {
+  const time = tryParseDate(value);
+  return time !== undefined && time - mondayTime(time) < WORKDAYS * DAY_MS;
+}
+
+/**
  * Minuit UTC d'un lundi `AAAA-MM-JJ` réel.
  *
  * @throws {RangeError} si `monday` n'est pas une date réelle, ou pas un lundi.
