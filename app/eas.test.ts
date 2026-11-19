@@ -19,11 +19,19 @@ const required = (
   }
 ).devEngines.runtime.version;
 
+/** La configuration EAS : la source des numéros de version et les profils de build. */
+const eas = readJson("./eas.json") as {
+  cli: { appVersionSource: string };
+  build: Record<string, { node?: string }>;
+};
+
 /** Les profils de build EAS, chacun avec sa version de Node éventuelle. */
-const profiles = Object.entries(
-  (readJson("./eas.json") as { build: Record<string, { node?: string }> })
-    .build,
-);
+const profiles = Object.entries(eas.build);
+
+/** Le versionCode Android de la configuration Expo, absent tant qu'il n'est pas fixé. */
+const { versionCode } = (
+  readJson("./app.json") as { expo: { android: { versionCode?: number } } }
+).expo.android;
 
 /**
  * EAS Build installe tout le workspace depuis la racine (`npm ci`), où npm fait respecter
@@ -44,4 +52,20 @@ describe("eas.json — la version de Node de chaque profil de build", () => {
       expect(semver.satisfies(node, required)).toBe(true);
     },
   );
+});
+
+/**
+ * En source locale, EAS Build construit le projet tel quel, sans écrire de numéro de version
+ * (docs.expo.dev/build-reference/app-versions, « Local version source ») : sans
+ * `android.versionCode`, l'APK porte 1, comme le build EAS 61984869 (`eas build:list`,
+ * 2026-11-19), et Android refuse d'installer un APK de versionCode inférieur à celui en place
+ * (developer.android.com/studio/publish/versioning, « Version settings »). Chaque APK distribué
+ * fixe donc dans `app.json` un versionCode plus grand que celui de l'APK précédent.
+ */
+describe("eas.json — la source de version des builds", () => {
+  it("est locale, et app.json fixe android.versionCode à un entier strictement positif", () => {
+    expect(eas.cli.appVersionSource).toBe("local");
+    expect(Number.isInteger(versionCode)).toBe(true);
+    expect(versionCode).toBeGreaterThan(0);
+  });
 });
