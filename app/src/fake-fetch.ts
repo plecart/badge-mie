@@ -43,21 +43,21 @@ export function useFakeTimers(): void {
  * Pose en global un `fetch` factice, qui répond à chaque appel la réponse suivante d'`answers`,
  * et rejette comme `fetch`, de la raison du signal, quand le signal de la requête abandonne avant.
  *
- * @param answers - Une réponse par appel, dans l'ordre ; un appel de plus rejette.
+ * @param answers - Une réponse par appel, dans l'ordre.
  * @returns Le `fetch` factice, pour lire ses appels.
+ * @throws {Error} à un appel de plus, levée par `fetch` lui-même et non par sa promesse : le
+ *   `catch` de la promesse de `fetch` dans `./api` la convertirait en `ServerUnreachableError`, et
+ *   un test du délai passerait au vert sur un appel en trop.
  */
 export function stubFetch(...answers: FakeAnswer[]) {
-  const fetch = vi.fn(
-    (_url: string, init: RequestInit) =>
-      new Promise<Response>((resolve, reject) => {
-        const answer = answers.shift();
-        if (answer === undefined) throw new Error("appel de fetch inattendu");
-        init.signal?.addEventListener("abort", () =>
-          reject(init.signal?.reason),
-        );
-        if (answer) setTimeout(() => resolve(answer.response), answer.after);
-      }),
-  );
+  const fetch = vi.fn((_url: string, init: RequestInit) => {
+    const answer = answers.shift();
+    if (answer === undefined) throw new Error("appel de fetch inattendu");
+    return new Promise<Response>((resolve, reject) => {
+      init.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+      if (answer) setTimeout(() => resolve(answer.response), answer.after);
+    });
+  });
   vi.stubGlobal("fetch", fetch);
   onTestFinished(() => {
     vi.unstubAllGlobals();
