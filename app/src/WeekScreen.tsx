@@ -23,15 +23,13 @@ import { useEffect, useEffectEvent, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { readWeek, TokenRejectedError } from "./api";
+import { durationText, MISSING } from "./labels";
 import { BUTTON, BUTTON_LABEL, FONTS, type Palette, usePalette } from "./theme";
 import { today } from "./today";
 import { loadWeek, type WeekView } from "./week-store";
 
 /** Les jours abrégés des cinq cartes, du lundi au vendredi. */
 const DAY_NAMES = ["Lun.", "Mar.", "Mer.", "Jeu.", "Ven."];
-
-/** Ce qu'affiche une heure, une durée ou un total encore inconnus. */
-const MISSING = "—";
 
 /** L'opacité de la flèche « Semaine suivante » sur la semaine en cours. */
 const DISABLED_OPACITY = 0.28;
@@ -226,8 +224,6 @@ function DayCard({
 }) {
   const arrival = presence?.arrivee ?? null;
   const departure = presence?.depart ?? null;
-  const duration = dayDuration(arrival, departure);
-  const empty = arrival === null && departure === null;
   const background = day.isToday
     ? palette.accentSoft
     : day.isFuture
@@ -253,7 +249,7 @@ function DayCard({
       <TimeSlot label="Arrivée" time={arrival} day={day} palette={palette} />
       <TimeSlot label="Départ" time={departure} day={day} palette={palette} />
       <Text style={[styles.duration, { color: palette.muted }]}>
-        {duration !== null ? formatDuration(duration) : empty ? "" : MISSING}
+        {durationText(arrival, departure, day.isToday)}
       </Text>
     </View>
   );

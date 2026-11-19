@@ -31,6 +31,9 @@ export type PunchAction = "arrival" | "departure" | "done" | "weekend";
 /** L'issue d'un pointage ou d'une correction : la journée qui en résulte, ou le motif du refus. */
 export type Outcome = { day: PresenceDay } | { refusal: string };
 
+/** Une heure d'une journée, celle que corrige {@link editTime}. */
+export type TimeField = "arrivee" | "depart";
+
 /**
  * Rend l'action que propose le bouton de pointage pour une journée.
  *
@@ -87,7 +90,7 @@ export function punch(day: PresenceDay, time: string): Outcome {
  */
 export function editTime(
   day: PresenceDay,
-  field: "arrivee" | "depart",
+  field: TimeField,
   time: string | null,
 ): Outcome {
   if (!isTimeOrNull(time)) {
