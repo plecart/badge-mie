@@ -63,15 +63,30 @@ export function WeekScreen({
   const rejectToken = useEffectEvent(onTokenRejected);
 
   useEffect(() => {
+    // Un chargement remplacé (autre semaine, ou la même redemandée) n'affiche plus rien.
+    let current = true;
     loadWeek(
       monday,
       { storage: AsyncStorage, read: (week) => readWeek(token, week) },
-      (view) => setLoaded({ monday, view }),
+      (view) => {
+        if (current) setLoaded({ monday, view });
+      },
     ).catch((error: unknown) => {
-      // Toute autre erreur reste une promesse rejetée, signalée en développement.
-      if (!(error instanceof TokenRejectedError)) throw error;
-      rejectToken();
+      if (!current) return;
+      if (error instanceof TokenRejectedError) return rejectToken();
+      // Un état local qui ne se lit ni ne s'écrit : la semaine déjà affichée reste, et l'échec se
+      // dit comme un serveur injoignable.
+      setLoaded((previous) => ({
+        monday,
+        view: {
+          days: previous?.monday === monday ? previous.view.days : null,
+          unreachable: true,
+        },
+      }));
     });
+    return () => {
+      current = false;
+    };
   }, [monday, token]);
 
   const view = loaded?.monday === monday ? loaded.view : undefined;
@@ -117,7 +132,10 @@ export function WeekScreen({
           </Text>
         </Text>
         {view?.unreachable && (
-          <Text style={[styles.metaText, { color: palette.danger }]}>
+          <Text
+            style={[styles.metaText, { color: palette.danger }]}
+            accessibilityLiveRegion="polite"
+          >
             Serveur injoignable
           </Text>
         )}
