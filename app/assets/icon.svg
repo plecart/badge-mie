@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">
+  <!-- Source unique de l'icône adaptative Android, exportée en PNG par scripts/export-icons.ts.
+       Un badge d'accès : la carte, évidée du trou de son cordon, d'une silhouette et de la ligne
+       du nom. Calque de 108 sur 108 ; le motif tient dans la zone sûre, le cercle central de 66
+       de diamètre (guide Android des icônes adaptatives). Vert de l'accent, fond transparent. -->
+  <path
+    fill="#2C6A54"
+    fill-rule="evenodd"
+    d="M38 28H70A6 6 0 0 1 76 34V74A6 6 0 0 1 70 80H38A6 6 0 0 1 32 74V34A6 6 0 0 1 38 28Z
+       M49 33H59A2 2 0 0 1 59 37H49A2 2 0 0 1 49 33Z
+       M47 49A7 7 0 1 0 61 49A7 7 0 1 0 47 49Z
+       M42 69A12 9 0 0 1 66 69Z
+       M45.5 73H62.5A1.5 1.5 0 0 1 62.5 76H45.5A1.5 1.5 0 0 1 45.5 73Z"
+  />
+</svg>
