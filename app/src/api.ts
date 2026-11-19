@@ -4,7 +4,9 @@
  *
  * Pour chaque route, la requête et la lecture de la réponse sont des fonctions pures, testées ;
  * {@link readWeek} et {@link writeDay} ne sont que les adaptateurs minces qui les relient par
- * `fetch`, non testés (PRD #1, « Décisions de test »).
+ * `fetch`, non testés, hormis le délai maximal des requêtes à l'API ({@link REQUEST_TIMEOUT_MS}),
+ * testé sur la lecture d'une semaine et l'écriture d'un jour avec un `fetch` factice et des
+ * minuteurs simulés (PRD #1, « Décisions de test »).
  */
 
 import { isPresenceDay, type PresenceDay, weekDates } from "@badge-mie/week";
@@ -19,10 +21,10 @@ export class TokenRejectedError extends Error {
 }
 
 /**
- * Le serveur n'a pas pu être joint, ou sa réponse n'est pas exploitable : réseau coupé ; pour la
- * lecture d'une semaine, statut HTTP autre que 2xx et 401, ou corps mal formé ; pour l'écriture
- * d'un jour, statut hors 2xx et 4xx (5xx, 1xx, 3xx). Pour l'utilisateur, c'est « Serveur
- * injoignable ».
+ * Le serveur n'a pas pu être joint, ou sa réponse n'est pas exploitable : réseau coupé, ou pas de
+ * réponse dans le délai maximal ({@link REQUEST_TIMEOUT_MS}) ; pour la lecture d'une semaine,
+ * statut HTTP autre que 2xx et 401, ou corps mal formé ; pour l'écriture d'un jour, statut hors
+ * 2xx et 4xx (5xx, 1xx, 3xx). Pour l'utilisateur, c'est « Serveur injoignable ».
  */
 export class ServerUnreachableError extends Error {
   override name = "ServerUnreachableError";
@@ -47,6 +49,15 @@ export class DayRejectedError extends Error {
   }
 }
 
+/**
+ * Le délai maximal d'une requête à l'API, en millisecondes : la lecture d'une semaine comme
+ * l'écriture d'un jour, sans réponse dans ce délai, est abandonnée et lève
+ * {@link ServerUnreachableError} (#14, décision du 2026-11-19). Sans lui, une lecture sans fin
+ * laissait non pointable une semaine jamais lue, et un envoi sans fin tenait la relance de la File
+ * d'envoi.
+ */
+export const REQUEST_TIMEOUT_MS = 10_000;
+
 /** Une requête prête pour `fetch` : son URL et ses options. */
 interface ApiRequest {
   url: string;
@@ -64,12 +75,20 @@ function isSuccess(status: number): boolean {
 }
 
 /**
- * Envoie une requête par `fetch`. Un `fetch` qui échoue (réseau coupé) lève
- * {@link ServerUnreachableError}, qui garde l'erreur d'origine en `cause` ; toute réponse, quel
- * que soit son statut, est rendue telle quelle.
+ * Envoie une requête par `fetch`, ses options complétées du signal d'`AbortSignal.timeout`, qui
+ * l'abandonne au bout du délai maximal ({@link REQUEST_TIMEOUT_MS}). Un `fetch` qui échoue (réseau
+ * coupé, délai dépassé) lève {@link ServerUnreachableError}, qui garde l'erreur d'origine en
+ * `cause` ; toute réponse, quel que soit son statut, est rendue telle quelle.
+ *
+ * Dans l'application, `AbortSignal.timeout` vient du polyfill global de react-native 0.88.1
+ * (`static timeout` de `src/private/webapis/dom/abort-api/AbortSignal.js`, posé par
+ * `polyfillGlobal` de `Libraries/Core/setUpXHR.js`, lu le 2026-11-19), et `expo/fetch` écoute le
+ * signal : à l'abandon, il abandonne la réponse et annule la requête native
+ * (`addAbortSignalListener` de `expo/src/winter/fetch/fetch.ts`, expo 58.0.26, lu le 2026-11-19).
  */
 function send({ url, init }: ApiRequest): Promise<Response> {
-  return fetch(url, init).catch((cause: unknown) => {
+  const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  return fetch(url, { ...init, signal }).catch((cause: unknown) => {
     throw new ServerUnreachableError({ cause });
   });
 }
@@ -141,8 +160,9 @@ export function parseWeekResponse(
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine.
  * @returns Les cinq journées de la semaine, du lundi au vendredi.
  * @throws {TokenRejectedError} si le serveur refuse le jeton.
- * @throws {ServerUnreachableError} si `fetch` échoue (réseau coupé), ou pour toute autre réponse
- *   que {@link parseWeekResponse} refuse.
+ * @throws {ServerUnreachableError} si `fetch` échoue (réseau coupé), sans réponse dans le délai
+ *   maximal ({@link REQUEST_TIMEOUT_MS}), ou pour toute autre réponse que
+ *   {@link parseWeekResponse} refuse.
  * @throws {RangeError} si `monday` n'est pas un lundi réel et que le serveur rend pourtant un 2xx.
  *   Il rend 400 pour un autre jour, qui lève alors {@link ServerUnreachableError}.
  */
@@ -204,8 +224,9 @@ export function parseDayResponse(status: number): void {
  * @param day - La journée à écrire.
  * @throws {TokenRejectedError} si le serveur refuse le jeton.
  * @throws {DayRejectedError} si le serveur refuse la journée.
- * @throws {ServerUnreachableError} si `fetch` échoue (réseau coupé), ou sur toute autre réponse
- *   que {@link parseDayResponse} refuse.
+ * @throws {ServerUnreachableError} si `fetch` échoue (réseau coupé), sans réponse dans le délai
+ *   maximal ({@link REQUEST_TIMEOUT_MS}), ou sur toute autre réponse que
+ *   {@link parseDayResponse} refuse.
  */
 export async function writeDay(token: string, day: PresenceDay): Promise<void> {
   parseDayResponse((await send(dayRequest(token, day))).status);

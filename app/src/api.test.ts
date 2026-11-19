@@ -1,15 +1,19 @@
 import type { PresenceDay } from "@badge-mie/week";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DayRejectedError,
   dayRequest,
   parseDayResponse,
   parseWeekResponse,
+  readWeek,
+  REQUEST_TIMEOUT_MS,
   ServerUnreachableError,
   TokenRejectedError,
   weekRequest,
+  writeDay,
 } from "./api";
 import { API_URL } from "./api-url";
+import { stubFetch, useFakeTimers } from "./fake-fetch";
 
 const MONDAY = "2026-11-16";
 
@@ -20,6 +24,13 @@ const WEEK: PresenceDay[] = [
   { jour: "2026-11-19", arrivee: null, depart: null },
   { jour: "2026-11-20", arrivee: null, depart: null },
 ];
+
+/** Une journée à écrire, le mercredi. */
+const DAY: PresenceDay = {
+  jour: "2026-11-18",
+  arrivee: "08:30",
+  depart: null,
+};
 
 /** La semaine de référence, dont la première journée est remplacée par `day`. */
 function withFirstDay(day: unknown): unknown[] {
@@ -136,12 +147,6 @@ describe("parseWeekResponse", () => {
 });
 
 describe("dayRequest", () => {
-  const DAY: PresenceDay = {
-    jour: "2026-11-18",
-    arrivee: "08:30",
-    depart: null,
-  };
-
   it("écrit la journée par un PUT sur la route de son jour", () => {
     const { url, init } = dayRequest("jeton-de-test", DAY);
     expect([init.method, url]).toEqual(["PUT", `${API_URL}/jours/2026-11-18`]);
@@ -183,6 +188,80 @@ describe("parseDayResponse", () => {
     "lève ServerUnreachableError sur un statut %i",
     (status) => {
       expect(() => parseDayResponse(status)).toThrow(ServerUnreachableError);
+    },
+  );
+});
+
+/** Suit une promesse : rend « en attente », puis `{ value }` ou `{ error }` une fois réglée. */
+function track(promise: Promise<unknown>): () => unknown {
+  let state: unknown = "en attente";
+  void promise.then(
+    (value) => (state = { value }),
+    (error: unknown) => (state = { error }),
+  );
+  return () => state;
+}
+
+/** Les deux routes de l'API : l'appel, sa requête, une réponse de succès et ce qu'il en rend. */
+const ROUTES = [
+  {
+    name: "readWeek",
+    call: () => readWeek("jeton-de-test", MONDAY),
+    request: weekRequest("jeton-de-test", MONDAY),
+    success: () => Response.json(WEEK),
+    result: WEEK,
+  },
+  {
+    name: "writeDay",
+    call: () => writeDay("jeton-de-test", DAY),
+    request: dayRequest("jeton-de-test", DAY),
+    success: () => new Response(null, { status: 204 }),
+    result: undefined,
+  },
+];
+
+describe("délai maximal des requêtes", () => {
+  beforeEach(useFakeTimers);
+
+  it.each(ROUTES)(
+    "$name attend la réponse jusqu'au délai maximal, puis lève ServerUnreachableError",
+    async ({ call }) => {
+      stubFetch(null);
+      const outcome = track(call());
+
+      await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS - 1);
+      expect(outcome()).toBe("en attente");
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(outcome()).toEqual({ error: expect.any(ServerUnreachableError) });
+    },
+  );
+
+  it.each(ROUTES)(
+    "$name rend telle quelle une réponse arrivée juste avant le délai maximal",
+    async ({ call, success, result }) => {
+      stubFetch({ after: REQUEST_TIMEOUT_MS - 1, response: success() });
+      const outcome = track(call());
+
+      await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+
+      expect(outcome()).toEqual({ value: result });
+    },
+  );
+
+  it.each(ROUTES)(
+    "$name envoie sa requête avec un signal qui abandonne au bout de 10 s",
+    async ({ call, request, success }) => {
+      const fetch = stubFetch({ after: 0, response: success() });
+      const done = call();
+      await vi.advanceTimersByTimeAsync(0);
+      await done;
+
+      expect(AbortSignal.timeout).toHaveBeenCalledExactlyOnceWith(10_000);
+      expect(fetch).toHaveBeenCalledExactlyOnceWith(request.url, {
+        ...request.init,
+        signal: vi.mocked(AbortSignal.timeout).mock.results[0]?.value,
+      });
     },
   );
 });
