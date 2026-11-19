@@ -1,5 +1,5 @@
 /**
- * Le dépôt réel des présences : la table `presence` de la base Neon, lue par `pg`.
+ * Le dépôt réel des présences : la table `presence` de la base Neon, lue et écrite par `pg`.
  *
  * Aucun test unitaire : c'est une frontière tierce (Postgres), éprouvée contre Neon au
  * déploiement de la Function.
@@ -24,6 +24,21 @@ const READ_DAYS = `
   order by jour`;
 
 /**
+ * Crée ou remplace la ligne d'un jour, en une requête : sur un jour qui a déjà sa ligne,
+ * `on conflict` remplace les deux heures et date la modification. Postgres lit la date et les
+ * heures envoyées en texte (`AAAA-MM-JJ`, `HH:MM`) d'après le type de leur colonne, et `pg` envoie
+ * un `null` JavaScript en `NULL`. Le `check` de la table refuserait un départ qui ne suit pas
+ * l'arrivée : la route l'a déjà écarté.
+ */
+const WRITE_DAY = `
+  insert into presence (jour, arrivee, depart)
+  values ($1, $2, $3)
+  on conflict (jour) do update
+    set arrivee = excluded.arrivee,
+        depart = excluded.depart,
+        modifie_le = now()`;
+
+/**
  * Connexions au plus par pool. Chaque isolat de la Function crée le sien : la base en reçoit au
  * plus ce nombre fois les isolats vivants (doc Neon « Neon Functions runtime limits »).
  */
@@ -45,6 +60,9 @@ export function createNeonRepository(
     async readDays(from, to) {
       const { rows } = await pool.query<PresenceDay>(READ_DAYS, [from, to]);
       return rows;
+    },
+    async writeDay({ jour, arrivee, depart }) {
+      await pool.query(WRITE_DAY, [jour, arrivee, depart]);
     },
   };
 }
