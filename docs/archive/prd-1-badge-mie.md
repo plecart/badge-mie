@@ -43,3 +43,21 @@ context7 a rendu « Monthly quota exceeded » le 2026-11-18 ; les points de bibl
   `DateTimePickerAndroid.open` recommandé sur Android, paquet intégré à Expo Go.
 - docs.expo.dev, `expo-network` : `addNetworkStateListener`, `useNetworkState`, champs
   `isConnected` et `isInternetReachable`.
+
+## Amendements
+
+### 2026-11-19 — « Décisions de test » : le délai maximal des requêtes se teste (#14, PR #16)
+
+**Décideur :** le mainteneur · **Session :** session PR de #14, `contradiction`
+
+- **Contradiction.** Le PRD disait « Non testés unitairement : […] l'adaptateur mince du client
+  API et du coffre ». Le critère v3 de #14 demande de tester le délai maximal de 10 s sur la
+  lecture d'une semaine et l'écriture d'un jour, temps simulé.
+- **Options.** (1a) Ne pas tester le délai : il ne se vérifierait qu'à l'œil, et le mode avion ne
+  le reproduit pas, `fetch` y échouant aussitôt. (1b) Tester seule une fonction qui pose le
+  signal : le PRD reste vrai, mais la levée de « serveur injoignable » au délai ne se vérifie
+  qu'à la lecture. (2) Amender le PRD.
+- **Retenu : (2).** Le délai est la seule logique de l'adaptateur qui mérite un test, et les
+  critères de #14, validés à l'interrogatoire, le demandent.
+- **§§ répercutés.** Corps de #1, « Décisions de test » et « Journal de spec » ; en-tête de
+  `app/src/api.ts`.

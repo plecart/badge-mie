@@ -2,9 +2,12 @@ import { mondayOf, type PresenceDay } from "@badge-mie/week";
 import { describe, expect, it, vi } from "vitest";
 import {
   DayRejectedError,
+  REQUEST_TIMEOUT_MS,
   ServerUnreachableError,
   TokenRejectedError,
+  writeDay,
 } from "./api";
+import { stubFetch, useFakeTimers } from "./fake-fetch";
 import { memoryStorage } from "./memory-storage";
 import { createSendQueue } from "./send-queue";
 import { type KeyValueStorage, loadWeek, type WeekView } from "./week-store";
@@ -105,6 +108,28 @@ describe("createSendQueue", () => {
       [MONDAY_DAY],
       [MONDAY_DAY, WEDNESDAY_DAY],
     ]);
+  });
+
+  it("renvoie à la relance suivante un jour dont l'envoi n'a pas répondu dans le délai maximal", async () => {
+    useFakeTimers();
+    stubFetch(null, {
+      after: 0,
+      response: new Response(null, { status: 204 }),
+    });
+    const queue = createSendQueue({
+      storage: await storageWaiting(MONDAY_DAY),
+      send: (day) => writeDay("jeton-de-test", day),
+    });
+
+    const first = queue.flush();
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+    await first;
+    const afterFirst = await queue.pendingDays();
+    const second = queue.flush();
+    await vi.advanceTimersByTimeAsync(0);
+    await second;
+
+    expect([afterFirst, await queue.pendingDays()]).toEqual([[MONDAY_DAY], []]);
   });
 
   it("retire de la file un pointage envoyé, et dit qu'aucun jour n'attend plus", async () => {
