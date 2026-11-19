@@ -50,6 +50,10 @@ export function TokenScreen({
       });
       if (outcome === "accepted") onAccepted(token);
       else setFailure(FAILURES[outcome]);
+    } catch {
+      // Un coffre ou un état local qui refuse l'écriture : rien n'est gardé, l'échec se dit comme
+      // un serveur injoignable.
+      setFailure(FAILURES.unreachable);
     } finally {
       setChecking(false);
     }
@@ -78,7 +82,10 @@ export function TokenScreen({
         accessibilityLabel="Jeton d'accès"
       />
       {failure !== null && (
-        <Text style={[styles.failure, { color: palette.danger }]}>
+        <Text
+          style={[styles.failure, { color: palette.danger }]}
+          accessibilityLiveRegion="polite"
+        >
           {failure}
         </Text>
       )}
