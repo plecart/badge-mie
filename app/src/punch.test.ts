@@ -120,7 +120,7 @@ describe("punch", () => {
 
   it("refuse un départ pointé dans la même minute que l'arrivée", () => {
     expect(punch(wednesday("08:30", null), "08:30")).toEqual({
-      refusal: "Le départ doit suivre l'arrivée",
+      refusal: "departureMustFollowArrival",
     });
   });
 
@@ -211,7 +211,7 @@ describe("pressPunch", () => {
     ).toEqual({
       before: wednesday("08:30", null),
       action: "departure",
-      outcome: { refusal: "Le départ doit suivre l'arrivée" },
+      outcome: { refusal: "departureMustFollowArrival" },
       haptic: false,
     });
   });
@@ -222,17 +222,17 @@ describe("editTime", () => {
     [
       "un départ corrigé avant l'arrivée",
       () => editTime(wednesday("08:30", "17:00"), "depart", "08:00"),
-      "Le départ doit suivre l'arrivée",
+      "departureMustFollowArrival",
     ],
     [
       "une arrivée corrigée après le départ",
       () => editTime(wednesday("08:30", "17:00"), "arrivee", "18:00"),
-      "Le départ doit suivre l'arrivée",
+      "departureMustFollowArrival",
     ],
     [
       "l'effacement de l'arrivée d'une journée qui a un départ",
       () => editTime(wednesday("08:30", "17:00"), "arrivee", null),
-      "Effacez d'abord le départ de ce jour",
+      "clearDepartureFirst",
     ],
   ])("refuse %s, avec son motif", (_, edit, refusal) => {
     expect(edit()).toEqual({ refusal });
