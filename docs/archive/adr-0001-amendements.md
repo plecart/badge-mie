@@ -67,3 +67,24 @@ et widget Android)
     pointage).
   - La commande `run local` de `pipeline.config.md` change avec le widget, pas avec cet
     amendement.
+
+## Propositions UX — l'appui maintenu ramené à environ 1 s
+
+**Date :** 2026-11-19 · **Décideur :** le mainteneur · **Session :** `cycle-pr`, PR #16 (#14)
+
+- **Contradiction.**
+  - Avant : « Dans l'app, un appui maintenu déclenche le pointage : environ 1,5 s […] ».
+  - Décision : à l'arrêt visuel de l'appui maintenu (PR #16), le mainteneur a demandé une durée
+    d'appui de 1 s.
+- **Options.**
+  - (1a) Garder 1,5 s.
+  - (1b) Déplacer l'effet : remplir la jauge en 1 s et ne pointer qu'à 1,5 s, ou rendre la durée
+    réglable. Écartée : la première ment à l'œil, la seconde fait un écran de réglages, hors
+    périmètre du PRD #1.
+  - (2) Amender la durée.
+- **Retenu : (2).** Vu en main sur le téléphone, 1,5 s est plus long que nécessaire pour un
+  geste répété deux fois par jour ; 1 s garde l'appui délibéré qui évite le pointage accidentel.
+- **§§ répercutés :** aucun autre dans les documents.
+  - Issue #14 (point 4, critère « Appui maintenu », décision du 2026-11-19) : amendée par la
+    session PR de #14.
+  - Code : `HOLD_MS` de `app/src/hold.ts`, dans la PR #16.
