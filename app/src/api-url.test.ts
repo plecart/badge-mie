@@ -25,7 +25,7 @@ describe("API_URL", () => {
     },
   );
 
-  it("vise l'adresse que donne EXPO_PUBLIC_API_URL au lancement de Metro", async () => {
+  it("vise l'adresse que donne EXPO_PUBLIC_API_URL", async () => {
     vi.stubEnv("EXPO_PUBLIC_API_URL", "https://qa-pointage.example.test");
     expect(await loadApiUrl()).toBe("https://qa-pointage.example.test");
   });
