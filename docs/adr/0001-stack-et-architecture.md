@@ -7,7 +7,8 @@
 ## Contexte
 
 Badge Mie relève les horaires de présence d'**une seule personne** dans un bâtiment : une heure
-d'arrivée et une heure de départ par jour ouvré, du lundi au vendredi.
+d'arrivée et une heure de départ par jour, du lundi au dimanche. Le samedi, le dimanche, les
+jours fériés et les jours de congé ne sont pas travaillés, mais restent pointables.
 
 Contraintes posées :
 
@@ -15,8 +16,9 @@ Contraintes posées :
 - **Mobile uniquement**, installé par **APK** (pas de store, pas de version web).
 - **Mono-utilisateur, sans authentification** : ni compte, ni écran de connexion.
 - **Données stockées dans Neon** (Postgres managé), et **protégées** malgré l'absence d'auth.
-- À l'ouverture, l'écran montre la **semaine en cours** (5 lignes) et permet de pointer
-  l'arrivée et le départ **en un geste**. Toute heure pointée reste **modifiable à la main**.
+- À l'ouverture, l'écran montre la **semaine en cours** (7 lignes, du lundi au dimanche) et
+  permet de pointer l'arrivée et le départ **en un geste**. Toute heure pointée reste
+  **modifiable à la main**.
 
 Il y a aussi des contraintes qui ne sont pas écrites mais qui pèsent sur le choix :
 
@@ -53,14 +55,21 @@ create table presence (
   jour        date primary key,          -- la date complète ; le jour de la semaine s'en déduit
   arrivee     time,                      -- heure locale (Europe/Paris), à la minute
   depart      time,
+  conge       boolean not null default false, -- jour de congé posé par le calendrier
   modifie_le  timestamptz not null default now(),
   check (arrivee is null or depart is null or depart > arrivee)
 );
 ```
 
+   Les jours fériés français ne se stockent pas : ils se calculent à partir de la date, dans
+   `week/`, sans réseau. Un jour férié ou de congé qui tombe du lundi au vendredi compte 8 h ;
+   un samedi ou un dimanche ne compte rien, même férié ou en congé.
+
 6. **API : deux routes.**
-   - `GET /semaines/:lundi` rend les 5 jours de la semaine (les jours vides ont des heures nulles).
-   - `PUT /jours/:date` avec `{ arrivee, depart }` crée ou remplace la ligne du jour.
+   - `GET /semaines/:lundi` rend les 7 jours de la semaine, du lundi au dimanche (les jours vides
+     ont des heures nulles).
+   - `PUT /jours/:date` avec `{ arrivee, depart, conge }` crée ou remplace la ligne du jour, quel
+     que soit le jour de la semaine.
 
 ## Options étudiées
 
@@ -177,7 +186,7 @@ fichier a la base entière. Écartée sans appel.
 ## Propositions UX (à trancher par le prototype, puis le PRD)
 
 **Tranché le 2026-11-18 par le prototype** (https://claude.ai/artifact/NwrBfuBW1u2KnpdxjGnRae, page
-privée) : on retient la variante **« Pouce »**. Elle affiche les 5 jours en cartes (jour, arrivée,
+privée) : on retient la variante **« Pouce »**. Elle affiche les 7 jours en cartes (jour, arrivée,
 départ, durée), avec le jour courant mis en évidence. Un seul bouton contextuel est fixé en bas,
 au-dessus de la date et de l'heure courante. La variante prototypée affiche aussi le total de la
 semaine et les flèches de navigation entre semaines ; ces deux éléments restent à confirmer au PRD.
@@ -199,8 +208,11 @@ Elles ne relèvent pas de l'architecture, mais elles en découlent. Les voici po
   de façon visible, le second pointe.
 - **« Annuler » reste visible quelques secondes** après un pointage (barre en bas) : l'appui
   maintenu évite le pointage accidentel, « Annuler » répare une heure fausse.
-- **Aujourd'hui mis en évidence** dans les 5 lignes ; un retour haptique au pointage ; un petit
+- **Aujourd'hui mis en évidence** dans les 7 lignes ; un retour haptique au pointage ; un petit
   indicateur « en attente d'envoi » quand la file hors ligne n'est pas vide.
+- **Un jour non travaillé** (samedi, dimanche, férié, congé) a sa carte grisée ; le bouton
+  y est grisé mais reste actif. Les congés se posent dans un calendrier mensuel, en glissant le
+  doigt sur les jours.
 - **À décider :** le total d'heures de la semaine (une ligne de plus) et la navigation vers les
   semaines précédentes (deux flèches). Les deux sont utiles mais pas indispensables.
 

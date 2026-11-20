@@ -88,3 +88,43 @@ et widget Android)
   - Issue #14 (point 4, critère « Appui maintenu », décision du 2026-11-19) : amendée par la
     session PR de #14.
   - Code : `HOLD_MS` de `app/src/hold.ts`, dans la PR #16.
+
+## Contexte, Décision (points 5 et 6) et Propositions UX — la semaine de 7 jours, les fériés et les congés
+
+**Date :** 2026-11-20 · **Décideur :** le mainteneur · **Session :** dialogue hors cycle (semaine
+de 7 jours, fériés et congés)
+
+- **Contradiction.**
+  - Avant : « une heure d'arrivée et une heure de départ par jour ouvré, du lundi au vendredi »
+    (Contexte) ; « `GET /semaines/:lundi` rend les 5 jours de la semaine » (Décision, point 6) ;
+    « Elle affiche les 5 jours en cartes » (Propositions UX).
+  - Décision : afficher les 7 jours. Le samedi et le dimanche sont grisés mais pointables, parce
+    qu'il arrive de travailler le week-end. Les jours fériés français sont grisés et comptent
+    8 h quand ils tombent en semaine. Des jours de congé se posent dans un calendrier et
+    comptent 8 h.
+- **Options.**
+  - (1a) Garder la semaine de 5 jours et le refus du week-end.
+  - (1b) Garder 5 lignes et montrer le week-end sur un écran à part. Écartée : plus lourd que la
+    demande, et le pointage du week-end resterait hors de l'écran principal.
+  - (2) Amender.
+- **Retenu : (2).**
+  - Amendé en place plutôt que par un nouvel ADR : la stack, la sécurité et le hors ligne ne
+    changent pas, seuls la semaine et le modèle de données s'étendent. Le numéro ADR-0002 reste
+    réservé à la bibliothèque du widget.
+  - Les congés tiennent dans une colonne `conge` de `presence` plutôt que dans une table : l'ADR
+    garde une table et deux routes, et la file hors ligne rejoue le même `PUT`.
+  - Les fériés se calculent dans `week/`, sans réseau ni stockage : ils se déduisent de la date
+    (dates fixes et dates liées à Pâques). Candidats relevés le 2026-11-20 sur le registre npm :
+    `@socialgouv/jours-feries` 2.0.0, sans dépendance, inchangé depuis 2022 ; `date-holidays`
+    3.39.2, mondial, quatre dépendances. Le choix se fait dans l'issue.
+  - Un congé ou un férié tombé un samedi ou un dimanche compte 0 h, comme le week-end :
+    hypothèse retenue le 2026-11-20, à confirmer à l'interrogatoire de l'issue des congés.
+- **§§ répercutés :** Contexte (deux passages), Décision points 5 et 6, Propositions UX (deux
+  passages et un point ajouté).
+  - Documents : rien d'autre. `docs/`, `CLAUDE.md`, `CONTRIBUTING.md` et `pipeline.config.md`
+    parcourus : aucun autre « 5 jours » ni « lundi au vendredi ».
+  - À propager aux issues après le merge : #1 (semaine de 5 jours, story 15, refus du week-end,
+    hors périmètre « Pointage le week-end »), #20 (critère « Week-end »), #8 et #12 (cinq
+    cartes, bouton désactivé le week-end).
+  - Code devenu faux, traité par les issues à venir : le refus 400 du week-end dans l'API,
+    l'action `weekend` du bouton.
