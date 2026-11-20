@@ -61,3 +61,24 @@ context7 a rendu « Monthly quota exceeded » le 2026-11-18 ; les points de bibl
   critères de #14, validés à l'interrogatoire, le demandent.
 - **§§ répercutés.** Corps de #1, « Décisions de test » et « Journal de spec » ; en-tête de
   `app/src/api.ts`.
+
+### 2026-11-20 — « Hors périmètre » : les rappels de pointage en sortent (story 56)
+
+**Décideur :** le mainteneur · **Session :** `vers-issues`, `contradiction`
+
+- **Contradiction.** Le PRD disait « Synchronisation entre plusieurs téléphones ; écran de
+  réglages ; export des heures ; notifications ou rappels de pointage. » Le mainteneur veut être
+  notifié à 10 h et à 19 h s'il manque un pointage du jour, sauf le week-end, un jour férié ou un
+  jour de congé.
+- **Options.** (1a) Abandonner les rappels. (1b) Déplacer l'effet hors de ce que le PRD exclut :
+  un indice « arrivée manquante » sur le widget de #20, sans notification ; il faut alors
+  regarder l'écran d'accueil pour le voir. (2) Amender le PRD.
+- **Retenu : (2).** Le rappel n'a de valeur que s'il vient à l'utilisateur.
+- **Mécanisme envisagé, à trancher au cycle de l'issue.** Des notifications locales programmées
+  sur le téléphone, pas des notifications push. Le serveur ne voit pas un pointage resté dans la
+  File d'envoi, et l'on pointe là où le réseau est le plus faible : un rappel parti du serveur
+  préviendrait d'un oubli qui n'en est pas un. Les push demanderaient aussi des identifiants
+  FCM, un jeton push en base et une tâche planifiée sur la Function. L'écran de réglages reste
+  hors périmètre : les heures sont fixes.
+- **§§ répercutés.** Corps de #1 : « Solution », « User Stories » (section « Rappels »,
+  story 56), « Hors périmètre » et « Journal de spec ».
