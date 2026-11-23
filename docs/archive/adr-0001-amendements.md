@@ -182,8 +182,10 @@ issue)
 - **Retenu : (2).** Le pointage accidentel reste couvert par « Annuler », visible quelques
   secondes après chaque pointage. Le retour en arrière reste trois fois plus rapide que le
   remplissage.
-- **§§ répercutés :** aucun autre dans les documents.
+- **§§ répercutés :** aucun autre dans les documents normatifs ; `README.md` (descriptif)
+  suit.
   - Documents : `docs/`, `README.md`, `CLAUDE.md`, `CONTRIBUTING.md` et `pipeline.config.md`
-    parcourus : aucune autre durée d'appui. Le widget (deux touchers) n'est pas concerné.
+    parcourus : seul `README.md` (« Ce que fait l'application », « environ une seconde ») citait
+    la durée, répercuté dans la même PR. Le widget (deux touchers) n'est pas concerné.
   - Issue #12 (C18 et trois observations « environ 1 s ») : amendée par la session de la PR.
   - Code : `HOLD_MS` de `app/src/hold.ts`, dans la même PR.
