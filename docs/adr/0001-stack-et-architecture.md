@@ -204,7 +204,7 @@ Elles ne relèvent pas de l'architecture, mais elles en découlent. Les voici po
 - **Le bouton vise toujours aujourd'hui.** Les autres jours se corrigent en touchant leur heure.
 - **Toucher une heure ouvre le sélecteur d'heure natif d'Android**, prérempli. Une heure vide
   touchée s'ouvre sur l'heure courante.
-- **Dans l'app, un appui maintenu** déclenche le pointage : environ 1 s, avec une progression
+- **Dans l'app, un appui maintenu** déclenche le pointage : environ 0,5 s, avec une progression
   dessinée sur le contour du bouton, qui revient en arrière si le doigt se lève avant la fin ; un
   toucher bref affiche « Maintiens le bouton pour pointer ».
 - **Sur le widget**, qui ne reçoit que des touchers, **deux touchers** : le premier arme le bouton,
