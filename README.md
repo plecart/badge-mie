@@ -12,7 +12,7 @@ compte, et le minimum de pièces mobiles.
 
 - **La semaine en cours sur un écran** : pour chaque jour, l'arrivée, le départ et la durée ;
   le total d'heures en haut, et deux flèches pour changer de semaine.
-- **Pointer d'un geste** : un seul bouton, à maintenir environ une seconde, qui pointe l'arrivée
+- **Pointer d'un geste** : un seul bouton, à maintenir environ une demi-seconde, qui pointe l'arrivée
   puis le départ. « Annuler » reste visible cinq secondes.
 - **Corriger à la main** n'importe quelle heure, avec le sélecteur natif d'Android.
 - **Hors ligne d'abord** : l'heure enregistrée est celle du geste, gardée sur le téléphone puis
