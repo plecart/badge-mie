@@ -163,3 +163,27 @@ journalier de 8 h 30)
     § Cadre, module « Calendrier de semaine »), #25 et #26.
   - Code devenu faux, traité par #25 et #26, pas encore livrées : aucun crédit n'est codé à ce
     jour.
+
+## Propositions UX — l'appui maintenu ramené à environ 0,5 s
+
+**Date :** 2026-11-23 · **Décideur :** le mainteneur · **Session :** `cycle-pr`, voie courte (sans
+issue)
+
+- **Contradiction.**
+  - Avant : « Dans l'app, un appui maintenu déclenche le pointage : environ 1 s […] ».
+  - Décision : à l'usage, la seconde d'appui paraît longue ; le mainteneur a demandé de diviser
+    le temps par deux, soit environ 0,5 s. La progression démarre dès le début de l'appui, sans
+    délai caché : c'est bien la durée qui paraît longue.
+- **Options.**
+  - (1a) Garder 1 s.
+  - (1b) Déplacer l'effet : remplir la jauge en 0,5 s et ne pointer qu'à 1 s. Écartée pour la
+    même raison qu'au 2026-11-19 : elle ment à l'œil.
+  - (2) Amender la durée.
+- **Retenu : (2).** Le pointage accidentel reste couvert par « Annuler », visible quelques
+  secondes après chaque pointage. Le retour en arrière reste trois fois plus rapide que le
+  remplissage.
+- **§§ répercutés :** aucun autre dans les documents.
+  - Documents : `docs/`, `README.md`, `CLAUDE.md`, `CONTRIBUTING.md` et `pipeline.config.md`
+    parcourus : aucune autre durée d'appui. Le widget (deux touchers) n'est pas concerné.
+  - Issue #12 (C18 et trois observations « environ 1 s ») : amendée par la session de la PR.
+  - Code : `HOLD_MS` de `app/src/hold.ts`, dans la même PR.
