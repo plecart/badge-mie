@@ -62,8 +62,11 @@ create table presence (
 ```
 
    Les jours fériés français ne se stockent pas : ils se calculent à partir de la date, dans
-   `week/`, sans réseau. Un jour férié ou de congé qui tombe du lundi au vendredi compte 8 h ;
-   un samedi ou un dimanche ne compte rien, même férié ou en congé.
+   `week/`, sans réseau. Une journée de travail fait 8 h 30, et l'objectif de la semaine est de
+   42 h 30 (8 h 30 × 5). Un jour férié ou de congé qui tombe du lundi au vendredi compte 8 h 30
+   s'il n'est pas pointé ; pointé, il compte comme un jour normal, ses heures réelles. Un samedi
+   ou un dimanche, même férié ou en congé, est un jour de week-end : il ne compte aucun crédit,
+   seulement ses heures pointées.
 
 6. **API : deux routes.**
    - `GET /semaines/:lundi` rend les 7 jours de la semaine, du lundi au dimanche (les jours vides
