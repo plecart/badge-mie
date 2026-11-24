@@ -326,16 +326,18 @@ function easterTime(year: number): number {
  *
  * @example holidays(2026) // ["2026-01-01", "2026-04-06", "2026-05-01", …, "2026-12-25"]
  * @param year - L'année du calendrier grégorien.
- * @returns Onze dates `AAAA-MM-JJ`, dans l'ordre du calendrier.
+ * @returns Les dates distinctes `AAAA-MM-JJ` (onze, dix quand l'Ascension tombe un 1er ou un
+ *   8 mai), dans l'ordre du calendrier.
  */
 export function holidays(year: number): string[] {
   const easter = easterTime(year);
-  return [
+  const dates = new Set([
     ...FIXED_HOLIDAYS.map(([month, day]) =>
       formatDate(utcDate(year, month, day)),
     ),
     ...EASTER_OFFSETS.map((days) => formatDate(easter + days * DAY_MS)),
-  ].sort();
+  ]);
+  return [...dates].sort();
 }
 
 /** Vrai si l'instant `time`, un minuit UTC, tombe un samedi ou un dimanche. */
