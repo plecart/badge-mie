@@ -13,9 +13,9 @@
     "pg": "^8.23.1"
   },
   "devDependencies": {
-    "@neon/config": "^1.14.4",
+    "@neon/config": "^1.14.6",
     "@types/node": "^24.19.2",
     "@types/pg": "^8.23.1",
-    "neon": "^9.7.1"
+    "neon": "^9.9.2"
   }
 }
