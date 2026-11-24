@@ -177,6 +177,10 @@ export function addWeeks(monday: string, weeks: number): string {
   return formatDate(parseMonday(monday) + weeks * WEEK_MS);
 }
 
+/** Le dimanche et le samedi, tels que les numérote `getUTCDay`. */
+const SUNDAY = 0;
+const SATURDAY = 6;
+
 /** Les jours de la semaine en toutes lettres, dans l'ordre de `getUTCDay` : dimanche d'abord. */
 const WEEKDAY_NAMES = [
   "dimanche",
@@ -273,6 +277,95 @@ export function dayLabel(date: string): string {
   return `${WEEKDAY_NAMES[day.getUTCDay()]} ${longDate(day)}`;
 }
 
+/**
+ * Les jours fériés à date fixe, `[mois, jour]` : jour de l'an, fête du Travail, victoire de 1945,
+ * fête nationale, Assomption, Toussaint, armistice de 1918 et Noël.
+ */
+const FIXED_HOLIDAYS = [
+  [1, 1],
+  [5, 1],
+  [5, 8],
+  [7, 14],
+  [8, 15],
+  [11, 1],
+  [11, 11],
+  [12, 25],
+] as const;
+
+/**
+ * Les jours fériés mobiles, en jours après le dimanche de Pâques : lundi de Pâques, Ascension et
+ * lundi de Pentecôte.
+ */
+const EASTER_OFFSETS = [1, 39, 50];
+
+/**
+ * Minuit UTC du dimanche de Pâques d'une année du calendrier grégorien, par l'algorithme
+ * grégorien anonyme (Meeus/Jones/Butcher), écrit avec ses variables à une lettre.
+ */
+function easterTime(year: number): number {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const n = h + l - 7 * m + 114;
+  return utcDate(year, Math.floor(n / 31), (n % 31) + 1);
+}
+
+/**
+ * Rend les jours fériés nationaux français d'une année : les huit à date fixe, et les trois qui
+ * suivent Pâques. Les fériés propres à l'Alsace-Moselle (Vendredi saint, 26 décembre) n'y sont
+ * pas.
+ *
+ * @example holidays(2026) // ["2026-01-01", "2026-04-06", "2026-05-01", …, "2026-12-25"]
+ * @param year - L'année du calendrier grégorien.
+ * @returns Onze dates `AAAA-MM-JJ`, dans l'ordre du calendrier.
+ */
+export function holidays(year: number): string[] {
+  const easter = easterTime(year);
+  return [
+    ...FIXED_HOLIDAYS.map(([month, day]) =>
+      formatDate(utcDate(year, month, day)),
+    ),
+    ...EASTER_OFFSETS.map((days) => formatDate(easter + days * DAY_MS)),
+  ].sort();
+}
+
+/** Vrai si l'instant `time`, un minuit UTC, tombe un samedi ou un dimanche. */
+function isWeekendTime(time: number): boolean {
+  const weekday = new Date(time).getUTCDay();
+  return weekday === SATURDAY || weekday === SUNDAY;
+}
+
+/** Vrai si l'instant `time`, un minuit UTC, tombe un jour férié (voir {@link holidays}). */
+function isHolidayTime(time: number): boolean {
+  return holidays(new Date(time).getUTCFullYear()).includes(formatDate(time));
+}
+
+/**
+ * Dit si un texte est un jour non travaillé réel au format `AAAA-MM-JJ` : un samedi, un dimanche
+ * ou un jour férié ({@link holidays}). C'est le prédicat du jour grisé, pour l'application comme
+ * pour le widget (issue #20) ; l'issue #26 y ajoutera les congés.
+ *
+ * À appeler à une frontière de confiance, comme {@link isIsoDate} : elle ne lève sur aucun
+ * texte.
+ *
+ * @param value - Le texte à vérifier.
+ * @returns `true` pour un samedi, un dimanche ou un férié ; `false` pour un autre jour, ou pour
+ *   un texte qui n'est pas une date réelle (voir {@link isIsoDate}).
+ */
+export function isNonWorkingDay(value: string): boolean {
+  const time = tryParseDate(value);
+  return time !== undefined && (isWeekendTime(time) || isHolidayTime(time));
+}
+
 /** Un jour de la semaine affichée, situé par rapport à aujourd'hui. */
 export interface WeekDay {
   /** La date `AAAA-MM-JJ`. */
@@ -281,14 +374,17 @@ export interface WeekDay {
   isToday: boolean;
   /** Vrai pour un jour postérieur à aujourd'hui. */
   isFuture: boolean;
+  /** Vrai pour un jour non travaillé : samedi, dimanche ou férié (voir {@link isNonWorkingDay}). */
+  isNonWorking: boolean;
 }
 
 /**
- * Rend les jours d'une semaine, du lundi au dimanche, situés par rapport à aujourd'hui.
+ * Rend les jours d'une semaine, du lundi au dimanche, situés par rapport à aujourd'hui, chacun
+ * dit travaillé ou non.
  *
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine, tel que le rend {@link mondayOf}.
  * @param today - La date `AAAA-MM-JJ` du jour, lue sur l'horloge par l'appelant.
- * @returns Sept jours consécutifs. Dans une semaine passée, aucun n'est marqué.
+ * @returns Sept jours consécutifs. Dans une semaine passée, aucun n'est aujourd'hui ni à venir.
  * @throws {RangeError} si `monday` n'est pas un lundi réel, ou `today` pas une date réelle.
  */
 export function weekDays(monday: string, today: string): WeekDay[] {
@@ -299,6 +395,7 @@ export function weekDays(monday: string, today: string): WeekDay[] {
     date,
     isToday: date === today,
     isFuture: date > today,
+    isNonWorking: isNonWorkingDay(date),
   }));
 }
 
@@ -433,11 +530,39 @@ export function departureFollowsArrival(
 }
 
 /**
+ * La durée d'une journée de travail, 8 h 30, en minutes (ADR-0001, « Décision », point 5) : le
+ * crédit d'un jour férié non pointé du lundi au vendredi ({@link dayMinutes}).
+ */
+export const WORKDAY_MINUTES = 510;
+
+/**
+ * Rend ce que compte un jour dans le total de la semaine (ADR-0001, « Décision », point 5).
+ *
+ * Un férié du lundi au vendredi sans aucune heure pointée compte une journée de travail. Dès
+ * qu'une heure y est posée, il compte comme un jour normal, ses heures réelles. Un samedi ou un
+ * dimanche, même férié, ne compte que ses heures pointées.
+ *
+ * @param day - La journée de présence.
+ * @returns {@link WORKDAY_MINUTES} pour un férié du lundi au vendredi dont `arrivee` et `depart`
+ *   valent `null` ; sinon la durée que rend {@link dayDuration}, `null` pour un jour incomplet.
+ * @throws {RangeError} si `day.jour` n'est pas une date réelle, ou si une heure présente n'est
+ *   pas une heure `HH:MM` valide.
+ */
+export function dayMinutes(day: PresenceDay): number | null {
+  const time = parseDate(day.jour);
+  const unpunched = day.arrivee === null && day.depart === null;
+  if (unpunched && !isWeekendTime(time) && isHolidayTime(time)) {
+    return WORKDAY_MINUTES;
+  }
+  return dayDuration(day.arrivee, day.depart);
+}
+
+/**
  * Rend le total de présence d'une semaine.
  *
- * @param durations - Les durées des jours, telles que les rend {@link dayDuration} : les jours
- *   incomplets (`null`) ne comptent pas.
- * @returns La somme en minutes, `0` si aucun jour n'est complet.
+ * @param durations - Ce que compte chaque jour, tel que le rend {@link dayMinutes} : les jours
+ *   qui ne comptent rien (`null`) n'ajoutent rien.
+ * @returns La somme en minutes, `0` si aucun jour ne compte.
  */
 export function weekTotal(durations: readonly (number | null)[]): number {
   return durations.reduce<number>(

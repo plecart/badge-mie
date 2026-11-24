@@ -108,7 +108,7 @@ describe("GET /semaines/:lundi", () => {
     expect(response.status).toBe(400);
   });
 
-  it("rend 7 journées, de 2026-11-16 à 2026-11-22 dans l'ordre, à null pour un jour sans ligne", async () => {
+  it("rend 7 journées, du 2026-11-16 au 2026-11-22 dans l'ordre, à null sans ligne", async () => {
     const { app } = appWith([
       { jour: "2026-11-16", arrivee: "08:12", depart: "15:54" },
       { jour: "2026-11-18", arrivee: "08:00", depart: null },

@@ -2,19 +2,25 @@ import { describe, expect, it } from "vitest";
 import {
   addWeeks,
   dayDuration,
+  dayMinutes,
   dayLabel,
   departureFollowsArrival,
+  emptyDay,
   formatDuration,
+  holidays,
   isIsoDate,
   isMonday,
+  isNonWorkingDay,
   isoWeek,
   isTime,
   isTimeOrNull,
   mondayOf,
+  type PresenceDay,
   weekDates,
   weekDays,
   weekRangeLabel,
   weekTotal,
+  WORKDAY_MINUTES,
 } from "@badge-mie/week";
 
 // Garde du fuseau épinglé par `vitest.config.ts` : sans lui, une méthode de date locale prise
@@ -99,6 +105,77 @@ describe("isMonday", () => {
   });
 });
 
+describe("holidays", () => {
+  it.each([
+    [
+      2026,
+      [
+        "2026-01-01",
+        "2026-04-06",
+        "2026-05-01",
+        "2026-05-08",
+        "2026-05-14",
+        "2026-05-25",
+        "2026-07-14",
+        "2026-08-15",
+        "2026-11-01",
+        "2026-11-11",
+        "2026-12-25",
+      ],
+    ],
+    [
+      2027,
+      [
+        "2027-01-01",
+        "2027-03-29",
+        "2027-05-01",
+        "2027-05-06",
+        "2027-05-08",
+        "2027-05-17",
+        "2027-07-14",
+        "2027-08-15",
+        "2027-11-01",
+        "2027-11-11",
+        "2027-12-25",
+      ],
+    ],
+  ])(
+    "rend les onze fériés nationaux de %i, dans l'ordre du calendrier",
+    (year, dates) => {
+      expect(holidays(year)).toEqual(dates);
+    },
+  );
+
+  it.each([
+    [2285, "2285-03-23", "Pâques au plus tôt, le 22 mars"],
+    [2038, "2038-04-26", "Pâques au plus tard, le 25 avril"],
+    [2049, "2049-04-19", "la correction de l'algorithme pour le 18 avril"],
+  ])("place le lundi de Pâques %i le %s, %s", (year, date) => {
+    expect(holidays(year)).toContain(date);
+  });
+});
+
+describe("isNonWorkingDay", () => {
+  it.each([
+    ["2026-11-21", "un samedi"],
+    ["2026-11-22", "un dimanche"],
+    ["2026-11-11", "un férié en semaine"],
+    ["2026-11-01", "un férié un dimanche"],
+    ["2027-01-01", "un férié d'une autre année"],
+  ])("compte le %s, %s, en jour non travaillé", (value) => {
+    expect(isNonWorkingDay(value)).toBe(true);
+  });
+
+  it.each([
+    ["2026-11-18", "un mercredi ordinaire"],
+    ["2026-04-03", "le Vendredi saint, férié en Alsace-Moselle seulement"],
+    ["2026-02-30", "une date impossible"],
+    ["21-11-2026", "un samedi hors format AAAA-MM-JJ"],
+  ])("ne compte pas « %s », %s, en jour non travaillé", (value) => {
+    expect(isNonWorkingDay(value)).toBe(false);
+  });
+});
+
 describe("isoWeek", () => {
   it.each([
     ["2026-01-01", 1],
@@ -178,7 +255,7 @@ describe("dayLabel", () => {
 
 describe("weekDays", () => {
   it("marque aujourd'hui et les jours à venir de la semaine en cours", () => {
-    expect(weekDays("2026-11-16", "2026-11-18")).toEqual([
+    expect(weekDays("2026-11-16", "2026-11-18")).toMatchObject([
       { date: "2026-11-16", isToday: false, isFuture: false },
       { date: "2026-11-17", isToday: false, isFuture: false },
       { date: "2026-11-18", isToday: true, isFuture: false },
@@ -187,6 +264,13 @@ describe("weekDays", () => {
       { date: "2026-11-21", isToday: false, isFuture: true },
       { date: "2026-11-22", isToday: false, isFuture: true },
     ]);
+  });
+
+  it("marque les jours non travaillés d'une semaine avec un férié, le mercredi 11 novembre", () => {
+    const nonWorking = weekDays("2026-11-09", "2026-11-24")
+      .filter((day) => day.isNonWorking)
+      .map((day) => day.date);
+    expect(nonWorking).toEqual(["2026-11-11", "2026-11-14", "2026-11-15"]);
   });
 
   it.each([
@@ -267,6 +351,83 @@ describe("departureFollowsArrival", () => {
     ["aucune heure", null, null],
   ])("admet un jour incomplet : %s", (_, arrival, departure) => {
     expect(departureFollowsArrival(arrival, departure)).toBe(true);
+  });
+});
+
+describe("WORKDAY_MINUTES", () => {
+  it("vaut une journée de 8 h 30", () => {
+    expect(formatDuration(WORKDAY_MINUTES)).toBe("8 h 30");
+  });
+});
+
+/**
+ * Le total de la semaine du lundi `monday`, chaque jour compté par `dayMinutes` : les journées de
+ * `days`, et des journées vides pour les autres jours.
+ */
+function totalOfWeek(monday: string, days: PresenceDay[] = []): number {
+  const byDate = new Map(days.map((day) => [day.jour, day]));
+  return weekTotal(
+    weekDates(monday).map((jour) =>
+      dayMinutes(byDate.get(jour) ?? emptyDay(jour)),
+    ),
+  );
+}
+
+describe("dayMinutes", () => {
+  it.each([
+    [
+      "à un férié en semaine pointé à l'arrivée seule",
+      { jour: "2026-11-11", arrivee: "09:00", depart: null },
+    ],
+    [
+      "à un férié en semaine pointé au départ seul",
+      { jour: "2026-11-11", arrivee: null, depart: "17:00" },
+    ],
+    ["à un férié un dimanche sans pointage", emptyDay("2026-11-01")],
+    ["à un jour ouvré sans pointage", emptyDay("2026-11-10")],
+    ["à un samedi sans pointage", emptyDay("2026-11-14")],
+  ])("ne compte rien %s", (_, day) => {
+    expect(dayMinutes(day)).toBeNull();
+  });
+
+  it("compte les heures pointées d'un samedi", () => {
+    expect(
+      dayMinutes({ jour: "2026-11-14", arrivee: "09:00", depart: "11:30" }),
+    ).toBe(150);
+  });
+
+  it.each([
+    ["2026-11-09", "sans pointage", [], WORKDAY_MINUTES],
+    [
+      "2026-11-09",
+      "au férié pointé de 09:00 à 12:00",
+      [{ jour: "2026-11-11", arrivee: "09:00", depart: "12:00" }],
+      180,
+    ],
+    [
+      "2026-11-09",
+      "au férié pointé à l'arrivée seule",
+      [{ jour: "2026-11-11", arrivee: "09:00", depart: null }],
+      0,
+    ],
+    ["2026-10-26", "sans pointage, au férié un dimanche", [], 0],
+  ])("totalise la semaine du %s %s : %i minutes", (monday, _, days, total) => {
+    expect(totalOfWeek(monday, days)).toBe(total);
+  });
+
+  it.each([
+    [
+      "une date invalide",
+      { jour: "2026-02-30", arrivee: null, depart: null },
+      "date invalide : « 2026-02-30 », attendu AAAA-MM-JJ",
+    ],
+    [
+      "une heure invalide",
+      { jour: "2026-11-10", arrivee: "8:00", depart: "17:00" },
+      "heure invalide : « 8:00 », attendu HH:MM",
+    ],
+  ])("lève une RangeError qui nomme %s", (_, day, message) => {
+    expect(() => dayMinutes(day)).toThrow(new RangeError(message));
   });
 });
 
