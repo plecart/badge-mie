@@ -1,3 +1,4 @@
+import { emptyDay, type PresenceDay } from "@badge-mie/week";
 import { describe, expect, it } from "vitest";
 import {
   clockLine,
@@ -77,22 +78,64 @@ describe("editMessage", () => {
   });
 });
 
+/** La journée du mercredi 18 novembre 2026, jour ouvré, aux heures données. */
+function workday(arrivee: string | null, depart: string | null): PresenceDay {
+  return { jour: "2026-11-18", arrivee, depart };
+}
+
+/** La journée du mercredi 11 novembre 2026, férié en semaine, aux heures données. */
+function holiday(arrivee: string | null, depart: string | null): PresenceDay {
+  return { jour: "2026-11-11", arrivee, depart };
+}
+
 describe("durationText", () => {
   it.each([
-    ["un jour passé complet", "08:30", "17:05", false, "8 h 35"],
-    ["aujourd'hui complet", "08:30", "17:05", true, "8 h 35"],
-    ["aujourd'hui commencé et non terminé", "08:30", null, true, "en cours"],
-    ["un jour passé sans départ", "08:30", null, false, "—"],
-    ["un jour passé qui n'a qu'un départ", null, "17:05", false, "—"],
-    ["aujourd'hui qui n'a qu'un départ", null, "17:05", true, "—"],
-    ["un jour sans aucune heure", null, null, false, ""],
-    ["aujourd'hui sans aucune heure", null, null, true, ""],
-  ])(
-    "affiche pour %s (%s → %s, aujourd'hui : %s) « %s »",
-    (_, arrival, departure, isToday, text) => {
-      expect(durationText(arrival, departure, isToday)).toBe(text);
-    },
-  );
+    ["un jour passé complet", false, "8 h 35", workday("08:30", "17:05")],
+    ["aujourd'hui complet", true, "8 h 35", workday("08:30", "17:05")],
+    [
+      "aujourd'hui commencé et non terminé",
+      true,
+      "en cours",
+      workday("08:30", null),
+    ],
+    ["un jour passé sans départ", false, "—", workday("08:30", null)],
+    ["un jour passé qui n'a qu'un départ", false, "—", workday(null, "17:05")],
+    ["aujourd'hui qui n'a qu'un départ", true, "—", workday(null, "17:05")],
+    ["un jour sans aucune heure", false, "", workday(null, null)],
+    ["aujourd'hui sans aucune heure", true, "", workday(null, null)],
+    [
+      "un férié en semaine sans aucune heure",
+      false,
+      "8 h 30",
+      holiday(null, null),
+    ],
+    [
+      "un férié en semaine pointé de 09:00 à 12:00",
+      false,
+      "3 h 00",
+      holiday("09:00", "12:00"),
+    ],
+    [
+      "un férié en semaine passé, à la seule arrivée",
+      false,
+      "—",
+      holiday("09:00", null),
+    ],
+    [
+      "aujourd'hui, un férié en semaine commencé",
+      true,
+      "en cours",
+      holiday("09:00", null),
+    ],
+    [
+      "un férié un dimanche sans aucune heure",
+      false,
+      "",
+      emptyDay("2026-11-01"),
+    ],
+  ])("affiche pour %s (aujourd'hui : %s) « %s »", (_, isToday, text, day) => {
+    expect(durationText(day, isToday)).toBe(text);
+  });
 });
 
 describe("pendingText", () => {

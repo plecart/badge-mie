@@ -1,7 +1,8 @@
 /**
- * La carte d'un jour de l'écran de la semaine : son nom et son numéro, ses deux heures, sa durée
- * (issue #3, « Décisions », point 7). Une heure se touche pour la corriger quand le jour se corrige
- * (issue #4, critères « Écran »).
+ * La carte d'un jour de l'écran de la semaine : son nom et son numéro, ses deux heures, et ce
+ * qu'il compte — sa durée, ou le crédit d'un férié (`durationText`) — (issue #3, « Décisions »,
+ * point 7). Une heure se touche pour la corriger quand le jour se corrige (issue #4, critères
+ * « Écran »).
  */
 
 import type { PresenceDay, WeekDay } from "@badge-mie/week";
@@ -40,8 +41,6 @@ export function DayCard({
   onEdit: ((field: TimeField) => void) | undefined;
   palette: Palette;
 }) {
-  const arrival = presence?.arrivee ?? null;
-  const departure = presence?.depart ?? null;
   const background = day.isToday
     ? palette.accentSoft
     : day.isFuture
@@ -75,7 +74,7 @@ export function DayCard({
         />
       ))}
       <Text style={[styles.duration, { color: palette.muted }]}>
-        {durationText(arrival, departure, day.isToday)}
+        {presence && durationText(presence, day.isToday)}
       </Text>
     </View>
   );

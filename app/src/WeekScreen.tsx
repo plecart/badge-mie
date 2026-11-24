@@ -11,7 +11,7 @@
 
 import {
   addWeeks,
-  dayDuration,
+  dayMinutes,
   formatDuration,
   isoWeek,
   mondayOf,
@@ -157,10 +157,9 @@ export function WeekScreen({
       : { days: null, unreachable: false };
   const days = view.days;
   const isCurrent = monday >= currentMonday;
+  // Ce que compte chaque jour, un férié en semaine non pointé compris (`dayMinutes`).
   const total = days
-    ? formatDuration(
-        weekTotal(days.map((day) => dayDuration(day.arrivee, day.depart))),
-      )
+    ? formatDuration(weekTotal(days.map(dayMinutes)))
     : MISSING;
   const gestures = useGestures({
     queue,
