@@ -17,7 +17,7 @@ const load = (path: string) =>
 /** La majeure minimale de Node qu'exige `devEngines.runtime` à la racine. */
 const runtimeMajor = semver.minVersion(
   load("../package.json").devEngines.runtime.version,
-)?.major;
+)!.major;
 
 describe("dependabot.yml — les refus, figés", () => {
   it("l'entrée npm ne refuse que les montées majeures de @types/node", () => {
@@ -37,6 +37,6 @@ describe("dependabot.yml — les refus, figés", () => {
 describe("@types/node suit la majeure du runtime", () => {
   it.each(["../api/package.json", "../app/package.json"])("%s", (path) => {
     const range = load(path).devDependencies["@types/node"];
-    expect(semver.minVersion(range)?.major).toBe(runtimeMajor);
+    expect(semver.minVersion(range)!.major).toBe(runtimeMajor);
   });
 });
