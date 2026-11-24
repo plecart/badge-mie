@@ -39,7 +39,7 @@ const runtimeMajor = semver.minVersion(
 )!.major;
 
 describe("dependabot.yml — les refus, figés", () => {
-  it("l'entrée npm refuse ces majeures et toute montée d'une dépendance fixée par Expo", () => {
+  it("l'entrée npm refuse les majeures de @types/node et typescript, et toute montée d'une dépendance fixée par Expo", () => {
     const npm = load("./dependabot.yml").updates.find(
       (u) => u["package-ecosystem"] === "npm",
     );

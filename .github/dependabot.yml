@@ -53,11 +53,12 @@ updates:
     # cette plage accepte la majeure suivante.
     #
     # Refus : le SDK Expo de l'app fixe la version de ces dépendances
-    # (`expo/bundledNativeModules.json`) ; elles ne montent qu'avec lui, par `npx expo install
-    # --fix`. La liste suit la table : le test rougit si une dépendance de l'app y entre sans
-    # refus ici. `expo` reste proposé : sa PR se finit par `npx expo install --fix` sur sa
-    # branche, sinon le test rougit sur les épingles que sa table a déplacées. Ce refus coupe
-    # aussi les PR de sécurité de ces paquets : l'audit de la CI reste le signal.
+    # (`expo/bundledNativeModules.json`) ; elles ne montent qu'avec lui, par
+    # `npx expo install --fix`. La liste suit la table : le test rougit si une dépendance de l'app
+    # y entre sans refus ici. `expo` reste proposé : la PR qui le porte (souvent le lot
+    # `minor-and-patch`) se finit par `npx expo install --fix` sur sa branche, sinon le test rougit
+    # sur les épingles que sa table a déplacées. Ce refus coupe aussi les PR de sécurité de ces
+    # paquets : l'audit de la CI (`--audit-level=high`, quotidien sur `main`) reste le signal.
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
