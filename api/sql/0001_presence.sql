@@ -1,4 +1,4 @@
--- Table des présences : une ligne par jour ouvré pointé.
+-- Table des présences : une ligne par jour pointé.
 -- Schéma repris tel quel de l'ADR-0001 (« Décision », point 5). Appliqué une fois ; une
 -- évolution ajoute un fichier `0002_…`, sans outil de migration.
 create table presence (
