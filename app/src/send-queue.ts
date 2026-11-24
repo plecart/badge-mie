@@ -61,8 +61,8 @@ export interface SendQueue {
    * puis la relance part, sans être attendue. Ces deux derniers temps suivent l'écriture de la
    * file, même si celle de l'état local échoue.
    *
-   * @param day - La journée, telle que la rend le Pointage du jour : une date réelle d'un jour
-   *   ouvré, deux heures `HH:MM` ou `null`.
+   * @param day - La journée, telle que la rend le Pointage du jour : une date réelle, de n'importe
+   *   quel jour de la semaine, deux heures `HH:MM` ou `null`.
    * @returns Une promesse résolue une fois la file et l'état local écrits.
    * @throws l'erreur du stockage si l'une des deux écritures échoue : écrite d'abord, l'entrée
    *   de la file reste quand seule la seconde échoue, se compte dans `onChange` et part à la

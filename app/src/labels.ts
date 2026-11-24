@@ -16,7 +16,6 @@ export const PUNCH_LABELS: Record<PunchAction, string> = {
   arrival: "Pointer l'arrivée",
   departure: "Pointer le départ",
   done: "Journée terminée",
-  weekend: "Pas de pointage le week-end",
 };
 
 /**

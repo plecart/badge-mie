@@ -12,18 +12,18 @@ import {
   departureFollowsArrival,
   emptyDay,
   isIsoDate,
+  isNonWorkingDay,
   isTimeOrNull,
-  mondayOf,
   type PresenceDay,
   weekDates,
 } from "@badge-mie/week";
 import type { WeekView } from "./week-store";
 
 /**
- * L'action du bouton de pointage pour une journée : pointer l'arrivée, pointer le départ, rien
- * quand la journée est terminée (`done`), rien le samedi ni le dimanche (`weekend`).
+ * L'action du bouton de pointage pour une journée, quel qu'en soit le jour : pointer l'arrivée,
+ * pointer le départ, rien quand la journée est terminée (`done`).
  */
-export type PunchAction = "arrival" | "departure" | "done" | "weekend";
+export type PunchAction = "arrival" | "departure" | "done";
 
 /**
  * Le motif d'un refus : `departureMustFollowArrival`, un départ qui ne suivrait pas l'arrivée ;
@@ -38,10 +38,19 @@ export type Outcome = { day: PresenceDay } | { refusal: Refusal };
 /** Une heure d'une journée, celle que corrige {@link editTime}. */
 export type TimeField = "arrivee" | "depart";
 
-/** Le bouton de pointage d'aujourd'hui : l'action dont il porte le libellé, et s'il est actif. */
+/**
+ * Le bouton de pointage d'aujourd'hui : l'action dont il porte le libellé, s'il est actif, et s'il
+ * est grisé.
+ */
 export interface PunchButton {
   action: PunchAction;
   enabled: boolean;
+  /**
+   * Vrai un jour non travaillé ({@link isNonWorkingDay}) : le bouton y est grisé, sans rien
+   * changer à son action ni à son activité, que `enabled` décide seul. Le widget (issue #20) lira
+   * la même valeur.
+   */
+  muted: boolean;
 }
 
 /** Ce que l'écran fait d'un appui sur le bouton de pointage. */
@@ -63,18 +72,14 @@ export interface PunchPress {
  * Rend l'action que propose le bouton de pointage pour une journée.
  *
  * @param day - La journée, d'ordinaire celle d'aujourd'hui.
- * @returns `weekend` un samedi ou un dimanche ; sinon `arrival` tant que l'arrivée n'est pas
- *   pointée, même si le départ l'est, `departure` quand seule l'arrivée l'est, `done` quand les
- *   deux le sont.
+ * @returns `arrival` tant que l'arrivée n'est pas pointée, même si le départ l'est, `departure`
+ *   quand seule l'arrivée l'est, `done` quand les deux le sont ; quel que soit le jour de la
+ *   semaine.
  * @throws {RangeError} si `day.jour` n'est pas une date réelle.
  */
 export function punchAction(day: PresenceDay): PunchAction {
   if (!isIsoDate(day.jour)) {
     throw new RangeError(`date invalide : « ${day.jour} », attendu AAAA-MM-JJ`);
-  }
-  // Samedi et dimanche : les deux dernières dates de la semaine, du lundi au dimanche.
-  if (weekDates(mondayOf(day.jour)).slice(-2).includes(day.jour)) {
-    return "weekend";
   }
   if (day.arrivee === null) return "arrival";
   return day.depart === null ? "departure" : "done";
@@ -85,7 +90,7 @@ export function punchAction(day: PresenceDay): PunchAction {
  * {@link punch} n'est permis, que pour elle.
  *
  * @param action - L'action, telle que la rend {@link punchAction}.
- * @returns `true` pour `arrival` et `departure`, `false` pour `done` et `weekend`.
+ * @returns `true` pour `arrival` et `departure`, `false` pour `done`.
  */
 export function canPunch(
   action: PunchAction,
@@ -160,7 +165,7 @@ export function editTime(
  * hors ligne »).
  *
  * @returns La journée ; `undefined` tant que la semaine se charge, ou si `date` n'est pas un jour
- *   ouvré de la semaine affichée.
+ *   de la semaine affichée.
  */
 function todayOf(
   view: WeekView,
@@ -174,13 +179,14 @@ function todayOf(
 
 /**
  * Rend le bouton de pointage d'aujourd'hui, actif quand un appui a une journée à pointer :
- * {@link pressPunch} ne rend alors pas `null`.
+ * {@link pressPunch} ne rend alors pas `null`. Un jour non travaillé, il est grisé, et reste actif
+ * comme un jour ouvré.
  *
  * @param view - La vue de la semaine affichée.
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine affichée.
  * @param date - La date du jour `AAAA-MM-JJ`.
- * @returns L'action du bouton — lue sur une journée vide quand il n'a pas de journée à pointer,
- *   `weekend` un samedi —, et s'il est actif.
+ * @returns L'action du bouton — lue sur une journée vide quand il n'a pas de journée à pointer —,
+ *   s'il est actif, et s'il est grisé : un samedi, un dimanche ou un férié.
  * @throws {RangeError} si `date` n'est pas une date réelle, comme {@link punchAction} ; ou, sur
  *   une semaine jamais lue et injoignable, si `monday` n'est pas un lundi réel.
  */
@@ -191,7 +197,11 @@ export function punchButton(
 ): PunchButton {
   const day = todayOf(view, monday, date);
   const action = punchAction(day ?? emptyDay(date));
-  return { action, enabled: day !== undefined && canPunch(action) };
+  return {
+    action,
+    enabled: day !== undefined && canPunch(action),
+    muted: isNonWorkingDay(date),
+  };
 }
 
 /**
@@ -202,8 +212,9 @@ export function punchButton(
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine affichée.
  * @param date - La date du jour `AAAA-MM-JJ`, relue au moment de l'appui.
  * @param time - L'heure `HH:MM` de l'appui.
- * @returns `null` — la semaine se charge, `date` n'est pas un jour ouvré de la semaine affichée,
- *   ou la journée est terminée — ; sinon l'appui ({@link PunchPress}).
+ * @returns `null` — la semaine se charge, `date` n'est pas un jour de la semaine affichée, ou la
+ *   journée est terminée — ; sinon l'appui ({@link PunchPress}), un samedi, un dimanche ou un
+ *   férié compris.
  * @throws {RangeError} si `time` n'est pas une heure `HH:MM`, comme {@link punch} ; ou, sur une
  *   semaine jamais lue et injoignable, si `monday` n'est pas un lundi réel.
  */

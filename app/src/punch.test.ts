@@ -1,4 +1,9 @@
-import { type PresenceDay, weekDates } from "@badge-mie/week";
+import {
+  emptyDay,
+  mondayOf,
+  type PresenceDay,
+  weekDates,
+} from "@badge-mie/week";
 import { describe, expect, it } from "vitest";
 import {
   canPunch,
@@ -21,7 +26,7 @@ function wednesday(arrivee: string | null, depart: string | null): PresenceDay {
   return { jour: WEDNESDAY, arrivee, depart };
 }
 
-/** La semaine affichée, lue, avec ce mercredi ; ses autres journées sont terminées. */
+/** La semaine affichée, lue, avec cette journée ; ses autres journées sont terminées. */
 function knownWeek(day: PresenceDay): WeekView {
   return {
     days: weekDates(MONDAY).map((jour) =>
@@ -52,7 +57,13 @@ const NOTHING_TO_PUNCH = [
     WEDNESDAY,
     "done",
   ],
-  ["un samedi", knownWeek(wednesday(null, null)), "2026-11-21", "weekend"],
+] as const;
+
+/** Les jours non travaillés : le cas, la date. */
+const NON_WORKING_DAYS = [
+  ["un samedi", "2026-11-21"],
+  ["un dimanche", "2026-11-22"],
+  ["un férié", "2026-11-11"],
 ] as const;
 
 describe("punchAction", () => {
@@ -71,12 +82,12 @@ describe("punchAction", () => {
     expect(punchAction(wednesday("08:30", "17:00"))).toBe("done");
   });
 
-  it.each([
-    ["un samedi", "2026-11-21"],
-    ["un dimanche", "2026-11-22"],
-  ])("ne propose aucun pointage %s", (_, jour) => {
-    expect(punchAction({ jour, arrivee: null, depart: null })).toBe("weekend");
-  });
+  it.each(NON_WORKING_DAYS)(
+    "propose l'arrivée %s, comme un jour ouvré",
+    (_, jour) => {
+      expect(punchAction(emptyDay(jour))).toBe("arrival");
+    },
+  );
 
   it("lève une RangeError sur un jour qui n'est pas une date réelle", () => {
     expect(() =>
@@ -92,7 +103,6 @@ describe("canPunch", () => {
     ["arrival", true],
     ["departure", true],
     ["done", false],
-    ["weekend", false],
   ] as const)("dit si l'action %s se pointe : %s", (action, expected) => {
     expect(canPunch(action)).toBe(expected);
   });
@@ -117,19 +127,10 @@ describe("punch", () => {
     });
   });
 
-  it.each([
-    [
-      "une journée terminée",
-      wednesday("08:30", "17:00"),
-      "rien à pointer le 2026-11-18 : done",
-    ],
-    [
-      "un samedi",
-      { jour: "2026-11-21", arrivee: null, depart: null },
-      "rien à pointer le 2026-11-21 : weekend",
-    ],
-  ])("lève une RangeError sur %s, au bouton désactivé", (_, day, message) => {
-    expect(() => punch(day, "18:00")).toThrow(new RangeError(message));
+  it("lève une RangeError sur une journée terminée, au bouton désactivé", () => {
+    expect(() => punch(wednesday("08:30", "17:00"), "18:00")).toThrow(
+      new RangeError("rien à pointer le 2026-11-18 : done"),
+    );
   });
 });
 
@@ -140,6 +141,7 @@ describe("punchButton", () => {
       expect(punchButton(view, MONDAY, date)).toEqual({
         action,
         enabled: false,
+        muted: false,
       });
     },
   );
@@ -159,8 +161,20 @@ describe("punchButton", () => {
     expect(punchButton(view, MONDAY, WEDNESDAY)).toEqual({
       action,
       enabled: true,
+      muted: false,
     });
   });
+
+  it.each(NON_WORKING_DAYS)(
+    "grise le bouton %s, sans le désactiver",
+    (_, date) => {
+      expect(punchButton(UNREACHABLE, mondayOf(date), date)).toEqual({
+        action: "arrival",
+        enabled: true,
+        muted: true,
+      });
+    },
+  );
 });
 
 describe("pressPunch", () => {
@@ -173,6 +187,19 @@ describe("pressPunch", () => {
       before: wednesday(null, null),
       action: "arrival",
       outcome: { day: wednesday("08:30", null) },
+      haptic: true,
+    });
+  });
+
+  it("pointe l'arrivée d'un samedi, avec le retour haptique", () => {
+    const saturday = emptyDay("2026-11-21");
+
+    expect(
+      pressPunch(knownWeek(saturday), MONDAY, saturday.jour, "09:00"),
+    ).toEqual({
+      before: saturday,
+      action: "arrival",
+      outcome: { day: { ...saturday, arrivee: "09:00" } },
       haptic: true,
     });
   });

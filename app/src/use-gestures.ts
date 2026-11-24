@@ -135,7 +135,7 @@ export function useGestures({
   /**
    * Pointe aujourd'hui, la date et l'heure relues au moment du geste — l'appui abouti, ou
    * l'activation par TalkBack —, comme le dit {@link pressPunch} : un appui traité après minuit lit
-   * le jour nouveau, et ne pointe rien hors des jours ouvrés de la semaine affichée.
+   * le jour nouveau, et ne pointe rien hors des jours de la semaine affichée.
    *
    * Un appui reçu pendant l'enregistrement d'un pointage est ignoré : il lirait encore la journée
    * d'avant le premier, et la repointerait, une minute plus tard s'il tombe sur la minute

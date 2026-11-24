@@ -17,7 +17,6 @@ describe("PUNCH_LABELS", () => {
     ["arrival", "Pointer l'arrivée"],
     ["departure", "Pointer le départ"],
     ["done", "Journée terminée"],
-    ["weekend", "Pas de pointage le week-end"],
   ] as const)(
     "donne au bouton de pointage l'action %s sous le libellé « %s »",
     (action, label) => {
