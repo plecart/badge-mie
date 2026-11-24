@@ -43,6 +43,13 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    # Refus : `@types/node` décrit l'API d'une majeure de Node, et le code tourne sur celle de
+    # `devEngines.runtime` (Node 24, le runtime des Neon Functions). Une majeure plus haute ferait
+    # accepter au type-check une API absente en production. Réexamen : quand le runtime change de
+    # majeure, `.github/dependabot.test.ts` rougit et `@types/node` se monte à la main.
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     labels: []
     commit-message:
       prefix: chore
