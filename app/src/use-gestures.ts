@@ -199,6 +199,7 @@ export function useGestures({
       onPress: () => void punchToday(),
       variant: "primary",
       disabled: !button.enabled,
+      muted: button.muted,
       hold: {
         hint: HOLD_HINT,
         onInterrupted: () => setBar({ message: HOLD_TO_PUNCH }),

@@ -2,7 +2,7 @@
  * La bande du bas de l'écran de la semaine : la barre du dernier geste, le bouton du bas, puis la
  * date du jour et l'heure courante (issue #4, décision 1). Elle affiche ce qu'on lui passe, sans
  * rien décider ; le bouton du bas agit au toucher, ou, actif et à appui maintenu, par
- * `./HoldButton`.
+ * `./HoldButton`, grisé ou non.
  */
 
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -22,6 +22,12 @@ export interface DockButton {
   onPress: () => void;
   variant: "primary" | "secondary";
   disabled?: boolean;
+  /**
+   * Grisé, sans être désactivé : le bouton de pointage d'un jour non travaillé prend un fond
+   * neutre au lieu de l'accent, garde son libellé lisible et agit de même ; `disabled` décide seul
+   * s'il agit.
+   */
+  muted?: boolean;
   /**
    * Présent, le bouton actif se maintient pour agir : `hint` l'annonce à TalkBack, sous lequel
    * l'activation agit directement, et `onInterrupted` part à un appui interrompu avant la fin.
@@ -79,23 +85,31 @@ export function PunchDock({
 }
 
 /**
+ * Le fond et la couleur du libellé du bouton du bas : ceux de « Revenir à cette semaine », les
+ * couleurs éteintes d'un bouton désactivé, le fond neutre d'un bouton grisé, ou l'accent.
+ */
+function buttonColors(
+  { variant, disabled, muted }: DockButton,
+  palette: Palette,
+): [background: string, color: string] {
+  if (variant === "secondary") return [palette.surface, palette.fg];
+  if (disabled) return [palette.surface2, palette.muted];
+  if (muted) return [palette.surface2, palette.fg];
+  return [palette.accent, palette.accentInk];
+}
+
+/**
  * Le bouton du bas, pleine largeur ; désactivé, il prend les couleurs éteintes et ne se maintient
- * pas. Maintenu, son contour se dessine de la couleur de son libellé.
+ * pas ; grisé, il garde l'appui maintenu sur un fond neutre. Maintenu, son contour se dessine de
+ * la couleur de son libellé.
  */
 function BottomButton({
-  label,
-  onPress,
-  variant,
-  disabled = false,
-  hold,
   palette,
+  ...button
 }: DockButton & { palette: Palette }) {
+  const { label, onPress, variant, disabled = false, hold } = button;
   const secondary = variant === "secondary";
-  const [background, color] = secondary
-    ? [palette.surface, palette.fg]
-    : disabled
-      ? [palette.surface2, palette.muted]
-      : [palette.accent, palette.accentInk];
+  const [background, color] = buttonColors(button, palette);
   const style = [
     BUTTON,
     { backgroundColor: background },
