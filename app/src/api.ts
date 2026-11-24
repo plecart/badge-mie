@@ -181,7 +181,7 @@ export async function readWeek(
  *
  * @param token - Le jeton d'accès, porté en en-tête `Authorization: Bearer`.
  * @param day - La journée à écrire ; `day.jour` fait la route, le serveur rend 400 pour une date
- *   qui n'est pas réelle ou qui tombe un samedi ou un dimanche.
+ *   qui n'est pas réelle, et accepte n'importe quel jour de la semaine.
  * @returns L'URL et les options de `fetch` : la méthode `PUT`, le corps JSON
  *   `{ arrivee, depart }`, une heure non pointée écrite `null`, et son en-tête `Content-Type`.
  */
