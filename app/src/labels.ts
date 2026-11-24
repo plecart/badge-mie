@@ -5,7 +5,12 @@
  * décision 1). Module pur : l'écran les compose sans rien décider (PRD #1, module 5).
  */
 
-import { dayDuration, dayLabel, formatDuration } from "@badge-mie/week";
+import {
+  dayLabel,
+  dayMinutes,
+  formatDuration,
+  type PresenceDay,
+} from "@badge-mie/week";
 import type { PunchAction, Refusal, TimeField } from "./punch";
 
 /** Ce qu'affiche une heure, une durée ou un total encore inconnus. */
@@ -68,24 +73,21 @@ export function editMessage(field: TimeField, time: string | null): string {
 /**
  * Rend ce qu'affiche la carte d'un jour à la place de sa durée.
  *
- * @param arrival - L'heure d'arrivée `HH:MM`, ou `null`.
- * @param departure - L'heure de départ `HH:MM`, ou `null`.
+ * @param day - La journée de la carte.
  * @param isToday - Vrai pour la carte d'aujourd'hui.
- * @returns La durée formatée (« 8 h 35 ») si le jour a ses deux heures ; « en cours » pour
- *   aujourd'hui commencé et non terminé, et pour lui seul (PRD #1, story 6 amendée) ; « — » pour
- *   tout autre jour qui a une heure sans l'autre ; rien pour un jour sans aucune heure.
- * @throws {RangeError} si une heure présente n'est pas une heure `HH:MM`, comme
- *   {@link dayDuration}.
+ * @returns Ce que compte le jour ({@link dayMinutes}), formaté : sa durée (« 8 h 35 ») s'il a ses
+ *   deux heures, « 8 h 30 » pour un férié du lundi au vendredi sans aucune heure ; sinon « en
+ *   cours » pour aujourd'hui commencé et non terminé, et pour lui seul (PRD #1, story 6 amendée),
+ *   un férié compris ; « — » pour tout autre jour qui a une heure sans l'autre ; rien pour un
+ *   autre jour sans aucune heure.
+ * @throws {RangeError} si `day.jour` n'est pas une date réelle, ou si une heure présente n'est
+ *   pas une heure `HH:MM`, comme {@link dayMinutes}.
  */
-export function durationText(
-  arrival: string | null,
-  departure: string | null,
-  isToday: boolean,
-): string {
-  const duration = dayDuration(arrival, departure);
-  if (duration !== null) return formatDuration(duration);
-  if (arrival === null && departure === null) return "";
-  return isToday && departure === null ? "en cours" : MISSING;
+export function durationText(day: PresenceDay, isToday: boolean): string {
+  const minutes = dayMinutes(day);
+  if (minutes !== null) return formatDuration(minutes);
+  if (day.arrivee === null && day.depart === null) return "";
+  return isToday && day.depart === null ? "en cours" : MISSING;
 }
 
 /**
