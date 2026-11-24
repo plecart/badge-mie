@@ -177,10 +177,6 @@ export function addWeeks(monday: string, weeks: number): string {
   return formatDate(parseMonday(monday) + weeks * WEEK_MS);
 }
 
-/** Le dimanche et le samedi, tels que les numérote `getUTCDay`. */
-const SUNDAY = 0;
-const SATURDAY = 6;
-
 /** Les jours de la semaine en toutes lettres, dans l'ordre de `getUTCDay` : dimanche d'abord. */
 const WEEKDAY_NAMES = [
   "dimanche",
@@ -339,6 +335,10 @@ export function holidays(year: number): string[] {
   ]);
   return [...dates].sort();
 }
+
+/** Le dimanche et le samedi, tels que les numérote `getUTCDay`. */
+const SUNDAY = 0;
+const SATURDAY = 6;
 
 /** Vrai si l'instant `time`, un minuit UTC, tombe un samedi ou un dimanche. */
 function isWeekendTime(time: number): boolean {
