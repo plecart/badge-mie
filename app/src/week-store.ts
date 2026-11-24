@@ -15,7 +15,7 @@ import {
   type PresenceDay,
   weekDates,
 } from "@badge-mie/week";
-import { isWeek, ServerUnreachableError, TokenRejectedError } from "./api";
+import { parseWeek, ServerUnreachableError, TokenRejectedError } from "./api";
 
 /** Un stockage clé-valeur de textes, de la forme d'`AsyncStorage`. */
 export interface KeyValueStorage {
@@ -46,7 +46,7 @@ function keyOf(monday: string): string {
  *
  * @param storage - Le stockage clé-valeur.
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine.
- * @param days - Les cinq journées de la semaine, du lundi au vendredi.
+ * @param days - Les sept journées de la semaine, du lundi au dimanche.
  */
 export async function saveWeek(
   storage: KeyValueStorage,
@@ -59,9 +59,11 @@ export async function saveWeek(
 /**
  * Lit une semaine dans l'état local.
  *
- * @returns Les journées enregistrées, ou `null` s'il n'y en a pas, si le texte rangé n'est pas
- *   du JSON, ou si ce JSON n'est pas la semaine de `monday` (voir {@link isWeek}) : un état local
- *   illisible ou de forme inattendue compte comme absent.
+ * @returns Les sept journées enregistrées — celles d'une semaine rangée à cinq journées par
+ *   la version d'avant la PR #41, complétées du samedi et du dimanche vides —, ou `null` s'il
+ *   n'y en a pas, si le texte rangé n'est pas du JSON, ou si ce JSON n'est pas la semaine de
+ *   `monday` (voir {@link parseWeek}) : un état local illisible ou de forme inattendue compte
+ *   comme absent.
  */
 async function readLocalWeek(
   storage: KeyValueStorage,
@@ -75,7 +77,7 @@ async function readLocalWeek(
   } catch {
     return null;
   }
-  return isWeek(days, monday) ? days : null;
+  return parseWeek(days, monday);
 }
 
 /**
@@ -88,7 +90,7 @@ function overlay(days: PresenceDay[], pending: PresenceDay[]): PresenceDay[] {
   return days.map((day) => byDate.get(day.jour) ?? day);
 }
 
-/** Les cinq journées vides de la semaine de `monday`, du lundi au vendredi. */
+/** Les sept journées vides de la semaine de `monday`, du lundi au dimanche. */
 function emptyWeek(monday: string): PresenceDay[] {
   return weekDates(monday).map(emptyDay);
 }
@@ -114,7 +116,7 @@ function rebuiltWeek(
  * Range une journée dans l'état local de sa semaine, à la place de la précédente.
  *
  * @param storage - Le stockage clé-valeur.
- * @param day - La journée, d'un jour ouvré, du lundi au vendredi.
+ * @param day - La journée, de n'importe quel jour de la semaine.
  * @throws {RangeError} si `day.jour` n'est pas une date réelle.
  */
 export async function saveDay(
@@ -136,7 +138,7 @@ export async function saveDay(
  *
  * `show` est d'abord appelé avec l'état local, puis avec la réponse du serveur, enregistrée
  * ensuite dans l'état local telle qu'affichée. Un état local manquant, illisible ou qui ne se lit
- * pas laisse place à une semaine reconstruite, ses cinq journées vides, si la file porte au début
+ * pas laisse place à une semaine reconstruite, ses sept journées vides, si la file porte au début
  * du chargement au moins un jour de cette semaine, qui prouve que ce téléphone y a pointé ; sinon,
  * à `days: null`. La semaine reconstruite n'est jamais enregistrée. Si le serveur est injoignable
  * ({@link ServerUnreachableError}), le second appel reprend l'état local, laissé intact, avec

@@ -1,4 +1,4 @@
-import { type PresenceDay, weekDates } from "@badge-mie/week";
+import { emptyDay, type PresenceDay, weekDates } from "@badge-mie/week";
 import { describe, expect, it } from "vitest";
 import { ServerUnreachableError, TokenRejectedError } from "./api";
 import { memoryStorage, storageHolding } from "./memory-storage";
@@ -45,6 +45,26 @@ const REBUILT_WEEK: PresenceDay[] = [
   { jour: "2026-11-22", arrivee: null, depart: null },
 ];
 
+/**
+ * La semaine de `MONDAY` rangée par la version d'avant la PR #41 : ses cinq journées, du lundi
+ * au vendredi.
+ */
+const FIVE_DAY_LOCAL = LOCAL.slice(0, 5);
+
+/** `FIVE_DAY_LOCAL` telle qu'elle se lit : complétée du samedi et du dimanche vides. */
+const FIVE_DAY_LOCAL_READ: PresenceDay[] = [
+  ...FIVE_DAY_LOCAL,
+  emptyDay("2026-11-21"),
+  emptyDay("2026-11-22"),
+];
+
+/** Le samedi de la semaine de `MONDAY`, pointé à l'arrivée. */
+const SATURDAY: PresenceDay = {
+  jour: "2026-11-21",
+  arrivee: "09:00",
+  depart: null,
+};
+
 /** Un stockage dont la lecture lève : l'état local ne se lit pas. */
 const UNREADABLE: KeyValueStorage = {
   getItem: async () => {
@@ -61,6 +81,10 @@ const ABSENT_LOCAL: [string, KeyValueStorage][] = [
     "qui n'a pas la forme d'une semaine",
     storageHolding(JSON.stringify(weekArrivingAt(MONDAY, "08:00:00"))),
   ],
+  [
+    "de cinq journées qui ne vont pas du lundi au vendredi",
+    storageHolding(JSON.stringify(LOCAL.slice(1, 6))),
+  ],
 ];
 
 /** Une lecture sans réseau. */
@@ -68,9 +92,14 @@ async function offline(): Promise<PresenceDay[]> {
   throw new ServerUnreachableError();
 }
 
+/** Les journées `days`, celle du jour de `replacement` remplacée par lui. */
+function withDay(days: PresenceDay[], replacement: PresenceDay): PresenceDay[] {
+  return days.map((day) => (day.jour === replacement.jour ? replacement : day));
+}
+
 /** Les journées `days`, le mercredi remplacé par `POINTED`. */
 function withPointed(days: PresenceDay[]): PresenceDay[] {
-  return days.map((day) => (day.jour === POINTED.jour ? POINTED : day));
+  return withDay(days, POINTED);
 }
 
 type Dependencies = Parameters<typeof loadWeek>[1];
@@ -216,6 +245,18 @@ describe("loadWeek", () => {
     ]);
   });
 
+  it("affiche en sept journées, ses heures gardées, une semaine rangée à cinq journées par la version d'avant la PR #41", async () => {
+    const storage = memoryStorage();
+    await saveWeek(storage, MONDAY, FIVE_DAY_LOCAL);
+
+    const views = await viewsOf(MONDAY, { storage, read: offline });
+
+    expect(views).toEqual([
+      { days: FIVE_DAY_LOCAL_READ, unreachable: false },
+      { days: FIVE_DAY_LOCAL_READ, unreachable: false },
+    ]);
+  });
+
   it("tient un état local illisible pour absent", async () => {
     const views = await viewsOf(MONDAY, {
       storage: storageHolding("[{ pas du JSON"),
@@ -256,6 +297,19 @@ describe("saveDay", () => {
     expect(views[0]).toEqual({ days: withPointed(empty), unreachable: false });
   });
 
+  it("range un samedi dans une semaine rangée à cinq journées par la version d'avant la PR #41, sans en perdre aucune", async () => {
+    const storage = memoryStorage();
+    await saveWeek(storage, MONDAY, FIVE_DAY_LOCAL);
+
+    await saveDay(storage, SATURDAY);
+
+    const views = await viewsOf(MONDAY, { storage, read: offline });
+    expect(views[0]).toEqual({
+      days: withDay(FIVE_DAY_LOCAL_READ, SATURDAY),
+      unreachable: false,
+    });
+  });
+
   it("remplace le jour rangé dans une semaine déjà enregistrée, sans toucher les autres", async () => {
     const storage = memoryStorage();
     await saveWeek(storage, MONDAY, LOCAL);
@@ -289,6 +343,22 @@ describe("loadWeek, avec des jours en attente d'envoi", () => {
     });
 
     expect(views[0]).toEqual({ days: withPointed(LOCAL), unreachable: false });
+  });
+
+  it("montre un jour en attente dans une semaine rangée à cinq journées par la version d'avant la PR #41, sans réseau", async () => {
+    const storage = memoryStorage();
+    await saveWeek(storage, MONDAY, FIVE_DAY_LOCAL);
+
+    const views = await viewsOf(MONDAY, {
+      storage,
+      read: offline,
+      pending: async () => [SATURDAY],
+    });
+
+    expect(views[0]).toEqual({
+      days: withDay(FIVE_DAY_LOCAL_READ, SATURDAY),
+      unreachable: false,
+    });
   });
 
   it("ne change rien pour un jour en attente d'une autre semaine", async () => {

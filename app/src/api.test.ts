@@ -83,6 +83,10 @@ describe("parseWeekResponse", () => {
     },
   );
 
+  it("complète du samedi et du dimanche vides, ses heures gardées, une réponse aux cinq journées du lundi au vendredi de l'API d'avant la PR #41", () => {
+    expect(parseWeekResponse(200, WEEK.slice(0, 5), MONDAY)).toEqual(WEEK);
+  });
+
   it("accepte tout statut 2xx", () => {
     expect(parseWeekResponse(299, WEEK, MONDAY)).toEqual(WEEK);
   });
@@ -98,6 +102,8 @@ describe("parseWeekResponse", () => {
     ["un objet", { jours: WEEK }],
     ["null", null],
     ["un texte", "[]"],
+    ["quatre journées", WEEK.slice(0, 4)],
+    ["cinq journées qui ne vont pas du lundi au vendredi", WEEK.slice(1, 6)],
     ["six journées", WEEK.slice(0, 6)],
     ["huit journées", [...WEEK, WEEK[0]]],
     ["une journée nulle", withFirstDay(null)],
