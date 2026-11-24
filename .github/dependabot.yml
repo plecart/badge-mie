@@ -47,9 +47,32 @@ updates:
     # `devEngines.runtime` (Node 24, le runtime des Neon Functions). Une majeure plus haute ferait
     # accepter au type-check une API absente en production. Réexamen : quand le runtime change de
     # majeure, `.github/dependabot.test.ts` rougit et `@types/node` se monte à la main.
+    #
+    # Refus : `typescript-eslint` borne `typescript` par sa plage de pairs (`<6.1.0` relevé le
+    # 2026-11-24) ; une majeure au-delà casse `npm ci` (ERESOLVE). Réexamen : le test rougit quand
+    # cette plage accepte la majeure suivante.
+    #
+    # Refus : le SDK Expo de l'app fixe la version de ces dépendances
+    # (`expo/bundledNativeModules.json`) ; elles ne montent qu'avec lui, par `npx expo install
+    # --fix`. La liste suit la table : le test rougit si une dépendance de l'app y entre sans
+    # refus ici.
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@expo/vector-icons"
+      - dependency-name: "@react-native-async-storage/async-storage"
+      - dependency-name: "@react-native-community/datetimepicker"
+      - dependency-name: expo-font
+      - dependency-name: expo-haptics
+      - dependency-name: expo-network
+      - dependency-name: expo-secure-store
+      - dependency-name: expo-status-bar
+      - dependency-name: expo-system-ui
+      - dependency-name: react
+      - dependency-name: react-native
+      - dependency-name: react-native-safe-area-context
     labels: []
     commit-message:
       prefix: chore
