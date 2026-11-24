@@ -189,3 +189,40 @@ issue)
     la durée, répercuté dans la même PR. Le widget (deux touchers) n'est pas concerné.
   - Issue #12 (C18 et trois observations « environ 1 s ») : amendée par la session de la PR.
   - Code : `HOLD_MS` de `app/src/hold.ts`, dans la même PR.
+
+## Contexte et Décision (point 1) — le build local du widget, aucun build EAS en développement
+
+**Date :** 2026-11-24 · **Décideur :** le mainteneur · **Session :** `pr-paralleles` (préparation
+de la vague autour de #20)
+
+- **Contradictions.**
+  - Décision, point 1. Avant : « Le widget d'écran d'accueil en embarque : dès qu'il entre, le
+    développement passe sur un build de développement (`expo-dev-client`), construit lui aussi par
+    EAS Build. » Décision : pendant le développement, aucun APK et rien de consommé chez Expo ;
+    l'APK se construit seulement à une release.
+  - Contexte. Avant : « Aucune boîte à outils Android n'est installée sur le poste (Windows). »
+    Constat : Android Studio 2025.2.3 y est installé, avec son JDK 21, le SDK (plateformes 28 à
+    36.1) et deux émulateurs (relevé le 2026-11-24).
+- **Options.**
+  - (1a) garder EAS pour le build de développement du widget, la règle valant pour les autres
+    issues ;
+  - (1b) garder la règle hors de l'ADR : le point 1 imposerait toujours EAS au widget ;
+  - (2) amender : build de développement local, sur l'émulateur.
+- **Retenu : (2).**
+  - Le widget est du code natif qu'Expo Go ne charge pas : il faut un build natif pour le voir, et
+    le mainteneur l'accepte pour ce seul sujet.
+  - `npx expo run:android` compile l'app avec le SDK Android du poste, l'installe sur l'émulateur
+    et lance Metro ; un build local se fait sans compte Expo (« No Expo account is required »), et
+    Metro recharge ensuite le JavaScript sans recompiler (docs.expo.dev, pages « Local app
+    development » et « Create a development build », lues le 2026-11-24).
+  - Ce build reste un APK de debug, qui ne quitte pas le poste ; l'APK de release passe toujours
+    par EAS Build.
+  - Le point 1 est amendé en place : Expo n'est pas remplacé, seul le lieu du build de
+    développement change.
+- **§§ répercutés :** § Contexte (la boîte à outils Android du poste). Hors documents :
+  `README.md` (§ Architecture) et la ligne `build` de `pipeline.config.md`.
+  - Laissés tels quels, vrais pour l'APK de release : § Options étudiées (A), § Analyse des
+    compromis, § Conséquences (« Deux comptes à tenir : Neon et Expo »).
+  - À propager à #20 après le merge : le build de développement par EAS et le profil
+    `development` d'`app/eas.json`.
+  - La commande `run local` de `pipeline.config.md` change avec le widget, dans #20.
