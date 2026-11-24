@@ -23,6 +23,8 @@ const WEEK: PresenceDay[] = [
   { jour: "2026-11-18", arrivee: null, depart: null },
   { jour: "2026-11-19", arrivee: null, depart: null },
   { jour: "2026-11-20", arrivee: null, depart: null },
+  { jour: "2026-11-21", arrivee: null, depart: null },
+  { jour: "2026-11-22", arrivee: null, depart: null },
 ];
 
 /** Une journée à écrire, le mercredi. */
@@ -56,13 +58,13 @@ describe("weekRequest", () => {
 });
 
 describe("parseWeekResponse", () => {
-  it("rend les cinq journées d'une réponse 200", () => {
+  it("rend les sept journées d'une réponse 200", () => {
     expect(parseWeekResponse(200, WEEK, MONDAY)).toEqual(WEEK);
   });
 
   it.each([
     ["illisible", undefined],
-    ["de cinq journées", WEEK],
+    ["de sept journées", WEEK],
   ])(
     "lève TokenRejectedError quand le serveur refuse le jeton (401), corps %s",
     (_, body) => {
@@ -73,7 +75,7 @@ describe("parseWeekResponse", () => {
   );
 
   it.each([500, 503, 404, 300, 199])(
-    "lève ServerUnreachableError sur un statut %i, même avec cinq journées",
+    "lève ServerUnreachableError sur un statut %i, même avec sept journées",
     (status) => {
       expect(() => parseWeekResponse(status, WEEK, MONDAY)).toThrow(
         ServerUnreachableError,
@@ -96,8 +98,8 @@ describe("parseWeekResponse", () => {
     ["un objet", { jours: WEEK }],
     ["null", null],
     ["un texte", "[]"],
-    ["quatre journées", WEEK.slice(0, 4)],
-    ["six journées", [...WEEK, WEEK[0]]],
+    ["six journées", WEEK.slice(0, 6)],
+    ["huit journées", [...WEEK, WEEK[0]]],
     ["une journée nulle", withFirstDay(null)],
     ["une journée en texte", withFirstDay("2026-11-16")],
     ["une journée sans jour", withFirstDay({ arrivee: null, depart: null })],

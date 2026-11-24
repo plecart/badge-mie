@@ -108,10 +108,11 @@ describe("GET /semaines/:lundi", () => {
     expect(response.status).toBe(400);
   });
 
-  it("rend les 5 journées du lundi au vendredi, à null pour un jour sans ligne", async () => {
+  it("rend 7 journées, de 2026-11-16 à 2026-11-22 dans l'ordre, à null pour un jour sans ligne", async () => {
     const { app } = appWith([
       { jour: "2026-11-16", arrivee: "08:12", depart: "15:54" },
       { jour: "2026-11-18", arrivee: "08:00", depart: null },
+      { jour: "2026-11-21", arrivee: "09:00", depart: "11:00" },
     ]);
     const response = await app.request("/semaines/2026-11-16", {
       headers: AUTHORIZED,
@@ -123,21 +124,20 @@ describe("GET /semaines/:lundi", () => {
       { jour: "2026-11-18", arrivee: "08:00", depart: null },
       { jour: "2026-11-19", arrivee: null, depart: null },
       { jour: "2026-11-20", arrivee: null, depart: null },
+      { jour: "2026-11-21", arrivee: "09:00", depart: "11:00" },
+      { jour: "2026-11-22", arrivee: null, depart: null },
     ]);
   });
 
-  it("lit le dépôt du lundi au vendredi de la semaine demandée", async () => {
+  it("lit le dépôt du lundi au dimanche de la semaine demandée", async () => {
     const { app, reads } = appWith();
     await app.request("/semaines/2026-11-16", { headers: AUTHORIZED });
-    expect(reads).toEqual([["2026-11-16", "2026-11-20"]]);
+    expect(reads).toEqual([["2026-11-16", "2026-11-22"]]);
   });
 });
 
 /** Les heures d'une journée complète, valides. */
 const FULL_DAY = { arrivee: "08:30", depart: "17:00" };
-
-/** Le texte du 400 de `PUT /jours/:date` sur un samedi ou un dimanche. */
-const NOT_A_WORKDAY = "date invalide : attendu un jour du lundi au vendredi";
 
 describe("PUT /jours/:date", () => {
   it.each([
@@ -225,31 +225,29 @@ describe("PUT /jours/:date", () => {
     expect(writes).toEqual([]);
   });
 
+  it("contrôle la date avant de lire le corps", async () => {
+    const response = await put(appWith().app, "2026-02-30", "pas du json");
+    expect(await response.text()).toBe(
+      "date invalide : attendu une date AAAA-MM-JJ",
+    );
+  });
+
   it.each([
     "2026-11-16",
     "2026-11-17",
     "2026-11-18",
     "2026-11-19",
     "2026-11-20",
-  ])("écrit la journée du %s, du lundi au vendredi", async (jour) => {
-    const { app, writes } = appWith();
-    const response = await put(app, jour, FULL_DAY);
-    expect(response.status).toBe(204);
-    expect(writes).toEqual([{ jour, ...FULL_DAY }]);
-  });
-
-  it.each([
-    ["un samedi", "2026-11-21", FULL_DAY],
-    ["un dimanche", "2026-11-22", FULL_DAY],
-    ["un samedi au corps non JSON", "2026-11-21", "pas du json"],
+    "2026-11-21",
+    "2026-11-22",
   ])(
-    "rend 400 pour %s, en jour non ouvré, sans rien écrire",
-    async (_, jour, body) => {
+    "écrit une arrivée le %s, quel que soit le jour de la semaine",
+    async (jour) => {
       const { app, writes } = appWith();
-      const response = await put(app, jour, body);
-      expect(response.status).toBe(400);
-      expect(await response.text()).toBe(NOT_A_WORKDAY);
-      expect(writes).toEqual([]);
+      const hours = { arrivee: "09:00", depart: null };
+      const response = await put(app, jour, hours);
+      expect(response.status).toBe(204);
+      expect(writes).toEqual([{ jour, ...hours }]);
     },
   );
 });
