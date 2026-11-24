@@ -9,7 +9,12 @@
  * minuteurs simulés (PRD #1, « Décisions de test »).
  */
 
-import { isPresenceDay, type PresenceDay, weekDates } from "@badge-mie/week";
+import {
+  emptyDay,
+  isPresenceDay,
+  type PresenceDay,
+  weekDates,
+} from "@badge-mie/week";
 import { API_URL } from "./api-url";
 
 /** Le serveur a refusé le jeton (HTTP 401) : il faut le ressaisir. */
@@ -107,24 +112,42 @@ export function weekRequest(token: string, monday: string): ApiRequest {
   };
 }
 
-/**
- * Dit si une valeur reçue ou relue est la semaine attendue : le serveur l'envoie, l'état local la
- * garde, et aucune des deux sources n'est crue sur parole.
- *
- * @param value - La valeur à vérifier, telle que `JSON.parse` l'a rendue.
- * @param monday - Le lundi `AAAA-MM-JJ` de la semaine demandée.
- * @returns `true` pour un tableau de cinq journées dont `jour` est, dans l'ordre, chaque date du
- *   lundi au vendredi de cette semaine, et dont `arrivee` et `depart` sont une heure `HH:MM` ou
- *   `null` ; `false` pour toute autre valeur.
- * @throws {RangeError} si `monday` n'est pas un lundi réel : c'est une erreur de l'appelant.
- */
-export function isWeek(value: unknown, monday: string): value is PresenceDay[] {
-  const dates = weekDates(monday);
+/** Le nombre de journées de la semaine d'avant la PR #41, que tolère {@link parseWeek}. */
+const FIVE_DAY_WEEK = 5;
+
+/** Dit si une valeur est le tableau des journées de `dates`, dans l'ordre ({@link parseWeek}). */
+function isWeekOf(value: unknown, dates: string[]): value is PresenceDay[] {
   return (
     Array.isArray(value) &&
     value.length === dates.length &&
     dates.every((date, index) => isPresenceDay(value[index], date))
   );
+}
+
+/**
+ * Lit une valeur reçue ou relue comme la semaine attendue : le serveur l'envoie, l'état local la
+ * garde, et aucune des deux sources n'est crue sur parole.
+ *
+ * La forme à cinq journées, du lundi au vendredi, est celle de l'état local rangé par la
+ * version précédente de l'application, et de l'API d'avant la PR #41, encore en service tant que
+ * la nouvelle n'est pas déployée : tolérée le temps de la mise en service, elle se lit complétée
+ * du samedi et du dimanche vides, sans rien perdre.
+ *
+ * @param value - La valeur à lire, telle que `JSON.parse` l'a rendue.
+ * @param monday - Le lundi `AAAA-MM-JJ` de la semaine demandée.
+ * @returns Les sept journées de la semaine, pour un tableau de sept journées — ou de cinq, du
+ *   lundi au vendredi — dont `jour` est, dans l'ordre, chaque date de cette semaine, et dont
+ *   `arrivee` et `depart` sont une heure `HH:MM` ou `null` ; `null` pour toute autre valeur.
+ * @throws {RangeError} si `monday` n'est pas un lundi réel : c'est une erreur de l'appelant.
+ */
+export function parseWeek(
+  value: unknown,
+  monday: string,
+): PresenceDay[] | null {
+  const dates = weekDates(monday);
+  if (isWeekOf(value, dates)) return value;
+  if (!isWeekOf(value, dates.slice(0, FIVE_DAY_WEEK))) return null;
+  return [...value, ...dates.slice(FIVE_DAY_WEEK).map(emptyDay)];
 }
 
 /**
@@ -134,10 +157,11 @@ export function isWeek(value: unknown, monday: string): value is PresenceDay[] {
  * @param status - Le statut HTTP de la réponse.
  * @param body - Le corps décodé en JSON, ou `undefined` s'il n'a pas pu l'être.
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine demandée.
- * @returns Les cinq journées de la semaine, telles que le serveur les a rendues.
+ * @returns Les sept journées de la semaine, telles que le serveur les a rendues, complétées du
+ *   samedi et du dimanche vides pour l'API d'avant la PR #41 (voir {@link parseWeek}).
  * @throws {TokenRejectedError} sur un 401, quel que soit le corps.
  * @throws {ServerUnreachableError} sur tout autre statut hors 2xx, ou sur un corps qui n'est pas
- *   la semaine demandée (voir {@link isWeek}).
+ *   la semaine demandée (voir {@link parseWeek}).
  * @throws {RangeError} sur un 2xx, si `monday` n'est pas un lundi réel : c'est une erreur de
  *   l'appelant.
  */
@@ -147,10 +171,9 @@ export function parseWeekResponse(
   monday: string,
 ): PresenceDay[] {
   if (status === 401) throw new TokenRejectedError();
-  if (!isSuccess(status) || !isWeek(body, monday)) {
-    throw new ServerUnreachableError();
-  }
-  return body;
+  const week = isSuccess(status) ? parseWeek(body, monday) : null;
+  if (week === null) throw new ServerUnreachableError();
+  return week;
 }
 
 /**
@@ -158,7 +181,7 @@ export function parseWeekResponse(
  *
  * @param token - Le jeton d'accès.
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine.
- * @returns Les cinq journées de la semaine, du lundi au vendredi.
+ * @returns Les sept journées de la semaine, du lundi au dimanche.
  * @throws {TokenRejectedError} si le serveur refuse le jeton.
  * @throws {ServerUnreachableError} si `fetch` échoue (réseau coupé), sans réponse dans le délai
  *   maximal ({@link REQUEST_TIMEOUT_MS}), ou pour toute autre réponse que

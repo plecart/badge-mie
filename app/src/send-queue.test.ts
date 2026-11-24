@@ -26,6 +26,13 @@ const WEDNESDAY_DAY: PresenceDay = {
   depart: "16:30",
 };
 
+/** Une journée pointée le samedi de la même semaine, jour non travaillé. */
+const SATURDAY_DAY: PresenceDay = {
+  jour: "2026-11-21",
+  arrivee: "09:00",
+  depart: null,
+};
+
 /** Un envoi, ou une lecture, sans réseau. */
 async function unreachable(): Promise<never> {
   throw new ServerUnreachableError();
@@ -144,6 +151,21 @@ describe("createSendQueue", () => {
     await queue.flush();
 
     expect([await queue.pendingDays(), counts.at(-1)]).toEqual([[], 0]);
+  });
+
+  it("envoie un pointage du samedi, puis le retire de la file", async () => {
+    const sent: PresenceDay[] = [];
+    const queue = createSendQueue({
+      storage: memoryStorage(),
+      send: async (day) => {
+        sent.push(day);
+      },
+    });
+
+    await queue.record(SATURDAY_DAY);
+    await queue.flush();
+
+    expect([sent, await queue.pendingDays()]).toEqual([[SATURDAY_DAY], []]);
   });
 
   it("dit le nombre de jours en attente après chaque pointage", async () => {
