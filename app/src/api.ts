@@ -130,8 +130,9 @@ function isWeekOf(value: unknown, dates: string[]): value is PresenceDay[] {
  *
  * La forme à cinq journées, du lundi au vendredi, est celle de l'état local rangé par la
  * version précédente de l'application, et de l'API d'avant la PR #41, encore en service tant que
- * la nouvelle n'est pas déployée : tolérée le temps de la mise en service, elle se lit complétée
- * du samedi et du dimanche vides, sans rien perdre.
+ * la nouvelle n'est pas déployée. Tolérée sans limite de durée pour l'état local, où une semaine
+ * passée jamais rouverte en ligne la garde, et le temps de la mise en service pour le serveur, elle
+ * se lit complétée du samedi et du dimanche vides, sans rien perdre.
  *
  * @param value - La valeur à lire, telle que `JSON.parse` l'a rendue.
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine demandée.
