@@ -1,6 +1,6 @@
 /**
  * L'écran de la semaine, variante « Pouce » du prototype : l'en-tête et ses flèches, la ligne du
- * total et de l'indicateur d'envoi, les cinq cartes du lundi au vendredi et la bande du bas
+ * total et de l'indicateur d'envoi, les sept cartes du lundi au dimanche et la bande du bas
  * (issue #3, « Décisions », point 7 ; issue #4, décision 1). Il s'ouvre sur la semaine en cours,
  * et passe à la nouvelle quand son horloge change de semaine, sauf s'il affiche une semaine passée
  * (`./current-week`). On y pointe aujourd'hui en maintenant le bouton du bas, et on y corrige une
@@ -43,8 +43,8 @@ import { useClock } from "./use-clock";
 import { useGestures } from "./use-gestures";
 import { loadWeek, type WeekView } from "./week-store";
 
-/** Les jours abrégés des cinq cartes, du lundi au vendredi. */
-const DAY_NAMES = ["Lun.", "Mar.", "Mer.", "Jeu.", "Ven."];
+/** Les jours abrégés des sept cartes, du lundi au dimanche. */
+const DAY_NAMES = ["Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam.", "Dim."];
 
 /** L'opacité de la flèche « Semaine suivante » sur la semaine en cours. */
 const DISABLED_OPACITY = 0.28;

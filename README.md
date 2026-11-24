@@ -10,8 +10,10 @@ compte, et le minimum de pièces mobiles.
 
 ## Ce que fait l'application
 
-- **La semaine en cours sur un écran** : pour chaque jour, l'arrivée, le départ et la durée ;
-  le total d'heures en haut, et deux flèches pour changer de semaine.
+- **La semaine en cours sur un écran**, du lundi au dimanche : pour chaque jour, l'arrivée, le
+  départ et la durée ; le total d'heures en haut, et deux flèches pour changer de semaine. Le
+  samedi, le dimanche et les jours fériés sont grisés, mais on peut y pointer ; un férié non
+  pointé du lundi au vendredi compte 8 h 30.
 - **Pointer d'un geste** : un seul bouton, à maintenir environ une demi-seconde, qui pointe l'arrivée
   puis le départ. « Annuler » reste visible cinq secondes.
 - **Corriger à la main** n'importe quelle heure, avec le sélecteur natif d'Android.
@@ -24,9 +26,10 @@ compte, et le minimum de pièces mobiles.
 ## Où en est le projet
 
 - **Fait** : la [version 1.0.0](https://github.com/plecart/badge-mie/releases/tag/v1.0.0), du
-  lundi au vendredi : l'API, l'application, le pointage hors ligne et l'APK.
-- **À venir** : la semaine sur sept jours avec les jours fériés, les congés posés dans un
-  calendrier, un widget Android et un rappel quand un pointage manque.
+  lundi au vendredi : l'API, l'application, le pointage hors ligne et l'APK ; puis la semaine
+  sur sept jours avec les jours fériés.
+- **À venir** : les congés posés dans un calendrier, un widget Android et un rappel quand un
+  pointage manque.
 
 Le découpage vit dans les [issues](https://github.com/plecart/badge-mie/issues) et les
 [milestones](https://github.com/plecart/badge-mie/milestones).
