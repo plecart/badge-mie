@@ -25,18 +25,20 @@ Il y a aussi des contraintes qui ne sont pas écrites mais qui pèsent sur le ch
 - **Le réseau du bâtiment n'est pas garanti.** Le pointage se fait à l'entrée, souvent là où le
   réseau est le plus faible. Un pointage perdu faute de réseau, c'est exactement ce que l'outil
   doit empêcher.
-- **Aucune boîte à outils Android n'est installée sur le poste** (Windows). Installer Android
-  Studio, le SDK et un JDK juste pour produire un APK coûte plus de temps que tout le reste.
+- **L'APK ne se construit pas sur le poste** (Windows). Android Studio, son SDK et son JDK y sont
+  installés, mais ne servent qu'à l'émulateur, pour le code natif (point 1) : tenir la
+  construction de l'APK en local coûte plus de temps que tout le reste.
 - **Le savoir-faire existant porte sur TypeScript et Python** (projet Portfolio), pas sur Dart ni
   Kotlin.
 
 ## Décision
 
 1. **Client : Expo (React Native + TypeScript)**. L'APK est construit dans le cloud par EAS Build
-   (profil qui produit un `.apk`), sans boîte à outils Android en local. Pendant le développement,
-   l'application tourne sur le téléphone via Expo Go tant qu'elle n'embarque aucun code natif. Le
-   widget d'écran d'accueil en embarque : dès qu'il entre, le développement passe sur un build de
-   développement (`expo-dev-client`), construit lui aussi par EAS Build.
+   (profil qui produit un `.apk`), et seulement pour une release. Pendant le développement, rien
+   n'est construit par EAS : l'application tourne sur le téléphone via Expo Go tant qu'elle
+   n'embarque aucun code natif. Le widget d'écran d'accueil en embarque : dès qu'il entre, le
+   développement passe sur un build de développement (`expo-dev-client`), construit sur le poste
+   par `npx expo run:android` et installé sur l'émulateur d'Android Studio.
 2. **Backend : une Neon Function** (Hono, Node.js) dans la région `aws-eu-central-1`, à côté de
    la base. Elle reçoit `DATABASE_URL` automatiquement. **L'application ne parle jamais
    directement à Postgres.**

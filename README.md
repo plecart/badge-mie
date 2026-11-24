@@ -54,7 +54,9 @@ flowchart LR
   compilé dans l'APK.
 - **Un calendrier pur** : le paquet `week/`, sans réseau ni horloge, est partagé par
   l'application et l'API.
-- **Aucune boîte à outils Android en local** : l'APK est construit dans le cloud par EAS Build.
+- **L'APK se construit dans le cloud, à la release seulement** : EAS Build le produit ; en
+  développement, l'app tourne dans Expo Go, et le widget sur l'émulateur d'Android Studio, en
+  build local.
 
 ## Stack
 
