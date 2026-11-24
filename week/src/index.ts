@@ -9,9 +9,9 @@
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const WEEK_MS = 7 * DAY_MS;
-/** Le nombre de jours ouvrés d'une semaine, du lundi au vendredi. */
-const WORKDAYS = 5;
+/** Le nombre de jours d'une semaine, du lundi au dimanche. */
+const WEEK_DAYS = 7;
+const WEEK_MS = WEEK_DAYS * DAY_MS;
 
 /**
  * Formate un instant UTC en date `AAAA-MM-JJ`.
@@ -122,22 +122,6 @@ export function isMonday(value: string): boolean {
 }
 
 /**
- * Dit si un texte est un jour ouvré réel au format `AAAA-MM-JJ`, du lundi au vendredi.
- *
- * À appeler à une frontière de confiance, comme {@link isIsoDate} : elle ne lève sur aucun
- * texte.
- *
- * @param value - Le texte à vérifier.
- * @returns `true` pour un jour du lundi au vendredi, l'un de ceux que rend {@link weekDates} pour
- *   sa semaine ; `false` pour un samedi, un dimanche, ou pour un texte qui n'est pas une date
- *   réelle (voir {@link isIsoDate}).
- */
-export function isWorkday(value: string): boolean {
-  const time = tryParseDate(value);
-  return time !== undefined && time - mondayTime(time) < WORKDAYS * DAY_MS;
-}
-
-/**
  * Minuit UTC d'un lundi `AAAA-MM-JJ` réel.
  *
  * @throws {RangeError} si `monday` n'est pas une date réelle, ou pas un lundi.
@@ -168,15 +152,15 @@ export function isoWeek(date: string): number {
 }
 
 /**
- * Rend les dates des jours ouvrés d'une semaine, du lundi au vendredi.
+ * Rend les dates des jours d'une semaine, du lundi au dimanche.
  *
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine, tel que le rend {@link mondayOf}.
- * @returns Cinq dates `AAAA-MM-JJ` consécutives, qui peuvent changer de mois ou d'année.
+ * @returns Sept dates `AAAA-MM-JJ` consécutives, qui peuvent changer de mois ou d'année.
  * @throws {RangeError} si `monday` n'est pas une date réelle, ou pas un lundi.
  */
 export function weekDates(monday: string): string[] {
   const start = parseMonday(monday);
-  return Array.from({ length: WORKDAYS }, (_, index) =>
+  return Array.from({ length: WEEK_DAYS }, (_, index) =>
     formatDate(start + index * DAY_MS),
   );
 }
@@ -253,20 +237,20 @@ function shortDate(date: Date): string {
 }
 
 /**
- * Rend le libellé de la plage d'une semaine, du lundi au vendredi, pour l'en-tête de l'écran.
+ * Rend le libellé de la plage d'une semaine, du lundi au dimanche, pour l'en-tête de l'écran.
  *
  * Le mois s'écrit en toutes lettres une seule fois quand la semaine tient dans un mois, et en
  * abrégé à chaque borne sinon ; l'année n'est jamais écrite.
  *
- * @example weekRangeLabel("2026-11-16") // « 16 – 20 novembre »
- * @example weekRangeLabel("2026-11-30") // « 30 nov. – 4 déc. »
- * @example weekRangeLabel("2026-12-28") // « 28 déc. – 1 janv. »
+ * @example weekRangeLabel("2026-11-16") // « 16 – 22 novembre »
+ * @example weekRangeLabel("2026-11-30") // « 30 nov. – 6 déc. »
+ * @example weekRangeLabel("2026-12-28") // « 28 déc. – 3 janv. »
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine, tel que le rend {@link mondayOf}.
  * @throws {RangeError} si `monday` n'est pas une date réelle, ou pas un lundi.
  */
 export function weekRangeLabel(monday: string): string {
   const start = new Date(parseMonday(monday));
-  const end = new Date(start.getTime() + (WORKDAYS - 1) * DAY_MS);
+  const end = new Date(start.getTime() + WEEK_MS - DAY_MS);
   if (start.getUTCMonth() === end.getUTCMonth()) {
     return `${start.getUTCDate()}${RANGE_SEPARATOR}${longDate(end)}`;
   }
@@ -289,7 +273,7 @@ export function dayLabel(date: string): string {
   return `${WEEKDAY_NAMES[day.getUTCDay()]} ${longDate(day)}`;
 }
 
-/** Un jour ouvré de la semaine affichée, situé par rapport à aujourd'hui. */
+/** Un jour de la semaine affichée, situé par rapport à aujourd'hui. */
 export interface WeekDay {
   /** La date `AAAA-MM-JJ`. */
   date: string;
@@ -300,12 +284,11 @@ export interface WeekDay {
 }
 
 /**
- * Rend les jours ouvrés d'une semaine, du lundi au vendredi, situés par rapport à aujourd'hui.
+ * Rend les jours d'une semaine, du lundi au dimanche, situés par rapport à aujourd'hui.
  *
  * @param monday - Le lundi `AAAA-MM-JJ` de la semaine, tel que le rend {@link mondayOf}.
  * @param today - La date `AAAA-MM-JJ` du jour, lue sur l'horloge par l'appelant.
- * @returns Cinq jours consécutifs. Dans une semaine passée, aucun n'est marqué ; un samedi ou un
- *   dimanche, la semaine en cours non plus.
+ * @returns Sept jours consécutifs. Dans une semaine passée, aucun n'est marqué.
  * @throws {RangeError} si `monday` n'est pas un lundi réel, ou `today` pas une date réelle.
  */
 export function weekDays(monday: string, today: string): WeekDay[] {

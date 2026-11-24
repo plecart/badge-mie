@@ -10,7 +10,6 @@ import {
   isoWeek,
   isTime,
   isTimeOrNull,
-  isWorkday,
   mondayOf,
   weekDates,
   weekDays,
@@ -100,32 +99,6 @@ describe("isMonday", () => {
   });
 });
 
-describe("isWorkday", () => {
-  it.each([
-    ["2026-11-16", true],
-    ["2026-11-17", true],
-    ["2026-11-18", true],
-    ["2026-11-19", true],
-    ["2026-11-20", true],
-    ["2026-11-21", false],
-    ["2026-11-22", false],
-    ["2026-12-28", true],
-    ["2026-12-29", true],
-    ["2026-12-30", true],
-    ["2026-12-31", true],
-    ["2027-01-01", true],
-    ["2027-01-02", false],
-    ["2027-01-03", false],
-    ["2026-02-30", false],
-    ["21-11-2026", false],
-  ])(
-    "dit si %s est un jour AAAA-MM-JJ réel du lundi au vendredi : %s",
-    (value, expected) => {
-      expect(isWorkday(value)).toBe(expected);
-    },
-  );
-});
-
 describe("isoWeek", () => {
   it.each([
     ["2026-01-01", 1],
@@ -139,13 +112,15 @@ describe("isoWeek", () => {
 });
 
 describe("weekDates", () => {
-  it("rend les cinq dates du lundi au vendredi, d'une année sur l'autre", () => {
+  it("rend les sept dates du lundi au dimanche, d'une année sur l'autre", () => {
     expect(weekDates("2026-12-28")).toEqual([
       "2026-12-28",
       "2026-12-29",
       "2026-12-30",
       "2026-12-31",
       "2027-01-01",
+      "2027-01-02",
+      "2027-01-03",
     ]);
   });
 });
@@ -166,15 +141,16 @@ describe("addWeeks", () => {
 
 describe("weekRangeLabel", () => {
   it.each([
-    ["2026-11-16", "16 – 20 novembre"],
-    ["2026-01-05", "5 – 9 janvier"],
+    ["2026-11-16", "16 – 22 novembre"],
+    ["2026-01-05", "5 – 11 janvier"],
   ])("écrit la semaine du %s dans un seul mois : « %s »", (monday, label) => {
     expect(weekRangeLabel(monday)).toBe(label);
   });
 
   it.each([
-    ["2026-11-30", "30 nov. – 4 déc."],
-    ["2026-12-28", "28 déc. – 1 janv."],
+    ["2026-11-30", "30 nov. – 6 déc."],
+    ["2026-12-28", "28 déc. – 3 janv."],
+    ["2026-10-26", "26 oct. – 1 nov."],
   ])(
     "abrège les deux mois de la semaine du %s, à cheval : « %s »",
     (monday, label) => {
@@ -208,15 +184,21 @@ describe("weekDays", () => {
       { date: "2026-11-18", isToday: true, isFuture: false },
       { date: "2026-11-19", isToday: false, isFuture: true },
       { date: "2026-11-20", isToday: false, isFuture: true },
+      { date: "2026-11-21", isToday: false, isFuture: true },
+      { date: "2026-11-22", isToday: false, isFuture: true },
     ]);
   });
 
   it.each([
-    ["d'une semaine passée", "2026-11-09", "2026-11-18"],
-    ["de la semaine en cours le samedi", "2026-11-16", "2026-11-21"],
-    ["de la semaine en cours le dimanche", "2026-11-16", "2026-11-22"],
-  ])("ne marque aucun jour %s", (_, monday, today) => {
-    const marked = weekDays(monday, today).filter(
+    ["un samedi", "2026-11-21"],
+    ["un dimanche", "2026-11-22"],
+  ])("marque aujourd'hui %s, le %s", (_, today) => {
+    const marked = weekDays("2026-11-16", today).filter((day) => day.isToday);
+    expect(marked.map((day) => day.date)).toEqual([today]);
+  });
+
+  it("ne marque aucun jour d'une semaine passée", () => {
+    const marked = weekDays("2026-11-09", "2026-11-18").filter(
       (day) => day.isToday || day.isFuture,
     );
     expect(marked).toEqual([]);

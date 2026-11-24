@@ -41,6 +41,8 @@ const REBUILT_WEEK: PresenceDay[] = [
   { jour: "2026-11-18", arrivee: null, depart: null },
   { jour: "2026-11-19", arrivee: null, depart: null },
   { jour: "2026-11-20", arrivee: null, depart: null },
+  { jour: "2026-11-21", arrivee: null, depart: null },
+  { jour: "2026-11-22", arrivee: null, depart: null },
 ];
 
 /** Un stockage dont la lecture lève : l'état local ne se lit pas. */

@@ -9,7 +9,6 @@ import {
   isIsoDate,
   isMonday,
   isTimeOrNull,
-  isWorkday,
   type PresenceDay,
   weekDates,
 } from "@badge-mie/week";
@@ -56,7 +55,7 @@ function requireToken(token: string): MiddlewareHandler {
 }
 
 /**
- * Rend les journées d'une semaine du lundi au vendredi, une par jour : le dépôt ne rend que les
+ * Rend les journées d'une semaine du lundi au dimanche, une par jour : le dépôt ne rend que les
  * jours qui ont une ligne, les autres prennent des heures `null`.
  */
 async function readWeek(
@@ -103,18 +102,18 @@ function parseHours(
  * Crée l'application. La garde du jeton passe avant tout le reste, route inconnue comprise.
  *
  * `GET /semaines/:lundi` rend 400 si `:lundi` n'est pas un lundi `AAAA-MM-JJ` réel, et sinon les
- * 5 journées `{ jour, arrivee, depart }` de la semaine, du lundi au vendredi.
+ * 7 journées `{ jour, arrivee, depart }` de la semaine, du lundi au dimanche.
  *
  * `PUT /jours/:date` crée ou remplace la journée `:date` par les heures `{ arrivee, depart }` de
  * son corps JSON, et rend 204 sans corps ; rejoué, il laisse le même état (ADR-0001,
- * « Décision », point 4). Il rend 400 sans rien écrire si `:date` n'est pas une date
- * `AAAA-MM-JJ` réelle ou tombe un samedi ou un dimanche ({@link isWorkday}), deux contrôles faits
- * avant de lire le corps ; si le corps n'est pas un objet JSON dont les clés `arrivee` et `depart`
- * valent chacune `null` ou une heure `HH:MM` (les autres clés s'ignorent) ; ou si le départ ne
- * suit pas l'arrivée ({@link departureFollowsArrival}). Un départ sans arrivée est admis, comme
- * par la table `presence`. Une date future n'est pas contrôlée : l'API ne lit pas l'horloge,
- * et l'heure du téléphone fait foi, corrigeable à la main (PRD #1, « Hors périmètre », horloge
- * serveur de référence).
+ * « Décision », point 4). N'importe quel jour de la semaine s'écrit, samedi et dimanche compris
+ * (ADR-0001, « Décision », point 6). Il rend 400 sans rien écrire si `:date` n'est pas une date
+ * `AAAA-MM-JJ` réelle, contrôle fait avant de lire le corps ; si le corps n'est pas un objet JSON
+ * dont les clés `arrivee` et `depart` valent chacune `null` ou une heure `HH:MM` (les autres clés
+ * s'ignorent) ; ou si le départ ne suit pas l'arrivée ({@link departureFollowsArrival}). Un départ
+ * sans arrivée est admis, comme par la table `presence`. Une date future n'est pas contrôlée :
+ * l'API ne lit pas l'horloge, et l'heure du téléphone fait foi, corrigeable à la main (PRD #1,
+ * « Hors périmètre », horloge serveur de référence).
  *
  * @param options.token - Le jeton fixe attendu.
  * @param options.repository - Le dépôt des présences.
@@ -141,12 +140,6 @@ export function createApp({
     const jour = c.req.param("date");
     if (!isIsoDate(jour)) {
       return c.text("date invalide : attendu une date AAAA-MM-JJ", 400);
-    }
-    if (!isWorkday(jour)) {
-      return c.text(
-        "date invalide : attendu un jour du lundi au vendredi",
-        400,
-      );
     }
     const hours = parseHours(await c.req.text());
     if (!hours) {
