@@ -17,7 +17,7 @@ import {
   type WidgetRepresentation,
 } from "react-native-android-widget";
 import { MISSING, TIME_LABELS } from "./labels";
-import { PALETTES, type Palette } from "./palette";
+import { PALETTES, type Palette, resolveTint } from "./palette";
 import { BUTTON, BUTTON_LABEL, FONTS } from "./theme";
 import type { WidgetModel } from "./widget";
 import { CLICK_ACTIONS } from "./widget-task";
@@ -83,7 +83,7 @@ function TodayWidget({
       />
       <FlexWidget
         {...CLICK_ACTIONS[button.tap]}
-        accessibilityLabel={button.label}
+        accessibilityLabel={button.accessibilityLabel}
         style={{
           flex: 1,
           height: BUTTON.height,
@@ -91,7 +91,7 @@ function TodayWidget({
           justifyContent: "center",
           paddingHorizontal: 8,
           borderRadius: BUTTON.borderRadius,
-          backgroundColor: palette[button.background],
+          backgroundColor: resolveTint(palette, button.background),
           ...(button.border && {
             borderWidth: BORDER_WIDTH,
             borderColor: palette[button.border],
@@ -104,7 +104,7 @@ function TodayWidget({
           style={{
             ...BUTTON_LABEL,
             textAlign: "center",
-            color: palette[button.color],
+            color: resolveTint(palette, button.color),
           }}
         />
       </FlexWidget>

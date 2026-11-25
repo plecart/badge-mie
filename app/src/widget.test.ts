@@ -9,8 +9,10 @@ import type { WeekView } from "./week-store";
 import {
   isStillShown,
   punchAt,
+  PHASE_MS,
   showPhase,
   tapEffect,
+  TRANSITION_MS,
   widgetModel,
   type WidgetState,
 } from "./widget";
@@ -76,13 +78,14 @@ const FINISHED = weekOf({
 });
 
 describe("widgetModel — contenu", () => {
-  it("montre l'arrivée 08:52, le départ vide et « Pointer le départ » sur l'accent", () => {
+  it("montre l'arrivée 08:52, le départ vide et « Badger » sur l'accent, « Pointer le départ » pour TalkBack", () => {
     expect(widgetModel(state(ARRIVED, WEDNESDAY_9AM))).toEqual({
       dot: "accent",
       arrival: "08:52",
       departure: "—",
       button: {
-        label: "Pointer le départ",
+        label: "Badger",
+        accessibilityLabel: "Pointer le départ",
         background: "accent",
         color: "accentInk",
         tap: "punch",
@@ -93,6 +96,7 @@ describe("widgetModel — contenu", () => {
   it("éteint « Journée terminée », sans effet au toucher, sur une journée terminée", () => {
     expect(widgetModel(state(FINISHED, WEDNESDAY_9AM)).button).toEqual({
       label: "Journée terminée",
+      accessibilityLabel: "Journée terminée",
       background: "surface2",
       color: "muted",
       tap: "none",
@@ -117,14 +121,19 @@ describe("widgetModel — contenu", () => {
     expect(model).toMatchObject({
       arrival: "—",
       departure: "—",
-      button: { label: "Pointer l'arrivée", tap: "punch" },
+      button: {
+        label: "Badger",
+        accessibilityLabel: "Pointer l'arrivée",
+        tap: "punch",
+      },
     });
   });
 
   it("éteint le bouton, sans effet au toucher, tant que la semaine jamais lue se charge", () => {
     const loading = { days: null, unreachable: false };
     expect(widgetModel(state(loading, WEDNESDAY_9AM)).button).toEqual({
-      label: "Pointer l'arrivée",
+      label: "Badger",
+      accessibilityLabel: "Pointer l'arrivée",
       background: "surface2",
       color: "muted",
       tap: "none",
@@ -144,7 +153,8 @@ describe("widgetModel — jour non travaillé", () => {
     "grise le bouton %s, qui garde le libellé de son état et pointe",
     (_, jour, now) => {
       expect(widgetModel(state(weekOf(arrivedAt(jour)), now)).button).toEqual({
-        label: "Pointer le départ",
+        label: "Badger",
+        accessibilityLabel: "Pointer le départ",
         background: "surface2",
         color: "fg",
         tap: "punch",
@@ -160,57 +170,100 @@ describe("widgetModel — jour non travaillé", () => {
 });
 
 describe("widgetModel — état armé et refus affiché", () => {
-  it("inverse les couleurs du bouton armé : « Confirmer le départ », fond accentInk, texte et bord accent", () => {
+  /** Le bouton du mercredi 25, arrivée pointée, `elapsed` ms après l'affichage de l'état armé. */
+  function armedAfter(elapsed: number) {
     const phase = showPhase("armed", WEDNESDAY_9AM);
-    expect(
-      widgetModel(state(ARRIVED, WEDNESDAY_9AM, { phase })).button,
-    ).toEqual({
-      label: "Confirmer le départ",
-      background: "accentInk",
-      color: "accent",
+    const now = after(WEDNESDAY_9AM, elapsed);
+    return widgetModel(state(ARRIVED, now, { phase })).button;
+  }
+
+  it("dessine le premier cadre armé aux couleurs du repos : « Confirmer », bord accent, bande du compte à rebours pleine", () => {
+    expect(armedAfter(0)).toEqual({
+      label: "Confirmer",
+      accessibilityLabel: "Confirmer le départ",
+      background: "accent",
+      color: "accentInk",
       border: "accent",
+      countdown: { color: "accent", remaining: 1 },
       tap: "punch",
     });
   });
 
-  it("demande de confirmer l'arrivée quand le bouton armé pointe l'arrivée", () => {
-    const phase = showPhase("armed", WEDNESDAY_9AM);
-    expect(
-      widgetModel(state(EMPTY, WEDNESDAY_9AM, { phase })).button.label,
-    ).toBe("Confirmer l'arrivée");
+  it("inverse les couleurs du bouton armé au fil de la transition, à mi-chemin à sa moitié", () => {
+    expect(armedAfter(TRANSITION_MS / 2)).toMatchObject({
+      background: { from: "accent", to: "accentInk", amount: 0.5 },
+      color: { from: "accentInk", to: "accent", amount: 0.5 },
+      border: "accent",
+      countdown: { color: { from: "accent", to: "accentSoft", amount: 0.5 } },
+    });
   });
 
-  it("garde un jour grisé les couleurs grisées du bouton armé, qui se lit à son texte", () => {
+  it("achève la transition : fond accentInk, texte et bord accent, bande accentSoft", () => {
+    expect(armedAfter(TRANSITION_MS)).toMatchObject({
+      label: "Confirmer",
+      background: "accentInk",
+      color: "accent",
+      border: "accent",
+      countdown: { color: "accentSoft" },
+    });
+  });
+
+  it.each([
+    [0, 1],
+    [750, 0.75],
+    [1500, 0.5],
+    [2400, 0.2],
+  ])(
+    "vide la bande du compte à rebours avec le délai : %i ms après l'affichage, il en reste %d",
+    (elapsed, remaining) => {
+      expect(armedAfter(elapsed).countdown?.remaining).toBeCloseTo(remaining);
+    },
+  );
+
+  it("demande de confirmer l'arrivée, pour TalkBack, quand le bouton armé pointe l'arrivée", () => {
+    const phase = showPhase("armed", WEDNESDAY_9AM);
+    expect(
+      widgetModel(state(EMPTY, WEDNESDAY_9AM, { phase })).button,
+    ).toMatchObject({
+      label: "Confirmer",
+      accessibilityLabel: "Confirmer l'arrivée",
+    });
+  });
+
+  it("garde un jour grisé les couleurs grisées du bouton armé, sans transition, avec le compte à rebours en `line`", () => {
     const phase = showPhase("armed", SATURDAY_9AM);
     const view = weekOf(arrivedAt("2026-11-28"));
-    expect(widgetModel(state(view, SATURDAY_9AM, { phase })).button).toEqual({
-      label: "Confirmer le départ",
+    const now = after(SATURDAY_9AM, TRANSITION_MS / 2);
+    expect(widgetModel(state(view, now, { phase })).button).toEqual({
+      label: "Confirmer",
+      accessibilityLabel: "Confirmer le départ",
       background: "surface2",
       color: "fg",
+      countdown: {
+        color: "line",
+        remaining: 1 - TRANSITION_MS / 2 / PHASE_MS.armed,
+      },
       tap: "punch",
     });
   });
 
   it.each([
-    [2999, "Confirmer le départ"],
-    [3000, "Pointer le départ"],
+    [2999, "Confirmer"],
+    [3000, "Badger"],
   ])(
     "montre le bouton armé %i ms après son affichage sous « %s »",
     (elapsed, label) => {
-      const phase = showPhase("armed", WEDNESDAY_9AM);
-      const now = after(WEDNESDAY_9AM, elapsed);
-      expect(widgetModel(state(ARRIVED, now, { phase })).button.label).toBe(
-        label,
-      );
+      expect(armedAfter(elapsed).label).toBe(label);
     },
   );
 
-  it("affiche « Départ trop tôt » aux couleurs du repos après un pointage refusé", () => {
+  it("affiche « Départ trop tôt » aux couleurs du repos, sans compte à rebours, après un pointage refusé", () => {
     const phase = showPhase("refused", WEDNESDAY_9AM);
     expect(
-      widgetModel(state(ARRIVED, WEDNESDAY_9AM, { phase })).button,
+      widgetModel(state(ARRIVED, after(WEDNESDAY_9AM, 1000), { phase })).button,
     ).toEqual({
       label: "Départ trop tôt",
+      accessibilityLabel: "Départ trop tôt",
       background: "accent",
       color: "accentInk",
       tap: "punch",
@@ -219,7 +272,7 @@ describe("widgetModel — état armé et refus affiché", () => {
 
   it.each([
     [2999, "Départ trop tôt"],
-    [3000, "Pointer le départ"],
+    [3000, "Badger"],
   ])(
     "montre le refus %i ms après son affichage sous « %s »",
     (elapsed, label) => {
@@ -242,7 +295,7 @@ describe("widgetModel — état armé et refus affiché", () => {
       const phase = showPhase(kind, after(WEDNESDAY_9AM, ahead));
       expect(
         widgetModel(state(ARRIVED, WEDNESDAY_9AM, { phase })).button.label,
-      ).toBe("Pointer le départ");
+      ).toBe("Badger");
     },
   );
 
@@ -260,6 +313,7 @@ describe("widgetModel — sans jeton", () => {
       widgetModel(state(ARRIVED, WEDNESDAY_9AM, { hasToken: false })).button,
     ).toEqual({
       label: "Ouvrir l'app",
+      accessibilityLabel: "Ouvrir l'app",
       background: "accent",
       color: "accentInk",
       tap: "openApp",

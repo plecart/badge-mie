@@ -2,7 +2,7 @@
  * Les palettes claire et sombre du prototype « Pouce », reprises telles quelles (issue #3,
  * « Décisions », point 7), plus l'orange de l'indicateur d'envoi (issue #4, décision 1) ; et les
  * couleurs du bouton de pointage selon son état ({@link punchColors}), nommées par leur clé de
- * palette.
+ * palette, que le widget mélange le temps d'une transition ({@link Tint}).
  *
  * Module pur, lisible hors d'un composant React pour le widget d'écran d'accueil, qui ne peut pas
  * appeler de hook (issue #20) ; l'app choisit sa palette par `usePalette` de `./theme`.
@@ -64,6 +64,58 @@ export const PALETTES: Record<"light" | "dark", Palette> = {
 
 /** Le nom d'une couleur de {@link Palette}, que résout la palette du mode affiché. */
 export type PaletteToken = keyof Palette;
+
+/**
+ * Une couleur nommée, qui se résout dans la palette du mode affiché ({@link resolveTint}) : une clé
+ * seule, ou le mélange de deux, à `amount` du chemin de `from` vers `to`, entre 0 et 1 exclus — le
+ * temps d'une transition. Créée par {@link blend}.
+ */
+export type Tint =
+  PaletteToken | { from: PaletteToken; to: PaletteToken; amount: number };
+
+/**
+ * Rend la couleur à `amount` du chemin de `from` vers `to`.
+ *
+ * @example blend("accent", "accentInk", 0.4) // { from: "accent", to: "accentInk", amount: 0.4 }
+ * @param amount - La part du chemin faite : `from` à 0 et en deçà, `to` à 1 et au-delà.
+ * @returns La clé seule à un bout du chemin, ou quand il part et arrive sur la même ; leur mélange
+ *   entre les deux.
+ */
+export function blend(
+  from: PaletteToken,
+  to: PaletteToken,
+  amount: number,
+): Tint {
+  if (amount <= 0 || from === to) return from;
+  if (amount >= 1) return to;
+  return { from, to, amount };
+}
+
+/**
+ * Résout une couleur nommée dans la palette d'un mode.
+ *
+ * @example resolveTint(PALETTES.light, { from: "accent", to: "accentInk", amount: 0.5 })
+ *   // « #96B5AA »
+ * @returns La couleur de la clé ; pour un mélange, chaque canal pris à `amount` du chemin entre ceux
+ *   des deux clés, en sRGB, arrondi à l'entier.
+ */
+export function resolveTint(palette: Palette, tint: Tint): HexColor {
+  if (typeof tint === "string") return palette[tint];
+  const from = palette[tint.from];
+  const to = palette[tint.to];
+  // Les canaux rouge, vert et bleu commencent aux caractères 1, 3 et 5 de `#RRGGBB`.
+  const mixed = [1, 3, 5].map((start) => {
+    const a = channel(from, start);
+    const value = Math.round(a + (channel(to, start) - a) * tint.amount);
+    return value.toString(16).padStart(2, "0");
+  });
+  return `#${mixed.join("").toUpperCase()}`;
+}
+
+/** Le canal de 0 à 255 écrit en deux chiffres hexadécimaux à partir de `start` dans `color`. */
+function channel(color: HexColor, start: number): number {
+  return Number.parseInt(color.slice(start, start + 2), 16);
+}
 
 /** Le fond d'un bouton et la couleur de son libellé, nommés par leur clé de palette. */
 export interface ButtonColors {
