@@ -144,8 +144,9 @@ export interface WidgetState {
  * @param state - Ce que lit le widget ({@link WidgetState}).
  * @returns La pastille en `accent` quand aucun jour n'attend l'envoi, en `pending` sinon ; les
  *   heures du jour, « — » pour une heure vide ou une journée inconnue ; le bouton : « Ouvrir
- *   l'app » sans jeton, sinon celui de l'app au repos, armé ou refusé selon la phase encore
- *   affichée à `now` — une phase ne change rien au bouton éteint.
+ *   l'app » sans jeton, aux couleurs d'un bouton actif, grisé ou non, même sur une journée
+ *   terminée ; sinon celui de l'app au repos, armé ou refusé selon la phase encore affichée à
+ *   `now` — une phase ne change rien au bouton éteint.
  * @throws {RangeError} si `now` n'est pas un instant valide (`new Date(NaN)`), comme `mondayOf`
  *   de `@badge-mie/week`.
  */
@@ -183,8 +184,12 @@ function buttonOf(
   phase: WidgetPhase | null,
 ): WidgetButton {
   const { action } = button;
+  if (!hasToken) {
+    // « Ouvrir l'app » agit : les couleurs d'un bouton actif, jamais celles d'un bouton éteint.
+    const active = punchColors({ enabled: true, muted: button.muted });
+    return { label: OPEN_APP, ...active, tap: "openApp" };
+  }
   const colors = punchColors(button);
-  if (!hasToken) return { label: OPEN_APP, ...colors, tap: "openApp" };
   // `enabled` implique `canPunch(action)`, que seul ce second test apprend au typage.
   if (!button.enabled || !canPunch(action)) {
     return { label: PUNCH_LABELS[action], ...colors, tap: "none" };
