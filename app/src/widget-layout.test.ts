@@ -48,6 +48,19 @@ describe("widgetLayout — les hauteurs du widget", () => {
     expect([MIN_BUTTON_HEIGHT, tooSmall]).toEqual([32, []]);
   });
 
+  it.each([1, 31])(
+    "garde une marge positive sous la hauteur minimale déclarée, sur %i dp : le bouton prend tout",
+    (height) => {
+      expect(widgetLayout(height)).toEqual({
+        padding: 0,
+        gap: 0,
+        titleHeight: 0,
+        timeHeight: 0,
+        buttonRadius: RADIUS,
+      });
+    },
+  );
+
   it("arrondit le bouton en concentrique : le rayon du widget, 22 dp, moins la marge", () => {
     const offset = HEIGHTS.filter((height) => {
       const { padding, buttonRadius } = widgetLayout(height);

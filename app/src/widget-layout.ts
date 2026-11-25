@@ -47,7 +47,9 @@ export interface WidgetLayout {
  *
  * @example widgetLayout(109) // { padding: 10, gap: 6, titleHeight: 14, timeHeight: 28,
  *   //                          buttonRadius: 12 } : un bouton de 41 dp
- * @param height - La hauteur du widget, en dp ; au moins 40, sa hauteur minimale déclarée.
+ * @param height - La hauteur du widget, en dp ; d'ordinaire au moins 40, sa hauteur minimale
+ *   déclarée, mais la bibliothèque passe telle quelle celle que rapporte le lanceur
+ *   (`RNWidgetSizing.getSize`, lu par la relecture de la PR #43) : en dessous, la marge tombe à 0.
  * @returns Des hauteurs qui laissent au bouton au moins {@link MIN_BUTTON_HEIGHT} sur toute
  *   hauteur d'au moins 40 dp.
  */
@@ -59,9 +61,11 @@ export function widgetLayout(height: number): WidgetLayout {
       room >= GAP + TITLE_HEIGHT + TIME_HEIGHT ? TITLE_HEIGHT : 0;
     return framed(PADDING, GAP, titleHeight, TIME_HEIGHT);
   }
-  const padding = Math.min(
-    PADDING,
-    Math.floor((height - MIN_BUTTON_HEIGHT) / 2),
+  // Sous la hauteur minimale déclarée — un lanceur peut la rapporter telle quelle —, la marge
+  // tombe à 0 plutôt que de devenir négative : le bouton prend tout.
+  const padding = Math.max(
+    0,
+    Math.min(PADDING, Math.floor((height - MIN_BUTTON_HEIGHT) / 2)),
   );
   return framed(padding, 0, 0, 0);
 }
