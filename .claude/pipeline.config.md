@@ -11,6 +11,7 @@ Ordre de normativité : **en cas de contradiction, le rang le plus haut l'emport
 | Rang | Fichier | Portée | Où s'inscrit un amendement |
 |---|---|---|---|
 | 1 | `docs/adr/0001-stack-et-architecture.md` | stack, architecture, sécurité (jeton fixe), modèle de données, API, comportement hors ligne, variante d'écran retenue (« Pouce ») | le § concerné ; une décision qui le remplace passe par un nouvel ADR (`docs/adr/000N-…`) qui marque l'ancien « Remplacé » |
+| 1 | `docs/adr/0002-widget-android.md` | la bibliothèque du widget Android et son fonctionnement : pointage hors de l'app ouverte, état armé et retour seul, mise à jour depuis l'app | le § concerné ; une décision qui le remplace passe par un nouvel ADR (`docs/adr/000N-…`) qui marque l'ancien « Remplacé » |
 | n | issues GitHub ouvertes | découpage et planification, **dérivés** des rangs supérieurs | le corps de l'issue, jamais un commentaire — voir `repercussions` |
 
 **Non normatif :** `docs/archive/` — le raisonnement et les options écartées ; rien ne s'y décide.
