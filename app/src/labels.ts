@@ -2,7 +2,9 @@
  * Les textes de l'écran de la semaine qui dépendent d'un état : le libellé du bouton de pointage et
  * son indication pour TalkBack, le message de la barre du dernier geste, accepté, refusé ou
  * interrompu, la durée d'une carte, l'indicateur d'envoi, la ligne sous le bouton (issue #4,
- * décision 1). Module pur : l'écran les compose sans rien décider (PRD #1, module 5).
+ * décision 1) ; et ceux que le bouton du widget d'écran d'accueil ajoute aux libellés de l'app
+ * (issue #20). Module pur : l'écran et le widget les composent sans rien décider (PRD #1,
+ * module 5).
  */
 
 import {
@@ -22,6 +24,25 @@ export const PUNCH_LABELS: Record<PunchAction, string> = {
   departure: "Pointer le départ",
   done: "Journée terminée",
 };
+
+/**
+ * Le libellé du bouton du widget armé par un premier toucher, que le second confirme (issue #20,
+ * « Double toucher »).
+ */
+export const CONFIRM_LABELS: Record<"arrival" | "departure", string> = {
+  arrival: "Confirmer l'arrivée",
+  departure: "Confirmer le départ",
+};
+
+/**
+ * Le libellé du bouton du widget après un pointage refusé, dont le seul motif possible est un
+ * départ qui ne suivrait pas l'arrivée (`punch` de `./punch`) : un toucher sans effet visible
+ * passerait pour une panne (issues #14 et #20).
+ */
+export const DEPARTURE_TOO_EARLY = "Départ trop tôt";
+
+/** Le libellé du bouton du widget sans jeton saisi : seule l'app saisit le jeton (issue #20). */
+export const OPEN_APP = "Ouvrir l'app";
 
 /**
  * Le message d'un appui sur le bouton de pointage interrompu avant la fin, affiché seul dans la
