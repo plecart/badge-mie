@@ -253,7 +253,7 @@ describe("runWidgetTask — double toucher", () => {
     expect(await readPhase(h.storage)).toBeNull();
   });
 
-  it("anime la transition, puis ne redessine l'état armé qu'au changement du chiffre, 3, 2, 1", async () => {
+  it("ne redessine l'état armé qu'au changement du chiffre, 3, 2, 1", async () => {
     const h = harness();
     const frames: [number, number | undefined][] = [];
     const draw = h.deps.draw;
@@ -269,10 +269,6 @@ describe("runWidgetTask — double toucher", () => {
 
     expect(frames).toEqual([
       [0, 3],
-      [100, 3],
-      [200, 3],
-      [300, 3],
-      [400, 3],
       [1000, 2],
       [2000, 1],
       [3000, undefined],
@@ -312,7 +308,7 @@ describe("runWidgetTask — double toucher", () => {
     expect([h.labels()[0], h.sent]).toEqual(["Confirmer", []]);
   });
 
-  it.each([30, 1200])(
+  it.each([30, 2500])(
     "revient au repos dès l'expiration de l'état armé, chaque dessin prenant %i ms",
     async (drawMs) => {
       const h = harness();
@@ -346,7 +342,7 @@ describe("runWidgetTask — double toucher", () => {
       // L'envoi du pointage aboutit tout de suite : la relance qu'il attend n'avance pas l'horloge,
       // et l'état armé du premier toucher a encore des cadres à jouer.
       await wait(ms === SEND_WAIT_MS ? 0 : ms);
-      if (second === undefined && h.waits.length === 5) {
+      if (second === undefined && h.waits.length === 1) {
         second = tap(h.deps);
         await second;
       }
@@ -368,13 +364,13 @@ describe("runWidgetTask — double toucher", () => {
     const wait = h.deps.wait;
     h.deps.wait = async (ms) => {
       await wait(ms);
-      if (h.waits.length === 5) await storePhase(h.storage, other);
+      if (h.waits.length === 2) await storePhase(h.storage, other);
     };
 
     await tap(h.deps);
 
     expect([h.labels(), await readPhase(h.storage)]).toEqual([
-      Array(5).fill("Confirmer"),
+      Array(2).fill("Confirmer"),
       other,
     ]);
   });

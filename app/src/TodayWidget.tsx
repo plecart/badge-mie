@@ -23,7 +23,7 @@ import {
   type WidgetRepresentation,
 } from "react-native-android-widget";
 import { MISSING, TIME_LABELS } from "./labels";
-import { PALETTES, type Palette, resolveTint } from "./palette";
+import { PALETTES, type Palette } from "./palette";
 import { BUTTON_LABEL, FONTS } from "./theme";
 import type { WidgetButton, WidgetModel } from "./widget";
 import { CLICK_ACTIONS } from "./widget-task";
@@ -193,7 +193,7 @@ function PunchButton({
         height: "match_parent",
         overflow: "hidden",
         borderRadius: BUTTON_RADIUS,
-        backgroundColor: resolveTint(palette, button.background),
+        backgroundColor: palette[button.background],
       }}
     >
       <FlexWidget

@@ -169,24 +169,28 @@ l'API sur `http://127.0.0.1:9`, par une sonde de journal jetable, jamais version
 
 ## Refonte du widget
 
-Deux arrêts visuels du 2026-11-25 l'ont refait le même jour (issue #20, « Décisions ») :
+Trois regards du mainteneur, le 2026-11-25, l'ont refait le même jour (issue #20, « Décisions ») :
 
 1. le premier : un 2×2, les heures au-dessus du bouton, sous des libellés courts (« Badger »,
    « Confirmer »), et un armement animé : transition du bouton plein au bouton inversé, puis une
    bande qui se vidait derrière le libellé pendant les 3 s ;
 2. le second : le 2×2, jugé trop gros, devient un 2×1, les heures sur une ligne et le bouton,
    rectangulaire, juste en dessous ; la bande, essayée, est retirée, et un petit chiffre dans un
-   coin du bouton décompte les secondes qui restent, 3, 2, 1.
+   coin du bouton décompte les secondes qui restent, 3, 2, 1 ;
+3. le troisième : le 2×1 est validé ; la transition, essayée, est retirée, jugée trop saccadée :
+   le bouton passe d'un coup aux couleurs inversées, et le chiffre reste.
 
-Les mesures de l'essai ci-dessus, faites sur le 4×1, restent vraies, et celles du 2×2 ci-dessous
-aussi.
+Les mesures de l'essai ci-dessus, faites sur le 4×1, restent vraies, et celles du 2×2 et du 2×1
+ci-dessous aussi : elles décrivent ce qui a été essayé.
 
-Un widget ne joue pas d'animation : le gestionnaire redessine l'état armé aux instants d'un
-calendrier (`FRAME_STEPS`), chaque cadre à l'instant de l'horloge, et relit la phase rangée avant
-chacun pour céder la main à un autre toucher. Le calendrier redessine toutes les 100 ms pendant
-la transition de 400 ms (`TRANSITION_MS`), à la cadence du dessin natif, puis seulement au
-changement du chiffre, à 1 s et à 2 s : 7 cadres en 3 s, contre 30 avec la bande. Les 3 s
-comptent depuis le premier cadre, transition comprise.
+Un widget ne joue pas d'animation : le gestionnaire redessine l'état armé cadre par cadre, à
+l'instant de l'horloge, et relit la phase rangée avant chacun pour céder la main à un autre
+toucher. Depuis le troisième regard, il dessine l'état armé à son affichage, puis à chaque
+changement du chiffre, à 1 s et à 2 s (`FRAME_MS`) : 3 cadres en 3 s, contre 7 avec la transition
+(toutes les 100 ms pendant ses 400 ms) et 30 avec la bande. Les 3 s comptent depuis le premier
+cadre. Le cadre de mi-transition, le seul dont le contraste descendait sous 4,5:1 (mesures du 2×1
+ci-dessous), disparaît avec elle : dès le premier cadre, le libellé et le chiffre ont 6,37:1 en
+clair et 10,16:1 en sombre sur le bouton armé.
 
 **Mesures du 2×2, avec la bande**, le 2026-11-25 sur le même AVD, processus de l'app vivant, un
 cadre toutes les 100 ms pendant les 3 s, par une sonde de journal jetable et par

@@ -26,13 +26,7 @@ import {
   WIDGET_CONFIRM,
   WIDGET_PUNCH_LABELS,
 } from "./labels";
-import {
-  blend,
-  type ButtonColors,
-  type PaletteToken,
-  punchColors,
-  type Tint,
-} from "./palette";
+import { type ButtonColors, type PaletteToken, punchColors } from "./palette";
 import {
   canPunch,
   type Outcome,
@@ -68,62 +62,36 @@ export const PHASE_MS: Record<PhaseKind, number> = {
   refused: 3000,
 };
 
-/**
- * La durée de la transition du bouton plein au bouton inversé, au début de l'état armé, en
- * millisecondes : elle fait partie de ses {@link PHASE_MS} (issue #20, décision du 2026-11-25).
- * Assez longue pour quatre images à l'écran à la cadence mesurée sur l'émulateur (ADR-0002,
- * « Refonte du widget »).
- */
-export const TRANSITION_MS = 400;
-
 /** Une seconde, le pas du décompte de l'état armé, en millisecondes. */
 const SECOND_MS = 1000;
 
 /**
- * L'intervalle des cadres de la transition, en millisecondes : le temps d'un dessin natif, de
- * l'ordre de 0,1 s sur l'émulateur (ADR-0002, « Refonte du widget »).
+ * L'intervalle des cadres de chaque phase, en millisecondes, comptés depuis son affichage : l'état
+ * armé se redessine à chaque changement du chiffre de son décompte ; le refus reste fixe, en un
+ * seul cadre.
  */
-const DRAW_MS = 100;
-
-/**
- * Une étape du calendrier des cadres d'une phase : jusqu'à `until` ms après son affichage, un
- * cadre toutes les `every` ms, comptées depuis l'affichage.
- */
-export interface FrameStep {
-  until: number;
-  every: number;
-}
-
-/**
- * Le calendrier des cadres de chaque phase, ses étapes dans l'ordre ; la dernière finit avec la
- * phase. L'état armé se redessine à la cadence du dessin natif pendant sa transition, puis à
- * chaque changement du chiffre de son décompte ; le refus reste fixe, en un seul cadre.
- */
-export const FRAME_STEPS: Record<PhaseKind, FrameStep[]> = {
-  armed: [
-    { until: TRANSITION_MS, every: DRAW_MS },
-    { until: PHASE_MS.armed, every: SECOND_MS },
-  ],
-  refused: [{ until: PHASE_MS.refused, every: PHASE_MS.refused }],
+export const FRAME_MS: Record<PhaseKind, number> = {
+  armed: SECOND_MS,
+  refused: PHASE_MS.refused,
 };
 
 /**
- * Rend l'instant du cadre qui suit `elapsed` dans un calendrier : le prochain point de la grille
- * de l'étape en cours, sans dépasser la fin de cette étape.
+ * Rend l'instant du cadre qui suit `elapsed` : le prochain point de la grille de `every` ms, sans
+ * dépasser la fin de la phase.
  *
- * @example nextFrame(FRAME_STEPS.armed, 400) // 1000 : la transition finie, le chiffre passe à 2
- * @param steps - Le calendrier, ses étapes dans l'ordre ({@link FRAME_STEPS}).
+ * @example nextFrame(400, FRAME_MS.armed, PHASE_MS.armed) // 1000 : le chiffre passe à 2
  * @param elapsed - Le temps écoulé depuis l'affichage de la phase, en millisecondes.
+ * @param every - L'intervalle des cadres ({@link FRAME_MS}).
+ * @param until - La durée de la phase ({@link PHASE_MS}).
  * @returns L'instant du cadre suivant, en millisecondes depuis l'affichage, toujours après
- *   `elapsed` tant que le calendrier n'est pas fini ; sa fin une fois passée.
+ *   `elapsed` tant que la phase dure ; sa fin une fois passée.
  */
-export function nextFrame(steps: FrameStep[], elapsed: number): number {
-  for (const { until, every } of steps) {
-    if (elapsed < until) {
-      return Math.min(until, (Math.floor(elapsed / every) + 1) * every);
-    }
-  }
-  return steps.at(-1)?.until ?? elapsed;
+export function nextFrame(
+  elapsed: number,
+  every: number,
+  until: number,
+): number {
+  return Math.min(until, (Math.floor(elapsed / every) + 1) * every);
 }
 
 /**
@@ -164,10 +132,7 @@ interface ShownPhase {
 export type WidgetTap = "punch" | "openApp" | "none";
 
 /** Les couleurs du bouton du widget, nommées pour se résoudre dans les deux thèmes. */
-interface WidgetButtonColors {
-  background: Tint;
-  /** La couleur du libellé, jamais mélangée : il reste lisible sur un fond en transition. */
-  color: PaletteToken;
+interface WidgetButtonColors extends ButtonColors {
   /** La couleur du bord ; absente, le bouton n'a pas de bord. */
   border?: PaletteToken;
 }
@@ -219,15 +184,14 @@ export interface WidgetState {
  * de pointage, actif, grisé ou éteint comme celui de l'app ({@link punchButton}), sur ses couleurs
  * ({@link punchColors}), sous ses libellés courts ({@link WIDGET_PUNCH_LABELS}).
  *
- * Armé, le bouton inverse ses couleurs par une transition de {@link TRANSITION_MS} : le fond passe
- * à celle du libellé, sous un bord de la couleur du fond, et le libellé prend celle du fond à
- * mi-chemin (issue #20, « Double toucher »). Pendant les 3 s, un chiffre décompte les secondes qui
- * restent ({@link WidgetButton.secondsLeft}). L'état armé se dessine donc cadre par cadre, chacun à
- * son instant `now`, aux instants de {@link FRAME_STEPS}.
+ * Armé, le bouton inverse ses couleurs d'un coup : le fond prend celle du libellé, le libellé et le
+ * bord celle du fond (issue #20, « Double toucher »). Pendant les 3 s, un chiffre décompte les
+ * secondes qui restent ({@link WidgetButton.secondsLeft}) : l'état armé se redessine à chaque
+ * changement du chiffre ({@link FRAME_MS}), chaque cadre à son instant `now`.
  *
  * Hypothèse retenue sur la phrase « Un jour grisé, l'état armé se lit à son texte » du critère
  * « Double toucher », à montrer au mainteneur à l'arrêt visuel : un jour grisé, le bouton armé
- * garde ses couleurs grisées, sans bord ni transition, et porte le chiffre du décompte.
+ * garde ses couleurs grisées, sans bord, et porte le chiffre du décompte.
  *
  * @example // Le mercredi 25 novembre 2026 à 9 h, arrivée à 08:52, rien en attente d'envoi :
  *   widgetModel({ view, now, pending: 0, hasToken: true, phase: null })
@@ -295,7 +259,7 @@ function buttonOf(
     return {
       label: WIDGET_CONFIRM,
       accessibilityLabel: CONFIRM_LABELS[action],
-      ...armedColors(colors, button.muted, phase.elapsed),
+      ...armedColors(colors, button.muted),
       secondsLeft: Math.ceil((PHASE_MS.armed - phase.elapsed) / SECOND_MS),
       tap: "punch",
     };
@@ -313,26 +277,17 @@ function readAsShown(
 }
 
 /**
- * Les couleurs du bouton armé `elapsed` ms après son affichage, que décrit {@link widgetModel}.
+ * Les couleurs du bouton armé, que décrit {@link widgetModel}.
  *
  * @param colors - Les couleurs du bouton au repos.
  * @param muted - Vrai un jour non travaillé : le bouton garde ses couleurs grisées.
- * @param elapsed - Le temps écoulé depuis l'affichage de l'état armé, de 0 à {@link PHASE_MS}.
  */
 function armedColors(
-  colors: ButtonColors,
+  { background, color }: ButtonColors,
   muted: boolean,
-  elapsed: number,
 ): WidgetButtonColors {
-  if (muted) return colors;
-  const { background, color } = colors;
-  const amount = elapsed / TRANSITION_MS;
-  return {
-    background: blend(background, color, amount),
-    // Mélangé, le libellé rejoindrait le fond à mi-chemin et disparaîtrait : il change d'un coup.
-    color: amount < 0.5 ? color : background,
-    border: background,
-  };
+  if (muted) return { background, color };
+  return { background: color, color: background, border: background };
 }
 
 /** Ce que fait un toucher sur le bouton de pointage actif : l'armer, ou pointer. */
