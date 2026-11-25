@@ -71,8 +71,10 @@ export const PHASE_MS: Record<PhaseKind, number> = {
 /**
  * La durée de la transition du bouton plein au bouton inversé, au début de l'état armé, en
  * millisecondes : elle fait partie de ses {@link PHASE_MS} (issue #20, décision du 2026-11-25).
+ * Assez longue pour quatre images à l'écran à la cadence mesurée sur l'émulateur (ADR-0002,
+ * « Refonte en 2×2 »).
  */
-export const TRANSITION_MS = 350;
+export const TRANSITION_MS = 400;
 
 /**
  * Rend une phase affichée à un instant, à ranger telle quelle.
@@ -123,8 +125,8 @@ export interface Countdown {
 /** Les couleurs du bouton du widget, nommées pour se résoudre dans les deux thèmes. */
 interface WidgetButtonColors {
   background: Tint;
-  /** La couleur du libellé. */
-  color: Tint;
+  /** La couleur du libellé, jamais mélangée : il reste lisible sur un fond en transition. */
+  color: PaletteToken;
   /** La couleur du bord ; absente, le bouton n'a pas de bord. */
   border?: PaletteToken;
   /** La bande du compte à rebours ; absente hors de l'état armé. */
@@ -171,10 +173,11 @@ export interface WidgetState {
  * ({@link punchColors}), sous ses libellés courts ({@link WIDGET_PUNCH_LABELS}).
  *
  * Armé, le bouton inverse ses couleurs par une transition de {@link TRANSITION_MS} : le fond passe
- * à celle du libellé, le libellé à celle du fond, sous un bord de la couleur du fond (issue #20,
- * « Double toucher »). Derrière le libellé, une bande se vide avec le délai d'armement : pleine au
- * premier cadre, vide à l'expiration, elle passe de la couleur du fond à `accentSoft` pendant la
- * transition. L'état armé se dessine donc cadre par cadre, chacun à son instant `now`.
+ * à celle du libellé, sous un bord de la couleur du fond, et le libellé prend celle du fond à
+ * mi-chemin (issue #20, « Double toucher »). Derrière le libellé, une bande se vide avec le délai
+ * d'armement : pleine au premier cadre, vide à l'expiration, elle passe de la couleur du fond à
+ * `accentSoft` pendant la transition. L'état armé se dessine donc cadre par cadre, chacun à son
+ * instant `now`.
  *
  * Hypothèse retenue sur la phrase « Un jour grisé, l'état armé se lit à son texte » du critère
  * « Double toucher », à montrer au mainteneur à l'arrêt visuel : un jour grisé, le bouton armé
@@ -281,7 +284,8 @@ function armedColors(
   const amount = elapsed / TRANSITION_MS;
   return {
     background: blend(background, color, amount),
-    color: blend(color, background, amount),
+    // Mélangé, le libellé rejoindrait le fond à mi-chemin et disparaîtrait : il change d'un coup.
+    color: amount < 0.5 ? color : background,
     border: background,
     countdown: { color: blend(background, "accentSoft", amount), remaining },
   };

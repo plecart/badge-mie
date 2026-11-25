@@ -30,10 +30,10 @@
               "name": "Today",
               "label": "Badge Mie",
               "description": "L'arrivée et le départ du jour, et le bouton pour pointer.",
-              "minWidth": "250dp",
-              "minHeight": "40dp",
-              "targetCellWidth": 4,
-              "targetCellHeight": 1,
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
               "updatePeriodMillis": 1800000
             }
           ]
