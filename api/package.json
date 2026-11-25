@@ -9,13 +9,13 @@
   "dependencies": {
     "@badge-mie/week": "*",
     "@neon/functions": "^0.11.0",
-    "hono": "^4.13.19",
+    "hono": "^4.13.20",
     "pg": "^8.23.1"
   },
   "devDependencies": {
     "@neon/config": "^1.14.6",
     "@types/node": "^24.19.2",
     "@types/pg": "^8.23.1",
-    "neon": "^9.9.2"
+    "neon": "^9.9.3"
   }
 }
