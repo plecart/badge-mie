@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import type { WithAndroidWidgetsParams } from "react-native-android-widget";
 import { describe, expect, it } from "vitest";
 import app from "./app.json" with { type: "json" };
@@ -47,5 +48,21 @@ describe("app.json — le widget d'écran d'accueil", () => {
 
   it("se rafraîchit toutes les 30 min", () => {
     expect(today?.updatePeriodMillis).toBe(30 * 60 * 1000);
+  });
+});
+
+/** Le plugin qui raccourcit les chemins des objets C++, tel que le nomme `expo.plugins`. */
+const CMAKE_PLUGIN = "./plugins/with-cmake-object-path-max";
+
+/**
+ * Le build Android sous Windows (ADR-0002, « Conséquences ») : sans ce plugin, il échoue sur un
+ * chemin d'objet trop long, et c'est `expo.plugins` qui le fait jouer au prebuild.
+ */
+describe("app.json — le build Android sous Windows", () => {
+  it("branche le plugin qui raccourcit les chemins des objets C++, à côté d'app.json", () => {
+    expect(app.expo.plugins).toContain(CMAKE_PLUGIN);
+    expect(existsSync(new URL(`${CMAKE_PLUGIN}.ts`, import.meta.url))).toBe(
+      true,
+    );
   });
 });
