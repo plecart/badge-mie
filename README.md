@@ -81,8 +81,8 @@ flowchart LR
 ## Qualité
 
 - **Tests** : Vitest sur toute la logique (calendrier de semaine, pointage du jour, file d'envoi,
-  gestionnaire et hauteurs du widget, API) ; les écrans et le dessin du widget, eux, se valident
-  à l'œil.
+  gestionnaire, hauteurs et mise en page du widget — sa bibliothèque mockée —, API) ; les écrans
+  et le rendu du widget, eux, se valident à l'œil.
 - **CI à chaque PR** : audit des dépendances, lint, format, typecheck et tests.
 
 ## Les décisions
