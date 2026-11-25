@@ -14,6 +14,8 @@ import {
   PUNCH_LABELS,
   punchMessage,
   REFUSAL_TEXTS,
+  WIDGET_CONFIRM,
+  WIDGET_PUNCH_LABELS,
 } from "./labels";
 
 describe("PUNCH_LABELS", () => {
@@ -34,11 +36,30 @@ describe("CONFIRM_LABELS", () => {
     ["arrival", "Confirmer l'arrivée"],
     ["departure", "Confirmer le départ"],
   ] as const)(
-    "demande sur le widget armé de confirmer l'action %s par « %s »",
+    "dit à TalkBack, sur le widget armé, l'action %s à confirmer par « %s »",
     (action, label) => {
       expect(CONFIRM_LABELS[action]).toBe(label);
     },
   );
+});
+
+describe("WIDGET_PUNCH_LABELS", () => {
+  it.each([
+    ["arrival", "Badger"],
+    ["departure", "Badger"],
+    ["done", "Journée terminée"],
+  ] as const)(
+    "affiche sur le bouton du widget l'action %s sous le libellé court « %s »",
+    (action, label) => {
+      expect(WIDGET_PUNCH_LABELS[action]).toBe(label);
+    },
+  );
+});
+
+describe("WIDGET_CONFIRM", () => {
+  it("affiche sur le bouton du widget armé « Confirmer »", () => {
+    expect(WIDGET_CONFIRM).toBe("Confirmer");
+  });
 });
 
 describe("DEPARTURE_TOO_EARLY", () => {

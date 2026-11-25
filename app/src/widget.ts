@@ -23,8 +23,16 @@ import {
   MISSING,
   OPEN_APP,
   PUNCH_LABELS,
+  WIDGET_CONFIRM,
+  WIDGET_PUNCH_LABELS,
 } from "./labels";
-import { type ButtonColors, type PaletteToken, punchColors } from "./palette";
+import {
+  blend,
+  type ButtonColors,
+  type PaletteToken,
+  punchColors,
+  type Tint,
+} from "./palette";
 import {
   canPunch,
   type Outcome,
@@ -61,6 +69,12 @@ export const PHASE_MS: Record<PhaseKind, number> = {
 };
 
 /**
+ * La durée de la transition du bouton plein au bouton inversé, au début de l'état armé, en
+ * millisecondes : elle fait partie de ses {@link PHASE_MS} (issue #20, décision du 2026-11-25).
+ */
+export const TRANSITION_MS = 350;
+
+/**
  * Rend une phase affichée à un instant, à ranger telle quelle.
  *
  * @example showPhase("armed", now) // { kind: "armed", shownAt: now.getTime(), id: "0.8394…" }
@@ -78,10 +92,17 @@ export function showPhase(kind: PhaseKind, now: Date): WidgetPhase {
  * affichée après `now`, l'horloge ayant reculé : sans cette borne, elle durerait le temps du recul
  * en plus de sa durée, et un toucher unique pointerait.
  */
-function shownPhase(stored: WidgetPhase | null, now: Date): WidgetPhase | null {
+function shownPhase(stored: WidgetPhase | null, now: Date): ShownPhase | null {
   if (stored === null) return null;
   const elapsed = now.getTime() - stored.shownAt;
-  return elapsed >= 0 && elapsed < PHASE_MS[stored.kind] ? stored : null;
+  if (elapsed < 0 || elapsed >= PHASE_MS[stored.kind]) return null;
+  return { kind: stored.kind, elapsed };
+}
+
+/** Une phase encore affichée, et le temps écoulé depuis son affichage, en millisecondes. */
+interface ShownPhase {
+  kind: PhaseKind;
+  elapsed: number;
 }
 
 /**
@@ -91,17 +112,35 @@ function shownPhase(stored: WidgetPhase | null, now: Date): WidgetPhase | null {
 export type WidgetTap = "punch" | "openApp" | "none";
 
 /**
- * Le bouton de pointage du widget : ses couleurs, nommées par leur clé de palette pour se résoudre
- * dans les deux thèmes, son libellé, son bord, et ce que fait son toucher.
+ * La bande du compte à rebours du bouton armé, qui se vide avec le délai d'armement (issue #20,
+ * « Double toucher ») : sa couleur, et la part du délai qui reste, de 1 à 0.
  */
-export interface WidgetButton extends ButtonColors {
-  label: string;
+export interface Countdown {
+  color: Tint;
+  remaining: number;
+}
+
+/** Les couleurs du bouton du widget, nommées pour se résoudre dans les deux thèmes. */
+interface WidgetButtonColors {
+  background: Tint;
+  /** La couleur du libellé. */
+  color: Tint;
   /** La couleur du bord ; absente, le bouton n'a pas de bord. */
   border?: PaletteToken;
+  /** La bande du compte à rebours ; absente hors de l'état armé. */
+  countdown?: Countdown;
+}
+
+/** Le bouton de pointage du widget : ses libellés, ses couleurs et ce que fait son toucher. */
+export interface WidgetButton extends WidgetButtonColors {
+  /** Le libellé affiché, court : « Badger », « Confirmer »… */
+  label: string;
+  /** Le libellé que lit TalkBack, qui dit l'action : « Pointer l'arrivée », « Confirmer le départ »… */
+  accessibilityLabel: string;
   tap: WidgetTap;
 }
 
-/** Ce que montre le widget, de gauche à droite. */
+/** Ce que montre le widget : en haut la pastille et les deux heures, en dessous le bouton. */
 export interface WidgetModel {
   /** La couleur de la pastille d'envoi, sans texte. */
   dot: PaletteToken;
@@ -129,18 +168,23 @@ export interface WidgetState {
 /**
  * Rend ce que montre le widget : la pastille d'envoi, l'arrivée et le départ du jour, et le bouton
  * de pointage, actif, grisé ou éteint comme celui de l'app ({@link punchButton}), sur ses couleurs
- * ({@link punchColors}). Armé, le bouton inverse ses couleurs : le fond prend celle du libellé, le
- * libellé et le bord celle du fond (issue #20, « Double toucher »).
+ * ({@link punchColors}), sous ses libellés courts ({@link WIDGET_PUNCH_LABELS}).
+ *
+ * Armé, le bouton inverse ses couleurs par une transition de {@link TRANSITION_MS} : le fond passe
+ * à celle du libellé, le libellé à celle du fond, sous un bord de la couleur du fond (issue #20,
+ * « Double toucher »). Derrière le libellé, une bande se vide avec le délai d'armement : pleine au
+ * premier cadre, vide à l'expiration, elle passe de la couleur du fond à `accentSoft` pendant la
+ * transition. L'état armé se dessine donc cadre par cadre, chacun à son instant `now`.
  *
  * Hypothèse retenue sur la phrase « Un jour grisé, l'état armé se lit à son texte » du critère
  * « Double toucher », à montrer au mainteneur à l'arrêt visuel : un jour grisé, le bouton armé
- * garde ses couleurs grisées, sans bord, et seul son texte change.
+ * garde ses couleurs grisées, sans bord ni transition, et sa bande se vide en `line`.
  *
  * @example // Le mercredi 25 novembre 2026 à 9 h, arrivée à 08:52, rien en attente d'envoi :
  *   widgetModel({ view, now, pending: 0, hasToken: true, phase: null })
  *   // { dot: "accent", arrival: "08:52", departure: "—",
- *   //   button: { label: "Pointer le départ", background: "accent", color: "accentInk",
- *   //             tap: "punch" } }
+ *   //   button: { label: "Badger", accessibilityLabel: "Pointer le départ",
+ *   //             background: "accent", color: "accentInk", tap: "punch" } }
  * @param state - Ce que lit le widget ({@link WidgetState}).
  * @returns La pastille en `accent` quand aucun jour n'attend l'envoi, en `pending` sinon ; les
  *   heures du jour, « — » pour une heure vide ou une journée inconnue ; le bouton : « Ouvrir
@@ -181,33 +225,66 @@ export function widgetModel({
 function buttonOf(
   button: PunchButton,
   hasToken: boolean,
-  phase: WidgetPhase | null,
+  phase: ShownPhase | null,
 ): WidgetButton {
   const { action } = button;
   if (!hasToken) {
     // « Ouvrir l'app » agit : les couleurs d'un bouton actif, jamais celles d'un bouton éteint.
     const active = punchColors({ enabled: true, muted: button.muted });
-    return { label: OPEN_APP, ...active, tap: "openApp" };
+    return { ...readAsShown(OPEN_APP), ...active, tap: "openApp" };
   }
   const colors = punchColors(button);
+  const rest = {
+    label: WIDGET_PUNCH_LABELS[action],
+    accessibilityLabel: PUNCH_LABELS[action],
+  };
   // `enabled` implique `canPunch(action)`, que seul ce second test apprend au typage.
   if (!button.enabled || !canPunch(action)) {
-    return { label: PUNCH_LABELS[action], ...colors, tap: "none" };
+    return { ...rest, ...colors, tap: "none" };
   }
   if (phase?.kind === "armed") {
-    const armed = button.muted ? colors : inverted(colors);
-    return { label: CONFIRM_LABELS[action], ...armed, tap: "punch" };
+    return {
+      label: WIDGET_CONFIRM,
+      accessibilityLabel: CONFIRM_LABELS[action],
+      ...armedColors(colors, button.muted, phase.elapsed),
+      tap: "punch",
+    };
   }
-  const label =
-    phase?.kind === "refused" ? DEPARTURE_TOO_EARLY : PUNCH_LABELS[action];
-  return { label, ...colors, tap: "punch" };
+  const labels =
+    phase?.kind === "refused" ? readAsShown(DEPARTURE_TOO_EARLY) : rest;
+  return { ...labels, ...colors, tap: "punch" };
 }
 
-/** Les couleurs inversées du bouton armé, que décrit {@link widgetModel}. */
-function inverted({ background, color }: ButtonColors): ButtonColors & {
-  border: PaletteToken;
-} {
-  return { background: color, color: background, border: background };
+/** Un libellé affiché que TalkBack lit tel quel. */
+function readAsShown(
+  label: string,
+): Pick<WidgetButton, "label" | "accessibilityLabel"> {
+  return { label, accessibilityLabel: label };
+}
+
+/**
+ * Les couleurs du bouton armé `elapsed` ms après son affichage, que décrit {@link widgetModel}.
+ *
+ * @param colors - Les couleurs du bouton au repos.
+ * @param muted - Vrai un jour non travaillé : le bouton garde ses couleurs grisées.
+ * @param elapsed - Le temps écoulé depuis l'affichage de l'état armé, de 0 à {@link PHASE_MS}.
+ */
+function armedColors(
+  { background, color }: ButtonColors,
+  muted: boolean,
+  elapsed: number,
+): WidgetButtonColors {
+  const remaining = 1 - elapsed / PHASE_MS.armed;
+  if (muted) {
+    return { background, color, countdown: { color: "line", remaining } };
+  }
+  const amount = elapsed / TRANSITION_MS;
+  return {
+    background: blend(background, color, amount),
+    color: blend(color, background, amount),
+    border: background,
+    countdown: { color: blend(background, "accentSoft", amount), remaining },
+  };
 }
 
 /** Ce que fait un toucher sur le bouton de pointage actif : l'armer, ou pointer. */

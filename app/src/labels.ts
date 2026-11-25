@@ -32,9 +32,24 @@ export const PUNCH_LABELS: Record<PunchAction, string> = {
 };
 
 /**
- * Le libellé du bouton du widget armé par un premier toucher, que le second confirme (issue #20,
- * « Double toucher »).
+ * Le libellé court du bouton du widget au repos, pour chaque action : « Badger » quand une heure
+ * est à pointer, l'arrivée comme le départ (issue #20, décision du 2026-11-25). TalkBack lit
+ * l'action entière, {@link PUNCH_LABELS}.
  */
+export const WIDGET_PUNCH_LABELS: Record<PunchAction, string> = {
+  arrival: "Badger",
+  departure: "Badger",
+  done: PUNCH_LABELS.done,
+};
+
+/**
+ * Le libellé court du bouton du widget armé par un premier toucher, que le second confirme
+ * (issue #20, « Double toucher », décision du 2026-11-25). TalkBack lit l'action entière,
+ * {@link CONFIRM_LABELS}.
+ */
+export const WIDGET_CONFIRM = "Confirmer";
+
+/** Le libellé, pour TalkBack, du bouton du widget armé : l'action que le second toucher pointe. */
 export const CONFIRM_LABELS: Record<"arrival" | "departure", string> = {
   arrival: "Confirmer l'arrivée",
   departure: "Confirmer le départ",

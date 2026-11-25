@@ -144,7 +144,7 @@ async function localView(storage: KeyValueStorage): Promise<WeekView> {
 
 describe("runWidgetTask — dessin", () => {
   it.each(["WIDGET_ADDED", "WIDGET_UPDATE", "WIDGET_RESIZED"] as const)(
-    "dessine sur %s l'arrivée 08:52, le départ vide et « Pointer le départ », depuis l'état local",
+    "dessine sur %s l'arrivée 08:52, le départ vide et « Badger », depuis l'état local",
     async (widgetAction) => {
       const h = harness();
       await saveDay(h.storage, ARRIVAL);
@@ -157,7 +157,8 @@ describe("runWidgetTask — dessin", () => {
           arrival: "08:52",
           departure: "—",
           button: {
-            label: "Pointer le départ",
+            label: "Badger",
+            accessibilityLabel: "Pointer le départ",
             background: "accent",
             color: "accentInk",
             tap: "punch",
@@ -184,7 +185,7 @@ describe("runWidgetTask — dessin", () => {
     await runWidgetTask({ widgetAction: "WIDGET_UPDATE" }, h.deps);
 
     expect(h.drawn).toMatchObject([
-      { button: { label: "Pointer l'arrivée", tap: "punch" } },
+      { button: { accessibilityLabel: "Pointer l'arrivée", tap: "punch" } },
     ]);
   });
 
@@ -212,7 +213,10 @@ describe("runWidgetTask — dessin", () => {
     await runWidgetTask({ widgetAction: "WIDGET_UPDATE" }, h.deps);
 
     expect(h.drawn).toMatchObject([
-      { dot: "accent", button: { label: "Pointer l'arrivée", tap: "punch" } },
+      {
+        dot: "accent",
+        button: { accessibilityLabel: "Pointer l'arrivée", tap: "punch" },
+      },
     ]);
   });
 
@@ -226,20 +230,19 @@ describe("runWidgetTask — dessin", () => {
 });
 
 describe("runWidgetTask — double toucher", () => {
-  it("arme au premier toucher, puis revient seul à « Pointer le départ » au bout de 3 s", async () => {
+  it("arme au premier toucher, puis revient seul à « Badger » au bout de 3 s", async () => {
     const h = harness();
     await saveDay(h.storage, ARRIVAL);
 
     await tap(h.deps);
 
     expect([h.labels(), h.waits, h.sent]).toEqual([
-      ["Confirmer le départ", "Pointer le départ"],
+      ["Confirmer", "Badger"],
       [PHASE_MS.armed],
       [],
     ]);
     expect(h.drawn[0]?.button).toMatchObject({
-      background: "accentInk",
-      color: "accent",
+      accessibilityLabel: "Confirmer le départ",
       border: "accent",
     });
     expect(await readPhase(h.storage)).toBeNull();
@@ -275,7 +278,7 @@ describe("runWidgetTask — double toucher", () => {
 
     await tap(h.deps);
 
-    expect([h.labels()[0], h.sent]).toEqual(["Confirmer l'arrivée", []]);
+    expect([h.labels()[0], h.sent]).toEqual(["Confirmer", []]);
   });
 
   it("laisse en place l'état armé qu'un autre toucher a rangé pendant les 3 s", async () => {
@@ -288,7 +291,7 @@ describe("runWidgetTask — double toucher", () => {
     await tap(h.deps);
 
     expect([h.labels(), await readPhase(h.storage)]).toEqual([
-      ["Confirmer l'arrivée"],
+      ["Confirmer"],
       other,
     ]);
   });
@@ -340,7 +343,7 @@ describe("runWidgetTask — pointage", () => {
     ]);
     expect(h.drawn.at(-1)).toMatchObject({
       arrival: "08:52",
-      button: { label: "Pointer le départ" },
+      button: { accessibilityLabel: "Pointer le départ" },
     });
   });
 
@@ -379,7 +382,7 @@ describe("runWidgetTask — pointage", () => {
     expect([h.phaseAtDraw[0], h.sent, h.labels().at(-2)]).toEqual([
       "null",
       [ARRIVAL],
-      "Confirmer le départ",
+      "Confirmer",
     ]);
   });
 
@@ -391,7 +394,7 @@ describe("runWidgetTask — pointage", () => {
     await tap(h.deps);
 
     expect([h.labels(), h.waits, h.sent]).toEqual([
-      ["Départ trop tôt", "Pointer le départ"],
+      ["Départ trop tôt", "Badger"],
       [PHASE_MS.refused],
       [],
     ]);
