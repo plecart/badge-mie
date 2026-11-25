@@ -7,6 +7,9 @@ function buttonHeight(height: number): number {
   return height - 2 * padding - gap - titleHeight - timeHeight;
 }
 
+/** Toutes les hauteurs entières de 40 dp, la hauteur minimale déclarée, à 240 dp. */
+const HEIGHTS = Array.from({ length: 201 }, (_, i) => 40 + i);
+
 describe("widgetLayout — les hauteurs du widget", () => {
   it.each([
     ["109 dp, le 2×1 en portrait", 109, 10, 6, 14, 28, 12],
@@ -41,14 +44,12 @@ describe("widgetLayout — les hauteurs du widget", () => {
   });
 
   it("garde au bouton au moins 32 dp sur toute hauteur de 40 à 240 dp", () => {
-    const heights = Array.from({ length: 201 }, (_, i) => 40 + i);
-    const tooSmall = heights.filter((height) => buttonHeight(height) < 32);
+    const tooSmall = HEIGHTS.filter((height) => buttonHeight(height) < 32);
     expect([MIN_BUTTON_HEIGHT, tooSmall]).toEqual([32, []]);
   });
 
   it("arrondit le bouton en concentrique : le rayon du widget, 22 dp, moins la marge", () => {
-    const heights = Array.from({ length: 201 }, (_, i) => 40 + i);
-    const offset = heights.filter((height) => {
+    const offset = HEIGHTS.filter((height) => {
       const { padding, buttonRadius } = widgetLayout(height);
       return buttonRadius !== RADIUS - padding;
     });
