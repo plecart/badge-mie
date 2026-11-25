@@ -28,7 +28,7 @@ const portraitWidth = (n: number) => 73 * n - 16;
 const landscapeHeight = (m: number) => 66 * m - 15;
 
 /**
- * Le widget d'écran d'accueil (#20) : un seul, `Today`, en 2×2. Android 12 et plus le posent sur
+ * Le widget d'écran d'accueil (#20) : un seul, `Today`, en 2×1. Android 12 et plus le posent sur
  * `targetCellWidth` × `targetCellHeight` ; Android 11 et moins, sur le nombre de cellules qu'il
  * faut pour tenir `minWidth` × `minHeight` (même page). Android ne le rafraîchit pas plus d'une
  * fois toutes les 30 min, le plancher que le plugin impose à `updatePeriodMillis`.
@@ -47,15 +47,15 @@ describe("app.json — le widget d'écran d'accueil", () => {
     }
   });
 
-  it("occupe 2×2 cellules, sur Android 12 et plus comme avant", () => {
+  it("occupe 2×1 cellules, sur Android 12 et plus comme avant", () => {
     expect(today?.targetCellWidth).toBe(2);
-    expect(today?.targetCellHeight).toBe(2);
+    expect(today?.targetCellHeight).toBe(1);
     const minWidth = Number.parseFloat(today?.minWidth ?? "");
     const minHeight = Number.parseFloat(today?.minHeight ?? "");
     expect(minWidth).toBeGreaterThan(portraitWidth(1));
     expect(minWidth).toBeLessThanOrEqual(portraitWidth(2));
-    expect(minHeight).toBeGreaterThan(landscapeHeight(1));
-    expect(minHeight).toBeLessThanOrEqual(landscapeHeight(2));
+    expect(minHeight).toBeGreaterThan(0);
+    expect(minHeight).toBeLessThanOrEqual(landscapeHeight(1));
   });
 
   it("se rafraîchit toutes les 30 min", () => {
