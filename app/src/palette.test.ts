@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PALETTES } from "./palette";
+import { PALETTES, punchColors } from "./palette";
 
 /** Les couleurs d'un mode, nommées comme les variables du prototype « Pouce ». */
 const TOKENS = [
@@ -25,6 +25,20 @@ describe("PALETTES", () => {
       for (const color of Object.values(palette)) {
         expect(color).toMatch(/^#[0-9A-F]{6}$/);
       }
+    },
+  );
+});
+
+describe("punchColors", () => {
+  it.each([
+    [true, false, "accent", "accentInk"],
+    [true, true, "surface2", "fg"],
+    [false, false, "surface2", "muted"],
+    [false, true, "surface2", "muted"],
+  ])(
+    "peint le bouton de pointage actif : %s, grisé : %s, d'un fond %s et d'un libellé %s",
+    (enabled, muted, background, color) => {
+      expect(punchColors({ enabled, muted })).toEqual({ background, color });
     },
   );
 });
