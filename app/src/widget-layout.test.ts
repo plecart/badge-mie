@@ -7,8 +7,11 @@ function buttonHeight(height: number): number {
   return height - 2 * padding - gap - titleHeight - timeHeight;
 }
 
-/** Toutes les hauteurs entières de 40 dp, la hauteur minimale déclarée, à 240 dp. */
-const HEIGHTS = Array.from({ length: 201 }, (_, i) => 40 + i);
+/**
+ * Toutes les hauteurs entières de 40 dp, la hauteur minimale déclarée, à 480 dp : le widget s'étire
+ * en hauteur (#48), et quatre rangées de 109 dp en font 436.
+ */
+const HEIGHTS = Array.from({ length: 441 }, (_, i) => 40 + i);
 
 describe("widgetLayout — les hauteurs du widget", () => {
   it.each([
@@ -45,7 +48,7 @@ describe("widgetLayout — les hauteurs du widget", () => {
     expect(buttonHeight(height)).toBe(button);
   });
 
-  it("garde au bouton au moins 32 dp sur toute hauteur de 40 à 240 dp", () => {
+  it("garde au bouton au moins 32 dp sur toute hauteur de 40 à 480 dp", () => {
     const tooSmall = HEIGHTS.filter((height) => buttonHeight(height) < 32);
     expect([MIN_BUTTON_HEIGHT, tooSmall]).toEqual([32, []]);
   });
