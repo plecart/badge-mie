@@ -73,10 +73,15 @@ export function showPhase(kind: PhaseKind, now: Date): WidgetPhase {
   return { kind, shownAt: now.getTime(), id: String(Math.random()) };
 }
 
-/** La phase rangée si elle est encore affichée à `now`, `null` si elle a expiré. */
+/**
+ * La phase rangée si elle est encore affichée à `now`, `null` si elle a expiré — ou si elle se dit
+ * affichée après `now`, l'horloge ayant reculé : sans cette borne, elle durerait le temps du recul
+ * en plus de sa durée, et un toucher unique pointerait.
+ */
 function shownPhase(stored: WidgetPhase | null, now: Date): WidgetPhase | null {
   if (stored === null) return null;
-  return now.getTime() - stored.shownAt < PHASE_MS[stored.kind] ? stored : null;
+  const elapsed = now.getTime() - stored.shownAt;
+  return elapsed >= 0 && elapsed < PHASE_MS[stored.kind] ? stored : null;
 }
 
 /**
@@ -211,7 +216,8 @@ export type TapEffect = "arm" | "punch";
  * @param stored - La phase rangée, ou `null` au repos.
  * @param now - L'instant du toucher.
  * @returns `punch` pendant l'état armé ; `arm` au repos, après l'expiration de l'état armé — un
- *   toucher plus tard réarme sans pointer —, et pendant un refus affiché.
+ *   toucher plus tard réarme sans pointer —, avant son affichage rangé — l'horloge a reculé —,
+ *   et pendant un refus affiché.
  */
 export function tapEffect(stored: WidgetPhase | null, now: Date): TapEffect {
   return shownPhase(stored, now)?.kind === "armed" ? "punch" : "arm";
@@ -248,7 +254,9 @@ export function isStillShown(
  * @param now - L'instant du toucher.
  * @returns `{ day }`, la journée pointée à enregistrer par la File d'envoi ; `{ refusal }`, un
  *   pointage refusé, qui ne change aucune heure et s'affiche ({@link showPhase} `refused`) ; ou
- *   `null`, rien à pointer — journée terminée, ou `view` d'une autre semaine que celle de `now`.
+ *   `null`, rien à pointer — journée terminée, ou `view` lue d'une autre semaine que celle de
+ *   `now` ; une semaine jamais lue et injoignable se pointe comme la semaine de `now` : l'appelant
+ *   charge celle-ci.
  * @throws {RangeError} si `now` n'est pas un instant valide (`new Date(NaN)`), comme `mondayOf`
  *   de `@badge-mie/week`.
  */

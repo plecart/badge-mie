@@ -42,6 +42,9 @@ function weekOf(day: PresenceDay): WeekView {
 /** Une semaine jamais lue, dont le chargement s'est terminé sans réseau. */
 const UNREACHABLE: WeekView = { days: null, unreachable: true };
 
+/** Une heure, en millisecondes. */
+const HOUR_MS = 3_600_000;
+
 /** L'instant `ms` millisecondes après `instant`. */
 function after(instant: Date, ms: number): Date {
   return new Date(instant.getTime() + ms);
@@ -228,6 +231,21 @@ describe("widgetModel — état armé et refus affiché", () => {
     },
   );
 
+  it.each([
+    ["armed", 1],
+    ["armed", HOUR_MS],
+    ["refused", 1],
+    ["refused", HOUR_MS],
+  ] as const)(
+    "montre au repos une phase %s affichée %i ms après le dessin, l'horloge ayant reculé",
+    (kind, ahead) => {
+      const phase = showPhase(kind, after(WEDNESDAY_9AM, ahead));
+      expect(
+        widgetModel(state(ARRIVED, WEDNESDAY_9AM, { phase })).button.label,
+      ).toBe("Pointer le départ");
+    },
+  );
+
   it("éteint « Journée terminée » même si une phase armée est rangée", () => {
     const phase = showPhase("armed", WEDNESDAY_9AM);
     expect(
@@ -290,6 +308,14 @@ describe("tapEffect — double toucher", () => {
     const phase = showPhase("armed", shown);
     expect(tapEffect(phase, after(WEDNESDAY_9AM, 4000))).toBe("punch");
   });
+
+  it.each([1, HOUR_MS])(
+    "réarme sur un toucher %i ms avant l'affichage de l'état armé, l'horloge ayant reculé",
+    (ahead) => {
+      const phase = showPhase("armed", after(WEDNESDAY_9AM, ahead));
+      expect(tapEffect(phase, WEDNESDAY_9AM)).toBe("arm");
+    },
+  );
 
   it("arme le bouton sur un toucher pendant un refus affiché", () => {
     const phase = showPhase("refused", WEDNESDAY_9AM);
