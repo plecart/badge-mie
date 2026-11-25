@@ -52,3 +52,10 @@ export const BUTTON = {
 
 /** Le libellé de ces boutons ; sa couleur dépend du bouton et de son état. */
 export const BUTTON_LABEL = { fontFamily: FONTS.textStrong, fontSize: 16 };
+
+/**
+ * Le titre d'une heure, « ARRIVÉE » ou « DÉPART », puis l'heure, sur une carte de l'écran comme
+ * sur le widget ; leur couleur se donne à part, selon le mode et l'heure.
+ */
+export const SLOT_LABEL = { fontFamily: FONTS.text, fontSize: 10 };
+export const SLOT_TIME = { fontFamily: FONTS.digits, fontSize: 20 };

@@ -10,7 +10,7 @@ import type { PresenceDay, WeekDay } from "@badge-mie/week";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { durationText, editHint, MISSING, TIME_LABELS } from "./labels";
 import type { TimeField } from "./punch";
-import { FONTS, type Palette } from "./theme";
+import { FONTS, type Palette, SLOT_LABEL, SLOT_TIME } from "./theme";
 
 /** Les deux heures d'une carte, dans l'ordre d'affichage. */
 const TIME_FIELDS: readonly TimeField[] = ["arrivee", "depart"];
@@ -155,12 +155,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     justifyContent: "center",
   },
-  slotLabel: {
-    fontFamily: FONTS.text,
-    fontSize: 10,
-    textTransform: "uppercase",
-  },
-  slotTime: { fontFamily: FONTS.digits, fontSize: 20 },
+  slotLabel: { ...SLOT_LABEL, textTransform: "uppercase" },
+  slotTime: SLOT_TIME,
   duration: {
     width: 64,
     textAlign: "right",
