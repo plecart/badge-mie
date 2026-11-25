@@ -7,6 +7,7 @@
 
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { HoldButton } from "./HoldButton";
+import { punchColors } from "./palette";
 import { BUTTON, BUTTON_LABEL, FONTS, type Palette } from "./theme";
 
 /** La hauteur d'« Annuler », cible tactile, que la barre garde aussi pour un refus, sans lui. */
@@ -85,17 +86,16 @@ export function PunchDock({
 }
 
 /**
- * Le fond et la couleur du libellé du bouton du bas : ceux de « Revenir à cette semaine », les
- * couleurs éteintes d'un bouton désactivé, le fond neutre d'un bouton grisé, ou l'accent.
+ * Le fond et la couleur du libellé du bouton du bas : ceux de « Revenir à cette semaine », ou
+ * ceux du bouton de pointage selon son état ({@link punchColors}).
  */
 function buttonColors(
-  { variant, disabled, muted }: DockButton,
+  { variant, disabled = false, muted = false }: DockButton,
   palette: Palette,
 ): [background: string, color: string] {
   if (variant === "secondary") return [palette.surface, palette.fg];
-  if (disabled) return [palette.surface2, palette.muted];
-  if (muted) return [palette.surface2, palette.fg];
-  return [palette.accent, palette.accentInk];
+  const { background, color } = punchColors({ enabled: !disabled, muted });
+  return [palette[background], palette[color]];
 }
 
 /**

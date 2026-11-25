@@ -1,10 +1,11 @@
 /**
  * Les palettes claire et sombre du prototype « Pouce », reprises telles quelles (issue #3,
- * « Décisions », point 7), plus l'orange de l'indicateur d'envoi (issue #4, décision 1).
+ * « Décisions », point 7), plus l'orange de l'indicateur d'envoi (issue #4, décision 1) ; et les
+ * couleurs du bouton de pointage selon son état ({@link punchColors}), nommées par leur clé de
+ * palette.
  *
- * Module pur, lisible hors d'un composant React : l'app choisit la sienne par `usePalette` de
- * `./theme`, et le widget d'écran d'accueil, qui ne peut pas appeler de hook, rend les deux
- * (issue #20).
+ * Module pur, lisible hors d'un composant React pour le widget d'écran d'accueil, qui ne peut pas
+ * appeler de hook (issue #20) ; l'app choisit sa palette par `usePalette` de `./theme`.
  */
 
 /** Les couleurs d'un mode, nommées comme les variables du prototype. */
@@ -57,3 +58,31 @@ export const PALETTES: Record<"light" | "dark", Palette> = {
     pending: "#F0A35E",
   },
 };
+
+/** Le nom d'une couleur de {@link Palette}, que résout la palette du mode affiché. */
+export type PaletteToken = keyof Palette;
+
+/** Le fond d'un bouton et la couleur de son libellé, nommés par leur clé de palette. */
+export interface ButtonColors {
+  background: PaletteToken;
+  color: PaletteToken;
+}
+
+/**
+ * Rend les couleurs du bouton de pointage au repos : éteintes quand il est désactivé, sur le fond
+ * neutre d'un jour non travaillé quand il est grisé, de l'accent sinon. Nommées par leur clé,
+ * elles se résolvent dans la palette du mode affiché.
+ *
+ * @example punchColors({ enabled: true, muted: true }) // { background: "surface2", color: "fg" }
+ * @param button.enabled - Vrai si un appui sur le bouton pointe.
+ * @param button.muted - Vrai un jour non travaillé, où le bouton est grisé sans être désactivé.
+ * @returns Les noms des deux couleurs ; désactivé, le bouton est éteint, grisé ou non.
+ */
+export function punchColors(button: {
+  enabled: boolean;
+  muted: boolean;
+}): ButtonColors {
+  if (!button.enabled) return { background: "surface2", color: "muted" };
+  if (button.muted) return { background: "surface2", color: "fg" };
+  return { background: "accent", color: "accentInk" };
+}
