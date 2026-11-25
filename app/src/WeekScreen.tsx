@@ -41,6 +41,7 @@ import { createSendQueue } from "./send-queue";
 import { FONTS, type Palette, usePalette } from "./theme";
 import { useClock } from "./use-clock";
 import { useGestures } from "./use-gestures";
+import { refreshWidget } from "./widget-handler";
 import { loadWeek, type WeekView } from "./week-store";
 
 /** Les jours abrégés des sept cartes, du lundi au dimanche. */
@@ -97,7 +98,12 @@ export function WeekScreen({
       createSendQueue({
         storage: AsyncStorage,
         send: (day) => writeDay(token, day),
-        onChange: setPending,
+        // Chaque écriture de la file — pointage, correction, « Annuler », envoi réussi — se voit
+        // aussi sur le widget.
+        onChange: (count) => {
+          setPending(count);
+          void refreshWidget();
+        },
         onTokenRejected: reportTokenRejected,
       }),
     [token],
