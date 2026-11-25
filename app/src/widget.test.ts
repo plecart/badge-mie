@@ -266,6 +266,31 @@ describe("widgetModel — sans jeton", () => {
     });
   });
 
+  it.each([
+    ["la journée terminée", FINISHED, WEDNESDAY_9AM, "accent", "accentInk"],
+    [
+      "la semaine jamais lue en chargement",
+      { days: null, unreachable: false },
+      WEDNESDAY_9AM,
+      "accent",
+      "accentInk",
+    ],
+    [
+      "le samedi, grisé",
+      weekOf(arrivedAt("2026-11-28")),
+      SATURDAY_9AM,
+      "surface2",
+      "fg",
+    ],
+  ])(
+    "colore « Ouvrir l'app » comme un bouton actif, qu'il est, sur %s",
+    (_, view, now, background, color) => {
+      expect(
+        widgetModel(state(view, now, { hasToken: false })).button,
+      ).toMatchObject({ label: "Ouvrir l'app", background, color });
+    },
+  );
+
   it("calcule les heures et la pastille comme d'habitude", () => {
     const model = widgetModel(
       state(ARRIVED, WEDNESDAY_9AM, { hasToken: false, pending: 2 }),
