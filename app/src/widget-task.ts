@@ -59,6 +59,15 @@ export const CLICK_ACTIONS: Record<WidgetTap, { clickAction?: string }> = {
 export const PHASE_KEY = "phase-widget";
 
 /**
+ * L'intervalle entre deux cadres de chaque phase, en millisecondes : l'état armé s'anime, sa
+ * transition puis son compte à rebours ; le refus reste fixe, en un seul cadre.
+ */
+export const FRAME_MS: Record<PhaseKind, number> = {
+  armed: 100,
+  refused: PHASE_MS.refused,
+};
+
+/**
  * L'attente maximale de la relance après un pointage : deux requêtes sans réponse, car l'appel qui
  * attend la relance lancée par `record` la fait repartir une fois (`flush`). La tâche du widget a
  * 30 s (ADR-0002, « Options étudiées ») : les 10 qui restent vont aux lectures, à l'enregistrement
@@ -194,10 +203,10 @@ async function redraw(deps: WidgetTaskDependencies): Promise<void> {
 }
 
 /**
- * Affiche une phase du bouton pendant sa durée, puis le ramène au repos : le dessin d'abord, puis
- * la phase rangée à l'instant qui le suit, car sa durée se compte depuis l'affichage. Le retour au
- * repos n'efface que la phase posée ici ({@link isStillShown}) : un autre toucher a pu ranger la
- * sienne entre-temps.
+ * Affiche une phase du bouton pendant sa durée, puis le ramène au repos : le premier cadre
+ * d'abord, puis la phase rangée à l'instant qui le suit, car sa durée se compte depuis
+ * l'affichage ; les cadres suivants ({@link playFrames}) ; enfin le repos, s'il n'a pas été
+ * remplacé.
  */
 async function showFor(
   deps: WidgetTaskDependencies,
@@ -207,10 +216,39 @@ async function showFor(
   deps.draw(widgetModel({ ...state, phase: showPhase(kind, state.now) }));
   const posted = showPhase(kind, deps.now());
   await writePhase(deps.storage, posted);
-  await deps.wait(PHASE_MS[kind]);
-  if (!isStillShown(await readPhase(deps.storage), posted)) return;
+  if (!(await playFrames(deps, state, posted))) return;
   await writePhase(deps.storage, null);
   await redraw(deps);
+}
+
+/**
+ * Redessine une phase affichée toutes les {@link FRAME_MS}, chaque cadre à l'instant de l'horloge,
+ * jusqu'à l'expiration de la phase. Avant chaque cadre, la phase rangée se relit : un autre toucher
+ * a pu ranger la sienne, ou le repos d'un pointage, et ses cadres prennent alors la main
+ * ({@link isStillShown}). Les cadres sont bornés à la durée de la phase divisée par leur
+ * intervalle : une horloge qui ne passe plus, ou qui recule, ne prolonge pas la tâche au-delà.
+ *
+ * @returns `true` si la phase est encore celle de l'invocation à son terme, à ramener au repos ;
+ *   `false` si une autre l'a remplacée.
+ */
+async function playFrames(
+  deps: WidgetTaskDependencies,
+  state: WidgetState,
+  posted: WidgetPhase,
+): Promise<boolean> {
+  const duration = PHASE_MS[posted.kind];
+  const interval = FRAME_MS[posted.kind];
+  const expiry = posted.shownAt + duration;
+  for (let frame = 0; frame < Math.ceil(duration / interval); frame++) {
+    // Le dernier intervalle s'arrête à l'expiration, déjà passée si un dessin l'a franchie.
+    const left = Math.max(0, expiry - deps.now().getTime());
+    await deps.wait(Math.min(interval, left));
+    if (!isStillShown(await readPhase(deps.storage), posted)) return false;
+    const now = deps.now();
+    if (now.getTime() >= expiry) break;
+    deps.draw(widgetModel({ ...state, now, phase: posted }));
+  }
+  return true;
 }
 
 /**
