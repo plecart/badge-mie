@@ -126,8 +126,8 @@ export function WeekScreen({
   }, [monday, token, queue, reloads]);
 
   // Les déclencheurs de la relance (issue #4, décision 8) : l'ouverture de l'écran, le retour du
-  // réseau, le retour au premier plan, qui relit aussi la semaine affichée. `record` relance de
-  // lui-même.
+  // réseau, le retour au premier plan, qui relit aussi la semaine affichée et le nombre de jours
+  // en attente. `record` relance de lui-même.
   useEffect(() => {
     void queue.flush();
     queue.pendingDays().then(
@@ -142,7 +142,15 @@ export function WeekScreen({
     const appState = AppState.addEventListener("change", (state) => {
       if (state !== "active") return;
       reload();
-      void queue.flush();
+      // Le widget a pu enregistrer un jour pendant l'absence de l'écran, par sa propre file : le
+      // compte se relit avant la relance, dont les écritures le remplacent ensuite.
+      void queue
+        .pendingDays()
+        .then(
+          (days) => setPending(days.length),
+          () => undefined,
+        )
+        .finally(() => queue.flush());
     });
     return () => {
       network.remove();
