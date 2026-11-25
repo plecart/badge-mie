@@ -25,7 +25,7 @@ import {
 } from "react-native-android-widget";
 import { MISSING, TIME_LABELS } from "./labels";
 import { PALETTES, type Palette } from "./palette";
-import { BUTTON_LABEL, FONTS } from "./theme";
+import { BUTTON_LABEL, FONTS, SLOT_LABEL, SLOT_TIME } from "./theme";
 import type { WidgetButton, WidgetModel } from "./widget";
 import { RADIUS, type WidgetLayout, widgetLayout } from "./widget-layout";
 import { CLICK_ACTIONS } from "./widget-task";
@@ -42,6 +42,9 @@ const BORDER_WIDTH = 2;
 /** Le corps du chiffre du décompte, et son retrait du coin du bouton, bord compris. */
 const DIGIT_SIZE = 12;
 const DIGIT_INSET = 6;
+
+/** Le retrait du libellé du bouton de ses bords gauche et droit. */
+const LABEL_INSET = 8;
 
 /** Le corps du libellé du bouton au plus, plus grand que celui de l'app, à la mesure du bouton. */
 const LABEL_SIZE = 20;
@@ -138,7 +141,8 @@ function TodayWidget({
 
 /**
  * Une heure du jour, sous son titre quand il a sa hauteur, aux corps de la case d'une carte de
- * l'app (`./DayCard`) ; son toucher ouvre l'app sur l'écran de la semaine, où l'heure se corrige.
+ * l'app ({@link SLOT_LABEL}, {@link SLOT_TIME}) ; son toucher ouvre l'app sur l'écran de la
+ * semaine, où l'heure se corrige.
  */
 function TimeSlot({
   label,
@@ -163,8 +167,7 @@ function TimeSlot({
           maxLines={1}
           style={{
             ...fitted(titleHeight),
-            fontFamily: FONTS.text,
-            fontSize: 10,
+            ...SLOT_LABEL,
             color: palette.muted,
           }}
         />
@@ -174,8 +177,7 @@ function TimeSlot({
         maxLines={1}
         style={{
           ...fitted(timeHeight),
-          fontFamily: FONTS.digits,
-          fontSize: 20,
+          ...SLOT_TIME,
           color: time === MISSING ? palette.muted : palette.fg,
         }}
       />
@@ -214,7 +216,7 @@ function PunchButton({
         style={{
           width: "match_parent",
           height: "match_parent",
-          paddingHorizontal: 8,
+          paddingHorizontal: LABEL_INSET,
           borderRadius: radius,
           ...(border && {
             borderWidth: BORDER_WIDTH,
