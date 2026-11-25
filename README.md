@@ -22,9 +22,9 @@ compte, et le minimum de pièces mobiles.
   pointages sont « En attente d'envoi ».
 - **Pas de compte** : un jeton, saisi une fois au premier lancement et gardé dans le stockage
   sécurisé du téléphone.
-- **Un widget d'écran d'accueil** de 2×2 cases : en haut l'arrivée et le départ du jour, et une
-  pastille qui dit si tout est envoyé ; en dessous un bouton « Badger » qui pointe en deux
-  touchers. Le premier l'arme : il s'inverse en « Confirmer », et un petit chiffre décompte les
+- **Un widget d'écran d'accueil** de 2×1 cases : sur une ligne l'arrivée et le départ du jour, et
+  une pastille qui dit si tout est envoyé ; juste en dessous un bouton « Badger » qui pointe en
+  deux touchers. Le premier l'arme : il s'inverse en « Confirmer », et un petit chiffre décompte les
   3 s qui restent ; le second pointe, par le même chemin que l'application. Toucher une heure
   ouvre l'application.
 

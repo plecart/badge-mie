@@ -1,12 +1,12 @@
 /**
- * La mise en page du widget d'écran d'accueil (issue #20), en 2×2 : en haut, la pastille d'envoi
- * sans texte, puis l'arrivée et le départ du jour sous leurs titres ; en dessous, le bouton de
- * pointage, pleine largeur. Le modèle arrive tout calculé de `./widget` : les primitives de
- * `react-native-android-widget` ne prennent ni hook ni rendu asynchrone (doc :
+ * La mise en page du widget d'écran d'accueil (issue #20), en 2×1 : sur une ligne, la pastille
+ * d'envoi sans texte, puis l'arrivée et le départ du jour sous leurs titres ; juste en dessous, le
+ * bouton de pointage, rectangulaire, pleine largeur. Le modèle arrive tout calculé de `./widget` :
+ * les primitives de `react-native-android-widget` ne prennent ni hook ni rendu asynchrone (doc :
  * `rnaw/tutorial/widget-design`, ADR-0002).
  *
  * Le widget est une image, dessinée à la taille exacte que lui donne le lanceur (doc :
- * `rnaw/limitations`) : la mise en page se dimensionne sur elle ({@link WidgetSize}), et chaque
+ * `rnaw/limitations`) : la ligne des heures a sa hauteur, le bouton prend le reste, et chaque
  * libellé tient sur une ligne, réduit au besoin dans sa case par l'ajustement uniforme d'Android
  * (`adjustsFontSizeToFit`, `TextWidget.java` de la bibliothèque, 0.26.0, lu le 2026-11-25).
  *
@@ -20,27 +20,24 @@ import {
   FlexWidget,
   OverlapWidget,
   TextWidget,
-  type WidgetInfo,
   type WidgetRepresentation,
 } from "react-native-android-widget";
 import { MISSING, TIME_LABELS } from "./labels";
 import { PALETTES, type Palette, resolveTint } from "./palette";
-import { BUTTON, BUTTON_LABEL, FONTS } from "./theme";
+import { BUTTON_LABEL, FONTS } from "./theme";
 import type { WidgetButton, WidgetModel } from "./widget";
 import { CLICK_ACTIONS } from "./widget-task";
-
-/** La taille du widget posé, en dp, telle que la donne la bibliothèque. */
-export type WidgetSize = Pick<WidgetInfo, "width" | "height">;
 
 /**
  * La marge intérieure du widget, et l'écart entre ses deux étages comme entre la pastille et les
  * heures.
  */
-const PADDING = 12;
-const GAP = 8;
+const PADDING = 10;
+const GAP = 6;
 
-/** Le rayon des coins du widget. */
+/** Le rayon des coins du widget, et celui, petit, du bouton rectangulaire. */
 const RADIUS = 22;
+const BUTTON_RADIUS = 6;
 
 /** Le diamètre de la pastille d'envoi, celui du point de l'indicateur de l'app, agrandi. */
 const DOT_SIZE = 10;
@@ -64,33 +61,25 @@ const TIME_HEIGHT = 28;
  * les deux ayant la même structure (doc : `rnaw/tutorial/dark-mode-widget`).
  *
  * @param model - Ce que montre le widget, de `widgetModel`.
- * @param size - La taille du widget posé.
  */
-export function todayWidget(
-  model: WidgetModel,
-  size: WidgetSize,
-): WidgetRepresentation {
+export function todayWidget(model: WidgetModel): WidgetRepresentation {
   return {
-    light: <TodayWidget model={model} palette={PALETTES.light} size={size} />,
-    dark: <TodayWidget model={model} palette={PALETTES.dark} size={size} />,
+    light: <TodayWidget model={model} palette={PALETTES.light} />,
+    dark: <TodayWidget model={model} palette={PALETTES.dark} />,
   };
 }
 
 /**
- * Le widget dans la palette d'un mode. Les deux étages se partagent la hauteur par moitié : le
- * bouton, cible du pouce qui porte le décompte, en prend autant que les heures, et rétrécit
- * avec un widget moins haut, en paysage.
+ * Le widget dans la palette d'un mode : la ligne des heures, à sa hauteur, puis le bouton, qui
+ * prend le reste.
  */
 function TodayWidget({
   model,
   palette,
-  size,
 }: {
   model: WidgetModel;
   palette: Palette;
-  size: WidgetSize;
 }) {
-  const stagesHeight = size.height - 2 * PADDING - GAP;
   return (
     <FlexWidget
       style={{
@@ -106,7 +95,7 @@ function TodayWidget({
       <FlexWidget
         style={{
           width: "match_parent",
-          flex: 1,
+          height: TITLE_HEIGHT + TIME_HEIGHT,
           flexDirection: "row",
           alignItems: "center",
           flexGap: GAP,
@@ -131,11 +120,10 @@ function TodayWidget({
           palette={palette}
         />
       </FlexWidget>
-      <PunchButton
-        button={model.button}
-        palette={palette}
-        height={Math.round(stagesHeight / 2)}
-      />
+      {/* `OverlapWidget` ne prend pas `flex` : ce `FlexWidget` donne le reste au bouton. */}
+      <FlexWidget style={{ width: "match_parent", flex: 1 }}>
+        <PunchButton button={model.button} palette={palette} />
+      </FlexWidget>
     </FlexWidget>
   );
 }
@@ -184,17 +172,16 @@ function TimeSlot({
 }
 
 /**
- * Le bouton de pointage, pleine largeur, de la hauteur donnée. Armé, il a un bord, et le chiffre de
- * son décompte dans le coin haut droit, de la couleur du libellé.
+ * Le bouton de pointage, rectangulaire, de toute la place que lui laisse la ligne des heures.
+ * Armé, il a un bord, et le chiffre de son décompte dans le coin haut droit, de la couleur du
+ * libellé.
  */
 function PunchButton({
   button,
   palette,
-  height,
 }: {
   button: WidgetButton;
   palette: Palette;
-  height: number;
 }) {
   const { border, secondsLeft } = button;
   return (
@@ -203,9 +190,9 @@ function PunchButton({
       accessibilityLabel={button.accessibilityLabel}
       style={{
         width: "match_parent",
-        height,
+        height: "match_parent",
         overflow: "hidden",
-        borderRadius: BUTTON.borderRadius,
+        borderRadius: BUTTON_RADIUS,
         backgroundColor: resolveTint(palette, button.background),
       }}
     >
@@ -214,7 +201,7 @@ function PunchButton({
           width: "match_parent",
           height: "match_parent",
           paddingHorizontal: 8,
-          borderRadius: BUTTON.borderRadius,
+          borderRadius: BUTTON_RADIUS,
           ...(border && {
             borderWidth: BORDER_WIDTH,
             borderColor: palette[border],

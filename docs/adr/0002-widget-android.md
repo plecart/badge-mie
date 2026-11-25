@@ -7,9 +7,10 @@ la documentation officielle des deux bibliothèques et un essai sur l'émulateur
 
 ## Contexte
 
-L'issue #20 ajoute un widget d'écran d'accueil Android de 2×2 cellules, 4×1 jusqu'à l'arrêt
-visuel du 2026-11-25 (« Refonte du widget »). Il montre en haut une pastille d'envoi, l'arrivée
-et le départ du jour, et en dessous le bouton de pointage. Le lanceur garde l'appui long
+L'issue #20 ajoute un widget d'écran d'accueil Android de 2×1 cellules : 4×1 jusqu'au premier
+arrêt visuel du 2026-11-25, puis 2×2, essayé jusqu'au second, le même jour (« Refonte du
+widget »). Il montre sur une ligne une pastille d'envoi, l'arrivée et le départ du jour, et juste
+en dessous le bouton de pointage. Le lanceur garde l'appui long
 sur un widget : le bouton pointe donc en **deux touchers** (ADR-0001, « Propositions UX »). Le
 premier l'arme pour 3 s, le second pointe, et sans second toucher le bouton revient **seul** à son
 état normal. Le pointage suit le chemin de l'app : écriture locale à l'heure du téléphone, puis la
@@ -39,15 +40,15 @@ page d'`expo-widgets` est `https://docs.expo.dev/versions/latest/sdk/widgets/`.
 ## Décision
 
 1. **`react-native-android-widget`** (0.26.0, licence MIT) porte le widget. Son plugin Expo le
-   déclare dans `app/app.json` : un widget `Today`, 2×2, rafraîchi toutes les 30 min. Le test
+   déclare dans `app/app.json` : un widget `Today`, 2×1, rafraîchi toutes les 30 min. Le test
    `app/app.test.ts` épingle cette déclaration.
-   - `targetCellWidth` 2 et `targetCellHeight` 2 fixent la taille sur Android 12 et plus.
-   - `minWidth` 110dp et `minHeight` 110dp la fixent sur Android 11 et moins. Sur un écran de
+   - `targetCellWidth` 2 et `targetCellHeight` 1 fixent la taille sur Android 12 et plus.
+   - `minWidth` 110dp et `minHeight` 40dp la fixent sur Android 11 et moins. Sur un écran de
      5×4 cellules, la largeur de `n` cellules en portrait vaut `73n − 16` dp et la hauteur de `m`
      cellules en paysage `66m − 15` dp ; `minWidth` se prend en portrait et `minHeight` en paysage
      (doc : developer.android.com/develop/ui/views/appwidgets/layouts, « Determine a size for
-     your widget », lu le 2026-11-25). 110dp dépasse une cellule (57dp de large, 51dp de haut)
-     sans dépasser deux (130dp et 117dp).
+     your widget », lu le 2026-11-25). 110dp dépasse une cellule de large (57dp) sans dépasser
+     deux (130dp), et 40dp tient dans une de haut (51dp).
    - `updatePeriodMillis` vaut 1 800 000 ms, le plancher : une mise à jour périodique « will not
      be delivered more than once every 30 minutes » (doc : `rnaw/update-widget`), et le plugin
      relève toute valeur plus basse à 30 min (source : `app.plugin.js`, `Math.max`).
@@ -173,8 +174,9 @@ Deux arrêts visuels du 2026-11-25 l'ont refait le même jour (issue #20, « Dé
 1. le premier : un 2×2, les heures au-dessus du bouton, sous des libellés courts (« Badger »,
    « Confirmer »), et un armement animé : transition du bouton plein au bouton inversé, puis une
    bande qui se vidait derrière le libellé pendant les 3 s ;
-2. le second : la bande, essayée, est retirée ; un petit chiffre dans un coin du bouton décompte
-   les secondes qui restent, 3, 2, 1.
+2. le second : le 2×2, jugé trop gros, devient un 2×1, les heures sur une ligne et le bouton,
+   rectangulaire, juste en dessous ; la bande, essayée, est retirée, et un petit chiffre dans un
+   coin du bouton décompte les secondes qui restent, 3, 2, 1.
 
 Les mesures de l'essai ci-dessus, faites sur le 4×1, restent vraies, et celles du 2×2 ci-dessous
 aussi.
@@ -217,6 +219,24 @@ varient avec le poste :
   `RNWidgetProvider.java`, `hasOutdatedSize`) : en paysage, un toucher reste sans effet jusqu'à la
   prochaine mise à jour. Un dessin à 332×137 dp donnerait 53 dp au bouton et 52 aux heures
   (calcul) : la hauteur du bouton suit l'espace réel.
+
+**Mesures du 2×1, avec le chiffre**, le même jour sur le même AVD, sans sonde, par
+`adb shell screenrecord` et `uiautomator dump` :
+
+- **La taille.** Le lanceur annonce « 2 × 1 », et sa vue hôte mesure 172×109 dp : le bouton y a
+  152×41 dp, la ligne des heures 42 dp.
+- **Les cadres à l'écran.** Après le premier cadre armé, trois images de transition, puis le
+  chiffre passe à 2 et à 1 à 0,94–0,97 s et 1,94–1,96 s du premier cadre affiché, et le repos
+  revient à 2,92–3,03 s (deux films, clair et sombre).
+- **Les libellés tiennent sur une ligne.** Aux métriques des polices, « Journée terminée »
+  (171 dp à 20 sp) et « Départ trop tôt » (141 dp) dépassent les 136 dp du bouton, réduits par
+  l'ajustement uniforme d'Android ; vus tous deux sur l'émulateur, par une sonde jetable qui
+  relibellait les cadres armés. Les titres (« ARRIVÉE » : 41 dp, « DÉPART » : 39 dp) et les heures
+  (« 08:52 » : 55 dp) tiennent dans leurs cases, de 57 dp au plus étroit.
+- **Le contraste du chiffre**, de la couleur du libellé (calcul sur les palettes) : 6,37:1 en
+  clair et 10,16:1 en sombre sur le bouton armé, 14,19:1 et 12,64:1 sur le bouton grisé d'un jour
+  non travaillé. Pendant la transition seulement, le cadre du milieu descend à 2,85:1 en clair et
+  3,01:1 en sombre, pour le chiffre comme pour le libellé.
 
 ## Conséquences
 
