@@ -58,8 +58,8 @@ page d'`expo-widgets` est `https://docs.expo.dev/versions/latest/sdk/widgets/`.
    « Décision », point 1).
 3. **Le double toucher tient dans une seule invocation du gestionnaire de tâche** : rendu armé,
    attente de 3 s, rendu au repos. C'est l'essai qui l'établit, la documentation n'en dit rien.
-   Depuis la refonte du widget, l'attente se découpe en cadres redessinés, qui animent l'état armé
-   (« Refonte du widget »).
+   Depuis la refonte du widget, l'attente se découpe en cadres redessinés à chaque changement du
+   chiffre du décompte (« Refonte du widget »).
 
 ## Options étudiées
 
@@ -282,8 +282,9 @@ varient avec le poste :
     de 194 caractères, sans faire échouer le build. La ligne `run local` de
     `.claude/pipeline.config.md` tient la mesure à jour.
 - Une montée du SDK Expo attend la version de `react-native-android-widget` qui le suit.
-- L'animation de l'armement redessine toute l'image à chaque cadre (« Refonte du widget ») : un
-  téléphone plus lent l'animera à moindre cadence, le délai de 3 s restant compté à l'horloge.
+- Le décompte de l'armement redessine toute l'image à chaque seconde (« Refonte du widget ») : un
+  téléphone plus lent affichera chaque chiffre plus tard, le délai de 3 s restant compté à
+  l'horloge.
 
 **À revoir si le besoin change :**
 
