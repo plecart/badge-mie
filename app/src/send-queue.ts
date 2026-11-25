@@ -53,6 +53,28 @@ function parseEntries(text: string | null): Entries {
   );
 }
 
+/** Lit les entrées de la file rangée dans `storage`. */
+async function readEntries(storage: KeyValueStorage): Promise<Entries> {
+  return parseEntries(await storage.getItem(KEY));
+}
+
+/**
+ * Rend les jours en attente d'envoi rangés dans un stockage, sans créer de file : ce que lit le
+ * widget pour se dessiner, et {@link SendQueue.pendingDays}.
+ *
+ * @param storage - Le stockage clé-valeur de la file.
+ * @returns Les journées de la file, par date croissante ; leur nombre est `enAttente()`.
+ * @throws l'erreur du stockage s'il ne se lit pas.
+ */
+export async function readPendingDays(
+  storage: KeyValueStorage,
+): Promise<PresenceDay[]> {
+  // Deux dates `AAAA-MM-JJ` s'ordonnent comme leur texte.
+  return [...(await readEntries(storage)).values()].sort((a, b) =>
+    a.jour < b.jour ? -1 : 1,
+  );
+}
+
 /** Vrai si l'entrée existe et porte la même date, la même arrivée et le même départ que `day`. */
 function isSame(entry: PresenceDay | undefined, day: PresenceDay): boolean {
   return (
@@ -98,7 +120,7 @@ export interface SendQueue {
    */
   flush(): Promise<void>;
   /**
-   * Rend les jours en attente d'envoi.
+   * Rend les jours en attente d'envoi, comme {@link readPendingDays} sur le stockage de la file.
    *
    * @returns Les journées de la file, par date croissante ; leur nombre est `enAttente()`.
    * @throws l'erreur du stockage s'il ne se lit pas.
@@ -134,15 +156,11 @@ export function createSendQueue({
   let running: Promise<void> | undefined;
   let rerun = false;
 
-  async function read(): Promise<Entries> {
-    return parseEntries(await storage.getItem(KEY));
-  }
-
   /** Modifie la file à son tour, et rend le nombre de jours qui y restent. */
   function update(change: (entries: Entries) => void): Promise<number> {
     const previous = writesByStorage.get(storage) ?? Promise.resolve();
     const done = previous.then(async () => {
-      const entries = await read();
+      const entries = await readEntries(storage);
       change(entries);
       await storage.setItem(KEY, JSON.stringify(Object.fromEntries(entries)));
       return entries.size;
@@ -155,12 +173,7 @@ export function createSendQueue({
     return done;
   }
 
-  async function pendingDays(): Promise<PresenceDay[]> {
-    // Deux dates `AAAA-MM-JJ` s'ordonnent comme leur texte.
-    return [...(await read()).values()].sort((a, b) =>
-      a.jour < b.jour ? -1 : 1,
-    );
-  }
+  const pendingDays = () => readPendingDays(storage);
 
   /** Envoie la file une fois ; lève sur la panne qui l'arrête. */
   async function sendAll(): Promise<void> {
