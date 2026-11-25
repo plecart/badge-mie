@@ -1,8 +1,9 @@
 /**
- * La mise en page du widget d'écran d'accueil (issue #20), en 2×1 : sur une ligne, la pastille
- * d'envoi sans texte, puis l'arrivée et le départ du jour sous leurs titres ; juste en dessous, le
- * bouton de pointage, rectangulaire, pleine largeur. Le modèle arrive tout calculé de `./widget` :
- * les primitives de `react-native-android-widget` ne prennent ni hook ni rendu asynchrone (doc :
+ * La mise en page du widget d'écran d'accueil (issues #20 et #48), posé en 2×2 et étirable en
+ * hauteur jusqu'à une rangée : sur une ligne, la pastille d'envoi sans texte, puis l'arrivée et le
+ * départ du jour sous leurs titres ; juste en dessous, le bouton de pointage, rectangulaire, pleine
+ * largeur. Le modèle arrive tout calculé de `./widget` : les primitives de
+ * `react-native-android-widget` ne prennent ni hook ni rendu asynchrone (doc :
  * `rnaw/tutorial/widget-design`, ADR-0002).
  *
  * Le widget est une image, dessinée à la taille exacte que lui donne le lanceur (doc :

@@ -52,15 +52,15 @@ function flatten(tree: WidgetNode[]): WidgetNode[] {
   return tree.flatMap((node) => [node, ...flatten(node.children)]);
 }
 
-/** La hauteur du widget 2×1 en portrait, en dp : titres, heures et bouton. */
-const HEIGHT_2X1 = 109;
+/** L'ordre de grandeur de la hauteur du widget 2×2, en dp : titres, heures et bouton. */
+const HEIGHT_2X2 = 160;
 
 /** Les arbres clair et sombre du widget, dépliés. */
 function render(model: WidgetModel): {
   light: WidgetNode[];
   dark: WidgetNode[];
 } {
-  const widget = todayWidget(model, HEIGHT_2X1);
+  const widget = todayWidget(model, HEIGHT_2X2);
   if (!("light" in widget)) throw new Error("un seul arbre, sans mode sombre");
   return { light: unfold(widget.light), dark: unfold(widget.dark) };
 }

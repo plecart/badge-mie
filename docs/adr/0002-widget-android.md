@@ -9,7 +9,8 @@ la documentation officielle des deux bibliothèques et un essai sur l'émulateur
 
 L'issue #20 ajoute un widget d'écran d'accueil Android de 2×1 cellules : 4×1 jusqu'au premier
 arrêt visuel du 2026-11-25, puis 2×2, essayé jusqu'au second, le même jour (« Refonte du
-widget »). Il montre sur une ligne une pastille d'envoi, l'arrivée et le départ du jour, et juste
+widget »). L'issue #48 l'a reposé en 2×2, redimensionnable en hauteur (même section, quatrième
+regard). Il montre sur une ligne une pastille d'envoi, l'arrivée et le départ du jour, et juste
 en dessous le bouton de pointage. Le lanceur garde l'appui long
 sur un widget : le bouton pointe donc en **deux touchers** (ADR-0001, « Propositions UX »). Le
 premier l'arme pour 3 s, le second pointe, et sans second toucher le bouton revient **seul** à son
@@ -40,10 +41,17 @@ page d'`expo-widgets` est `https://docs.expo.dev/versions/latest/sdk/widgets/`.
 ## Décision
 
 1. **`react-native-android-widget`** (0.26.0, licence MIT) porte le widget. Son plugin Expo le
-   déclare dans `app/app.json` : un widget `Today`, 2×1, rafraîchi toutes les 30 min. Le test
-   `app/app.test.ts` épingle cette déclaration.
-   - `targetCellWidth` 2 et `targetCellHeight` 1 fixent la taille sur Android 12 et plus.
-   - `minWidth` 110dp et `minHeight` 40dp la fixent sur Android 11 et moins. Sur un écran de
+   déclare dans `app/app.json` : un widget `Today`, 2×2, redimensionnable en hauteur, rafraîchi
+   toutes les 30 min (issue #48 ; 2×1 non redimensionnable avant). Le test `app/app.test.ts`
+   épingle cette déclaration.
+   - `targetCellWidth` 2 et `targetCellHeight` 2 fixent la taille posée sur Android 12 et plus.
+   - `resizeMode` `vertical` laisse l'utilisateur l'étirer ou le réduire en hauteur seulement ; la
+     largeur reste 2 cases. Le plugin n'expose pas `minResizeHeight` (source :
+     `lib/typescript/config-plugin.type.d.ts`), et la hauteur minimale de redimensionnement vaut
+     alors `minHeight` : le widget se réduit jusqu'à une rangée. Un widget déjà posé garde sa
+     taille à la mise à jour de l'app.
+   - `minWidth` 110dp et `minHeight` 40dp fixent la taille posée sur Android 11 et moins : 2×1,
+     étirable en hauteur comme ailleurs. Sur un écran de
      5×4 cellules, la largeur de `n` cellules en portrait vaut `73n − 16` dp et la hauteur de `m`
      cellules en paysage `66m − 15` dp ; `minWidth` se prend en portrait et `minHeight` en paysage
      (doc : developer.android.com/develop/ui/views/appwidgets/layouts, « Determine a size for
@@ -179,6 +187,13 @@ Trois regards du mainteneur, le 2026-11-25, l'ont refait le même jour (issue #2
    coin du bouton décompte les secondes qui restent, 3, 2, 1 ;
 3. le troisième : le 2×1 est validé ; la transition, essayée, est retirée, jugée trop saccadée :
    le bouton passe d'un coup aux couleurs inversées, et le chiffre reste.
+
+Un quatrième regard, le 2026-11-25 sur l'APK 1.1.0 (issue #48, « Décisions ») : sur le téléphone
+du mainteneur, une rangée fait moins de 86 dp, et le 2×1 n'y montre que le bouton, la ligne des
+heures retirée. Le 2×2, jugé trop gros sur l'émulateur où une rangée faisait 109 dp, devient le
+bon format sur un lanceur réel aux rangées plus basses : le widget se pose en 2×2 et s'étire ou se
+réduit à la main en hauteur, jusqu'à une rangée. La mise en page ne change pas : le bouton prend
+toute la hauteur sous les heures.
 
 Les mesures de l'essai ci-dessus, faites sur le 4×1, restent vraies, et celles du 2×2 et du 2×1
 ci-dessous aussi : elles décrivent ce qui a été essayé.
