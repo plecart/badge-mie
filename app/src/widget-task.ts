@@ -21,7 +21,9 @@ import { REQUEST_TIMEOUT_MS, ServerUnreachableError } from "./api";
 import { createSendQueue, readPendingDays } from "./send-queue";
 import { today } from "./today";
 import {
+  FRAME_STEPS,
   isStillShown,
+  nextFrame,
   PHASE_MS,
   type PhaseKind,
   punchAt,
@@ -57,17 +59,6 @@ export const CLICK_ACTIONS: Record<WidgetTap, { clickAction?: string }> = {
  * (`file-envoi`) et de l'état local des semaines (`semaine:…`).
  */
 export const PHASE_KEY = "phase-widget";
-
-/**
- * L'intervalle entre deux cadres de chaque phase, en millisecondes : l'état armé s'anime, sa
- * transition puis son compte à rebours ; le refus reste fixe, en un seul cadre. Celui de l'état
- * armé suit le dessin natif d'un cadre, de l'ordre de 0,1 s sur l'émulateur : plus court, il
- * empilerait des dessins (ADR-0002, « Refonte en 2×2 »).
- */
-export const FRAME_MS: Record<PhaseKind, number> = {
-  armed: 100,
-  refused: PHASE_MS.refused,
-};
 
 /**
  * L'attente maximale de la relance après un pointage : deux requêtes sans réponse, car l'appel qui
@@ -224,11 +215,11 @@ async function showFor(
 }
 
 /**
- * Redessine une phase affichée toutes les {@link FRAME_MS}, chaque cadre à l'instant de l'horloge,
- * jusqu'à l'expiration de la phase. Avant chaque cadre, la phase rangée se relit : un autre toucher
- * a pu ranger la sienne, ou le repos d'un pointage, et ses cadres prennent alors la main
- * ({@link isStillShown}). Les cadres sont bornés à la durée de la phase divisée par leur
- * intervalle : une horloge qui ne passe plus, ou qui recule, ne prolonge pas la tâche au-delà.
+ * Redessine une phase affichée aux instants de son calendrier ({@link FRAME_STEPS}), chaque cadre à
+ * l'instant de l'horloge, jusqu'à l'expiration de la phase. Avant chaque cadre, la phase rangée se
+ * relit : un autre toucher a pu ranger la sienne, ou le repos d'un pointage, et ses cadres prennent
+ * alors la main ({@link isStillShown}). Le temps attendu est borné à la durée de la phase : une
+ * horloge qui ne passe plus, ou qui recule, ne prolonge pas la tâche au-delà.
  *
  * @returns `true` si la phase est encore celle de l'invocation à son terme, à ramener au repos ;
  *   `false` si une autre l'a remplacée.
@@ -238,13 +229,15 @@ async function playFrames(
   state: WidgetState,
   posted: WidgetPhase,
 ): Promise<boolean> {
+  const steps = FRAME_STEPS[posted.kind];
   const duration = PHASE_MS[posted.kind];
-  const interval = FRAME_MS[posted.kind];
   const expiry = posted.shownAt + duration;
-  for (let frame = 0; frame < Math.ceil(duration / interval); frame++) {
-    // Le dernier intervalle s'arrête à l'expiration, déjà passée si un dessin l'a franchie.
-    const left = Math.max(0, expiry - deps.now().getTime());
-    await deps.wait(Math.min(interval, left));
+  for (let waited = 0; waited < duration;) {
+    const elapsed = deps.now().getTime() - posted.shownAt;
+    // Jamais négative : un dessin a pu franchir l'expiration, que le calendrier rend alors.
+    const ms = Math.max(0, nextFrame(steps, elapsed) - elapsed);
+    await deps.wait(ms);
+    waited += ms;
     if (!isStillShown(await readPhase(deps.storage), posted)) return false;
     const now = deps.now();
     if (now.getTime() >= expiry) break;

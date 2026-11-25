@@ -96,8 +96,8 @@ export function blend(
  *
  * @example resolveTint(PALETTES.light, { from: "accent", to: "accentInk", amount: 0.5 })
  *   // « #96B5AA »
- * @returns La couleur de la clé ; pour un mélange, chaque canal pris à `amount` du chemin entre ceux
- *   des deux clés, en sRGB, arrondi à l'entier.
+ * @returns La couleur de la clé ; pour un mélange, chaque canal pris à `amount` du chemin entre
+ *   ceux des deux clés, en sRGB, arrondi à l'entier.
  */
 export function resolveTint(palette: Palette, tint: Tint): HexColor {
   if (typeof tint === "string") return palette[tint];

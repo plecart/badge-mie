@@ -8,8 +8,8 @@ la documentation officielle des deux bibliothèques et un essai sur l'émulateur
 ## Contexte
 
 L'issue #20 ajoute un widget d'écran d'accueil Android de 2×2 cellules, 4×1 jusqu'à l'arrêt
-visuel du 2026-11-25 (« Refonte en 2×2 »). Il montre en haut une pastille d'envoi, l'arrivée et le
-départ du jour, et en dessous le bouton de pointage. Le lanceur garde l'appui long
+visuel du 2026-11-25 (« Refonte du widget »). Il montre en haut une pastille d'envoi, l'arrivée
+et le départ du jour, et en dessous le bouton de pointage. Le lanceur garde l'appui long
 sur un widget : le bouton pointe donc en **deux touchers** (ADR-0001, « Propositions UX »). Le
 premier l'arme pour 3 s, le second pointe, et sans second toucher le bouton revient **seul** à son
 état normal. Le pointage suit le chemin de l'app : écriture locale à l'heure du téléphone, puis la
@@ -57,8 +57,8 @@ page d'`expo-widgets` est `https://docs.expo.dev/versions/latest/sdk/widgets/`.
    « Décision », point 1).
 3. **Le double toucher tient dans une seule invocation du gestionnaire de tâche** : rendu armé,
    attente de 3 s, rendu au repos. C'est l'essai qui l'établit, la documentation n'en dit rien.
-   Depuis la refonte en 2×2, l'attente se découpe en cadres redessinés, qui animent l'état armé
-   (« Refonte en 2×2 »).
+   Depuis la refonte du widget, l'attente se découpe en cadres redessinés, qui animent l'état armé
+   (« Refonte du widget »).
 
 ## Options étudiées
 
@@ -166,21 +166,30 @@ l'API sur `http://127.0.0.1:9`, par une sonde de journal jetable, jamais version
   C'est un ordre de grandeur. Celle d'une tâche de pointage n'est pas mesurée : il y faut un
   jeton.
 
-## Refonte en 2×2
+## Refonte du widget
 
-Décidée à l'arrêt visuel du 2026-11-25 (issue #20, « Décisions ») : le widget passe en 2×2, les
-heures au-dessus du bouton, sous des libellés courts (« Badger », « Confirmer »), et l'armement
-devient animé : transition du bouton plein au bouton inversé, puis compte à rebours des 3 s.
-Les mesures de l'essai ci-dessus, faites sur le 4×1, restent vraies.
+Deux arrêts visuels du 2026-11-25 l'ont refait le même jour (issue #20, « Décisions ») :
 
-Un widget ne joue pas d'animation : le gestionnaire redessine l'état armé cadre par cadre, toutes
-les 100 ms (`FRAME_MS`), chaque cadre à l'instant de l'horloge, et relit la phase rangée avant
-chacun pour céder la main à un autre toucher. Les 3 s comptent depuis le premier cadre, et la
-transition de 400 ms (`TRANSITION_MS`) en fait partie.
+1. le premier : un 2×2, les heures au-dessus du bouton, sous des libellés courts (« Badger »,
+   « Confirmer »), et un armement animé : transition du bouton plein au bouton inversé, puis une
+   bande qui se vidait derrière le libellé pendant les 3 s ;
+2. le second : la bande, essayée, est retirée ; un petit chiffre dans un coin du bouton décompte
+   les secondes qui restent, 3, 2, 1.
 
-**Mesures**, le 2026-11-25 sur le même AVD, processus de l'app vivant, par une sonde de journal
-jetable et par `adb shell screenrecord`, ni l'une ni l'autre versionnées. Ce sont des ordres de
-grandeur, qui varient avec le poste :
+Les mesures de l'essai ci-dessus, faites sur le 4×1, restent vraies, et celles du 2×2 ci-dessous
+aussi.
+
+Un widget ne joue pas d'animation : le gestionnaire redessine l'état armé aux instants d'un
+calendrier (`FRAME_STEPS`), chaque cadre à l'instant de l'horloge, et relit la phase rangée avant
+chacun pour céder la main à un autre toucher. Le calendrier redessine toutes les 100 ms pendant
+la transition de 400 ms (`TRANSITION_MS`), à la cadence du dessin natif, puis seulement au
+changement du chiffre, à 1 s et à 2 s : 7 cadres en 3 s, contre 30 avec la bande. Les 3 s
+comptent depuis le premier cadre, transition comprise.
+
+**Mesures du 2×2, avec la bande**, le 2026-11-25 sur le même AVD, processus de l'app vivant, un
+cadre toutes les 100 ms pendant les 3 s, par une sonde de journal jetable et par
+`adb shell screenrecord`, ni l'une ni l'autre versionnées. Ce sont des ordres de grandeur, qui
+varient avec le poste :
 
 - **La taille.** Le lanceur Pixel annonce « 2 × 2 », et `widgetInfo` donne 172×234 dp en portrait.
 - **Le dessin natif limite la cadence.** Chaque cadre rend deux images, claire et sombre, puis
@@ -234,7 +243,7 @@ grandeur, qui varient avec le poste :
     de 194 caractères, sans faire échouer le build. La ligne `run local` de
     `.claude/pipeline.config.md` tient la mesure à jour.
 - Une montée du SDK Expo attend la version de `react-native-android-widget` qui le suit.
-- L'animation de l'armement redessine toute l'image à chaque cadre (« Refonte en 2×2 ») : un
+- L'animation de l'armement redessine toute l'image à chaque cadre (« Refonte du widget ») : un
   téléphone plus lent l'animera à moindre cadence, le délai de 3 s restant compté à l'horloge.
 
 **À revoir si le besoin change :**

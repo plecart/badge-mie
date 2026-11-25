@@ -72,9 +72,59 @@ export const PHASE_MS: Record<PhaseKind, number> = {
  * La durée de la transition du bouton plein au bouton inversé, au début de l'état armé, en
  * millisecondes : elle fait partie de ses {@link PHASE_MS} (issue #20, décision du 2026-11-25).
  * Assez longue pour quatre images à l'écran à la cadence mesurée sur l'émulateur (ADR-0002,
- * « Refonte en 2×2 »).
+ * « Refonte du widget »).
  */
 export const TRANSITION_MS = 400;
+
+/** Une seconde, le pas du décompte de l'état armé, en millisecondes. */
+const SECOND_MS = 1000;
+
+/**
+ * L'intervalle des cadres de la transition, en millisecondes : le temps d'un dessin natif, de
+ * l'ordre de 0,1 s sur l'émulateur (ADR-0002, « Refonte du widget »).
+ */
+const DRAW_MS = 100;
+
+/**
+ * Une étape du calendrier des cadres d'une phase : jusqu'à `until` ms après son affichage, un
+ * cadre toutes les `every` ms, comptées depuis l'affichage.
+ */
+export interface FrameStep {
+  until: number;
+  every: number;
+}
+
+/**
+ * Le calendrier des cadres de chaque phase, ses étapes dans l'ordre ; la dernière finit avec la
+ * phase. L'état armé se redessine à la cadence du dessin natif pendant sa transition, puis à
+ * chaque changement du chiffre de son décompte ; le refus reste fixe, en un seul cadre.
+ */
+export const FRAME_STEPS: Record<PhaseKind, FrameStep[]> = {
+  armed: [
+    { until: TRANSITION_MS, every: DRAW_MS },
+    { until: PHASE_MS.armed, every: SECOND_MS },
+  ],
+  refused: [{ until: PHASE_MS.refused, every: PHASE_MS.refused }],
+};
+
+/**
+ * Rend l'instant du cadre qui suit `elapsed` dans un calendrier : le prochain point de la grille
+ * de l'étape en cours, sans dépasser la fin de cette étape.
+ *
+ * @example nextFrame(FRAME_STEPS.armed, 400) // 1000 : la transition finie, le chiffre passe à 2
+ * @param steps - Le calendrier, ses étapes dans l'ordre ({@link FRAME_STEPS}).
+ * @param elapsed - Le temps écoulé depuis l'affichage de la phase, en millisecondes.
+ * @returns L'instant du cadre suivant, en millisecondes depuis l'affichage, toujours après
+ *   `elapsed` tant que le calendrier n'est pas fini ; sa fin une fois passée.
+ */
+export function nextFrame(steps: FrameStep[], elapsed: number): number {
+  for (const { until, every } of steps) {
+    if (elapsed < until) {
+      return Math.min(until, (Math.floor(elapsed / every) + 1) * every);
+    }
+  }
+  return steps.at(-1)?.until ?? elapsed;
+}
 
 /**
  * Rend une phase affichée à un instant, à ranger telle quelle.
@@ -113,15 +163,6 @@ interface ShownPhase {
  */
 export type WidgetTap = "punch" | "openApp" | "none";
 
-/**
- * La bande du compte à rebours du bouton armé, qui se vide avec le délai d'armement (issue #20,
- * « Double toucher ») : sa couleur, et la part du délai qui reste, de 1 à 0.
- */
-export interface Countdown {
-  color: Tint;
-  remaining: number;
-}
-
 /** Les couleurs du bouton du widget, nommées pour se résoudre dans les deux thèmes. */
 interface WidgetButtonColors {
   background: Tint;
@@ -129,16 +170,22 @@ interface WidgetButtonColors {
   color: PaletteToken;
   /** La couleur du bord ; absente, le bouton n'a pas de bord. */
   border?: PaletteToken;
-  /** La bande du compte à rebours ; absente hors de l'état armé. */
-  countdown?: Countdown;
 }
 
 /** Le bouton de pointage du widget : ses libellés, ses couleurs et ce que fait son toucher. */
 export interface WidgetButton extends WidgetButtonColors {
   /** Le libellé affiché, court : « Badger », « Confirmer »… */
   label: string;
-  /** Le libellé que lit TalkBack, qui dit l'action : « Pointer l'arrivée », « Confirmer le départ »… */
+  /**
+   * Le libellé que lit TalkBack, qui dit l'action : « Pointer l'arrivée », « Confirmer le
+   * départ »…
+   */
   accessibilityLabel: string;
+  /**
+   * Le chiffre du décompte de l'état armé, dans un coin du bouton, de la couleur du libellé : les
+   * secondes qui restent, arrondies au-dessus, 3, 2 puis 1 ; absent hors de l'état armé.
+   */
+  secondsLeft?: number;
   tap: WidgetTap;
 }
 
@@ -174,14 +221,13 @@ export interface WidgetState {
  *
  * Armé, le bouton inverse ses couleurs par une transition de {@link TRANSITION_MS} : le fond passe
  * à celle du libellé, sous un bord de la couleur du fond, et le libellé prend celle du fond à
- * mi-chemin (issue #20, « Double toucher »). Derrière le libellé, une bande se vide avec le délai
- * d'armement : pleine au premier cadre, vide à l'expiration, elle passe de la couleur du fond à
- * `accentSoft` pendant la transition. L'état armé se dessine donc cadre par cadre, chacun à son
- * instant `now`.
+ * mi-chemin (issue #20, « Double toucher »). Pendant les 3 s, un chiffre décompte les secondes qui
+ * restent ({@link WidgetButton.secondsLeft}). L'état armé se dessine donc cadre par cadre, chacun à
+ * son instant `now`, aux instants de {@link FRAME_STEPS}.
  *
  * Hypothèse retenue sur la phrase « Un jour grisé, l'état armé se lit à son texte » du critère
  * « Double toucher », à montrer au mainteneur à l'arrêt visuel : un jour grisé, le bouton armé
- * garde ses couleurs grisées, sans bord ni transition, et sa bande se vide en `line`.
+ * garde ses couleurs grisées, sans bord ni transition, et porte le chiffre du décompte.
  *
  * @example // Le mercredi 25 novembre 2026 à 9 h, arrivée à 08:52, rien en attente d'envoi :
  *   widgetModel({ view, now, pending: 0, hasToken: true, phase: null })
@@ -250,6 +296,7 @@ function buttonOf(
       label: WIDGET_CONFIRM,
       accessibilityLabel: CONFIRM_LABELS[action],
       ...armedColors(colors, button.muted, phase.elapsed),
+      secondsLeft: Math.ceil((PHASE_MS.armed - phase.elapsed) / SECOND_MS),
       tap: "punch",
     };
   }
@@ -273,21 +320,18 @@ function readAsShown(
  * @param elapsed - Le temps écoulé depuis l'affichage de l'état armé, de 0 à {@link PHASE_MS}.
  */
 function armedColors(
-  { background, color }: ButtonColors,
+  colors: ButtonColors,
   muted: boolean,
   elapsed: number,
 ): WidgetButtonColors {
-  const remaining = 1 - elapsed / PHASE_MS.armed;
-  if (muted) {
-    return { background, color, countdown: { color: "line", remaining } };
-  }
+  if (muted) return colors;
+  const { background, color } = colors;
   const amount = elapsed / TRANSITION_MS;
   return {
     background: blend(background, color, amount),
     // Mélangé, le libellé rejoindrait le fond à mi-chemin et disparaîtrait : il change d'un coup.
     color: amount < 0.5 ? color : background,
     border: background,
-    countdown: { color: blend(background, "accentSoft", amount), remaining },
   };
 }
 

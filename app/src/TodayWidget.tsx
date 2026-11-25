@@ -48,6 +48,10 @@ const DOT_SIZE = 10;
 /** L'épaisseur du bord du bouton armé. */
 const BORDER_WIDTH = 2;
 
+/** Le corps du chiffre du décompte, et son retrait du coin du bouton, bord compris. */
+const DIGIT_SIZE = 12;
+const DIGIT_INSET = 6;
+
 /** Le corps du libellé du bouton au plus, plus grand que celui de l'app, à la mesure du bouton. */
 const LABEL_SIZE = 20;
 
@@ -74,7 +78,7 @@ export function todayWidget(
 
 /**
  * Le widget dans la palette d'un mode. Les deux étages se partagent la hauteur par moitié : le
- * bouton, cible du pouce et support du compte à rebours, en prend autant que les heures, et rétrécit
+ * bouton, cible du pouce qui porte le décompte, en prend autant que les heures, et rétrécit
  * avec un widget moins haut, en paysage.
  */
 function TodayWidget({
@@ -130,7 +134,6 @@ function TodayWidget({
       <PunchButton
         button={model.button}
         palette={palette}
-        width={size.width - 2 * PADDING}
         height={Math.round(stagesHeight / 2)}
       />
     </FlexWidget>
@@ -181,23 +184,19 @@ function TimeSlot({
 }
 
 /**
- * Le bouton de pointage, pleine largeur, de la hauteur donnée. Armé, sa bande du compte à rebours
- * part de la gauche, de la part du délai qui reste de `width`, la largeur attendue du bouton ; le
- * libellé et le bord se dessinent par-dessus. Le bouton lui-même ne prend pas `width` : il ne déborde
- * jamais du widget, et la bande s'y coupe.
+ * Le bouton de pointage, pleine largeur, de la hauteur donnée. Armé, il a un bord, et le chiffre de
+ * son décompte dans le coin haut droit, de la couleur du libellé.
  */
 function PunchButton({
   button,
   palette,
-  width,
   height,
 }: {
   button: WidgetButton;
   palette: Palette;
-  width: number;
   height: number;
 }) {
-  const { countdown, border } = button;
+  const { border, secondsLeft } = button;
   return (
     <OverlapWidget
       {...CLICK_ACTIONS[button.tap]}
@@ -210,15 +209,6 @@ function PunchButton({
         backgroundColor: resolveTint(palette, button.background),
       }}
     >
-      {countdown && (
-        <FlexWidget
-          style={{
-            width: Math.round(width * countdown.remaining),
-            height: "match_parent",
-            backgroundColor: resolveTint(palette, countdown.color),
-          }}
-        />
-      )}
       <FlexWidget
         style={{
           width: "match_parent",
@@ -243,6 +233,25 @@ function PunchButton({
           }}
         />
       </FlexWidget>
+      {secondsLeft !== undefined && (
+        <FlexWidget
+          style={{
+            width: "match_parent",
+            height: "match_parent",
+            alignItems: "flex-end",
+            padding: DIGIT_INSET,
+          }}
+        >
+          <TextWidget
+            text={String(secondsLeft)}
+            style={{
+              fontFamily: FONTS.digits,
+              fontSize: DIGIT_SIZE,
+              color: palette[button.color],
+            }}
+          />
+        </FlexWidget>
+      )}
     </OverlapWidget>
   );
 }

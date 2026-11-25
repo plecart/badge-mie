@@ -10,7 +10,6 @@ import {
   type WidgetPhase,
 } from "./widget";
 import {
-  FRAME_MS,
   PHASE_KEY,
   PUNCH_CLICK,
   readPhase,
@@ -254,20 +253,30 @@ describe("runWidgetTask — double toucher", () => {
     expect(await readPhase(h.storage)).toBeNull();
   });
 
-  it("redessine l'état armé toutes les FRAME_MS au plus, la bande du compte à rebours se vidant d'un cadre à l'autre", async () => {
+  it("anime la transition, puis ne redessine l'état armé qu'au changement du chiffre, 3, 2, 1", async () => {
     const h = harness();
+    const frames: [number, number | undefined][] = [];
+    const draw = h.deps.draw;
+    h.deps.draw = (model) => {
+      draw(model);
+      frames.push([
+        h.clock.now.getTime() - TAP.getTime(),
+        model.button.secondsLeft,
+      ]);
+    };
 
     await tap(h.deps);
 
-    const remaining = h.drawn
-      .slice(0, -1)
-      .map(({ button }) => button.countdown?.remaining ?? Number.NaN);
-    expect(remaining[0]).toBe(1);
-    expect(remaining.length).toBeGreaterThan(2);
-    remaining.slice(1).forEach((value, i) => {
-      expect(value).toBeLessThan(remaining[i] ?? Number.NaN);
-    });
-    expect(Math.max(...h.waits)).toBeLessThanOrEqual(FRAME_MS.armed);
+    expect(frames).toEqual([
+      [0, 3],
+      [100, 3],
+      [200, 3],
+      [300, 3],
+      [400, 3],
+      [1000, 2],
+      [2000, 1],
+      [3000, undefined],
+    ]);
   });
 
   it("pointe sur un second toucher 2,999 s après le dessin armé, même 3,499 s après le premier toucher", async () => {
@@ -303,7 +312,7 @@ describe("runWidgetTask — double toucher", () => {
     expect([h.labels()[0], h.sent]).toEqual(["Confirmer", []]);
   });
 
-  it.each([30, 70])(
+  it.each([30, 1200])(
     "revient au repos dès l'expiration de l'état armé, chaque dessin prenant %i ms",
     async (drawMs) => {
       const h = harness();
@@ -334,9 +343,9 @@ describe("runWidgetTask — double toucher", () => {
     const wait = h.deps.wait;
     let second: Promise<void> | undefined;
     h.deps.wait = async (ms) => {
-      // L'envoi du pointage aboutit tout de suite : la relance qu'il attend n'avance pas l'horloge
-      // au-delà d'un cadre, et l'état armé du premier toucher a encore des cadres à jouer.
-      await wait(Math.min(ms, FRAME_MS.armed));
+      // L'envoi du pointage aboutit tout de suite : la relance qu'il attend n'avance pas l'horloge,
+      // et l'état armé du premier toucher a encore des cadres à jouer.
+      await wait(ms === SEND_WAIT_MS ? 0 : ms);
       if (second === undefined && h.waits.length === 5) {
         second = tap(h.deps);
         await second;
@@ -380,7 +389,8 @@ describe("runWidgetTask — double toucher", () => {
       h.deps.wait = (ms) => {
         h.waits.push(ms);
         h.clock.now = after(h.clock.now, drift);
-        return Promise.resolve();
+        // Cède aux macrotâches : une boucle sans fin laisse partir le délai de Vitest et rougit.
+        return new Promise((resolve) => setTimeout(resolve, 0));
       };
 
       await tap(h.deps);
