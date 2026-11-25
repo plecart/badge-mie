@@ -67,6 +67,7 @@ updates:
       - dependency-name: "@expo/vector-icons"
       - dependency-name: "@react-native-async-storage/async-storage"
       - dependency-name: "@react-native-community/datetimepicker"
+      - dependency-name: expo-dev-client
       - dependency-name: expo-font
       - dependency-name: expo-haptics
       - dependency-name: expo-network
