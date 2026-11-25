@@ -24,9 +24,9 @@ compte, et le minimum de pièces mobiles.
   sécurisé du téléphone.
 - **Un widget d'écran d'accueil** de 2×2 cases, qui s'étire ou se réduit en hauteur jusqu'à une
   rangée : sur une ligne l'arrivée et le départ du jour, et une pastille qui dit si tout est
-  envoyé ; juste en dessous un bouton « Badger » qui pointe en deux touchers. Le premier l'arme : il s'inverse en « Confirmer », et un petit chiffre décompte les
-  3 s qui restent ; le second pointe, par le même chemin que l'application. Toucher une heure
-  ouvre l'application.
+  envoyé ; juste en dessous un bouton « Badger » qui pointe en deux touchers. Le premier l'arme :
+  il s'inverse en « Confirmer », et un petit chiffre décompte les 3 s qui restent ; le second
+  pointe, par le même chemin que l'application. Toucher une heure ouvre l'application.
 
 ## Où en est le projet
 

@@ -48,7 +48,9 @@ page d'`expo-widgets` est `https://docs.expo.dev/versions/latest/sdk/widgets/`.
    - `resizeMode` `vertical` laisse l'utilisateur l'étirer ou le réduire en hauteur seulement ; la
      largeur reste 2 cases. Le plugin n'expose pas `minResizeHeight` (source :
      `lib/typescript/config-plugin.type.d.ts`), et la hauteur minimale de redimensionnement vaut
-     alors `minHeight` : le widget se réduit jusqu'à une rangée. Un widget déjà posé garde sa
+     alors `minHeight` (essai : `adb shell dumpsys appwidget` sur l'émulateur, le 2026-11-25,
+     rend pour `Today` un `minResize` égal à son `min`, et `resizeMode=2`, le vertical) : le
+     widget se réduit jusqu'à une rangée. Un widget déjà posé garde sa
      taille à la mise à jour de l'app.
    - `minWidth` 110dp et `minHeight` 40dp fixent la taille posée sur Android 11 et moins : 2×1,
      étirable en hauteur comme ailleurs. Sur un écran de
