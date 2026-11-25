@@ -345,6 +345,11 @@ describe("punchAt — pointage", () => {
     });
   });
 
+  it("ne pointe rien sur la semaine lue d'avant le minuit du dimanche au lundi", () => {
+    // Le gestionnaire charge la semaine de l'instant du toucher : celle d'avant n'a pas sa date.
+    expect(punchAt(EMPTY, new Date(2026, 10, 30, 0, 0, 30))).toBeNull();
+  });
+
   it("pointe une semaine jamais lue et injoignable comme l'app, sur une journée vide", () => {
     expect(punchAt(UNREACHABLE, WEDNESDAY_08_52_40)).toEqual({
       day: { jour: "2026-11-25", arrivee: "08:52", depart: null },
