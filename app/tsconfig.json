@@ -3,5 +3,5 @@
   "compilerOptions": {
     "jsx": "react-jsx"
   },
-  "include": ["index.ts", "eas.test.ts", "src", "scripts"]
+  "include": ["index.ts", "*.test.ts", "src", "plugins", "scripts"]
 }

@@ -15,7 +15,27 @@
         "backgroundColor": "#E0EEE6"
       }
     },
-    "plugins": ["expo-secure-store"],
+    "plugins": [
+      "expo-secure-store",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "Today",
+              "label": "Badge Mie",
+              "description": "L'arrivée et le départ du jour, et le bouton pour pointer.",
+              "minWidth": "250dp",
+              "minHeight": "40dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      "./plugins/with-cmake-object-path-max"
+    ],
     "extra": {
       "eas": {
         "projectId": "30cdaf09-7bd3-4bfb-8044-cec7a176341d"
