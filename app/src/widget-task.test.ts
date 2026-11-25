@@ -10,6 +10,7 @@ import {
   type WidgetPhase,
 } from "./widget";
 import {
+  FRAME_MS,
   PHASE_KEY,
   PUNCH_CLICK,
   readPhase,
@@ -47,11 +48,16 @@ async function unreachable(): Promise<never> {
   throw new ServerUnreachableError();
 }
 
+/** La somme des attentes, en millisecondes. */
+function total(waits: number[]): number {
+  return waits.reduce((sum, ms) => sum + ms, 0);
+}
+
 /**
  * Le gestionnaire et ses faux : un stockage en mémoire, un coffre qui tient `token`, un envoi qui
- * passe par `send`, une horloge réglée à la main sur `TAP`, une attente qui rend la main à la tâche
- * suivante sans toucher l'horloge, et un dessin qui garde chaque modèle avec le texte de la phase
- * rangée à cet instant.
+ * passe par `send`, une horloge réglée sur `TAP`, que seule une attente avance, de sa durée, en
+ * rendant la main à la tâche suivante, et un dessin qui garde chaque modèle avec le texte de la
+ * phase rangée à cet instant.
  */
 function harness({
   token = "jeton-de-test",
@@ -89,6 +95,7 @@ function harness({
     now: () => clock.now,
     wait: (ms) => {
       waits.push(ms);
+      clock.now = after(clock.now, ms);
       return new Promise((resolve) => setTimeout(resolve, 0));
     },
     draw: (model) => {
@@ -236,16 +243,31 @@ describe("runWidgetTask — double toucher", () => {
 
     await tap(h.deps);
 
-    expect([h.labels(), h.waits, h.sent]).toEqual([
-      ["Confirmer", "Badger"],
-      [PHASE_MS.armed],
-      [],
-    ]);
-    expect(h.drawn[0]?.button).toMatchObject({
-      accessibilityLabel: "Confirmer le départ",
-      border: "accent",
-    });
+    const labels = h.labels();
+    expect([
+      new Set(labels.slice(0, -1)),
+      labels.at(-1),
+      total(h.waits),
+      h.sent,
+    ]).toEqual([new Set(["Confirmer"]), "Badger", PHASE_MS.armed, []]);
+    expect(h.drawn[0]?.button.accessibilityLabel).toBe("Confirmer le départ");
     expect(await readPhase(h.storage)).toBeNull();
+  });
+
+  it("redessine l'état armé toutes les FRAME_MS au plus, la bande du compte à rebours se vidant d'un cadre à l'autre", async () => {
+    const h = harness();
+
+    await tap(h.deps);
+
+    const remaining = h.drawn
+      .slice(0, -1)
+      .map(({ button }) => button.countdown?.remaining ?? Number.NaN);
+    expect(remaining[0]).toBe(1);
+    expect(remaining.length).toBeGreaterThan(2);
+    remaining.slice(1).forEach((value, i) => {
+      expect(value).toBeLessThan(remaining[i] ?? Number.NaN);
+    });
+    expect(Math.max(...h.waits)).toBeLessThanOrEqual(FRAME_MS.armed);
   });
 
   it("pointe sur un second toucher 2,999 s après le dessin armé, même 3,499 s après le premier toucher", async () => {
@@ -281,20 +303,95 @@ describe("runWidgetTask — double toucher", () => {
     expect([h.labels()[0], h.sent]).toEqual(["Confirmer", []]);
   });
 
-  it("laisse en place l'état armé qu'un autre toucher a rangé pendant les 3 s", async () => {
+  it.each([30, 70])(
+    "revient au repos dès l'expiration de l'état armé, chaque dessin prenant %i ms",
+    async (drawMs) => {
+      const h = harness();
+      const drawnAt: number[] = [];
+      const draw = h.deps.draw;
+      h.deps.draw = (model) => {
+        draw(model);
+        drawnAt.push(h.clock.now.getTime());
+        h.clock.now = after(h.clock.now, drawMs);
+      };
+
+      await tap(h.deps);
+
+      // L'état armé s'affiche à la fin de son premier dessin.
+      const expiry = TAP.getTime() + drawMs + PHASE_MS.armed;
+      const late = (drawnAt.at(-1) ?? Number.NaN) - expiry;
+      expect([h.labels().at(-1), h.waits.every((ms) => ms >= 0)]).toEqual([
+        "Badger",
+        true,
+      ]);
+      expect(late).toBeGreaterThanOrEqual(0);
+      expect(late).toBeLessThan(drawMs);
+    },
+  );
+
+  it("pointe sur un second toucher pendant les cadres armés, qui ne se redessinent plus ensuite", async () => {
     const h = harness();
-    const other = showPhase("armed", after(TAP, 3100));
-    h.deps.wait = async () => {
-      await storePhase(h.storage, other);
+    const wait = h.deps.wait;
+    let second: Promise<void> | undefined;
+    h.deps.wait = async (ms) => {
+      // L'envoi du pointage aboutit tout de suite : la relance qu'il attend n'avance pas l'horloge
+      // au-delà d'un cadre, et l'état armé du premier toucher a encore des cadres à jouer.
+      await wait(Math.min(ms, FRAME_MS.armed));
+      if (second === undefined && h.waits.length === 5) {
+        second = tap(h.deps);
+        await second;
+      }
+    };
+
+    await tap(h.deps);
+
+    const labels = h.labels();
+    const afterPunch = labels.slice(labels.indexOf("Badger"));
+    expect([h.sent, afterPunch.includes("Confirmer")]).toEqual([
+      [ARRIVAL],
+      false,
+    ]);
+  });
+
+  it("arrête ses cadres, sans revenir au repos, quand un autre toucher a rangé son propre état armé", async () => {
+    const h = harness();
+    const other = showPhase("armed", after(TAP, 450));
+    const wait = h.deps.wait;
+    h.deps.wait = async (ms) => {
+      await wait(ms);
+      if (h.waits.length === 5) await storePhase(h.storage, other);
     };
 
     await tap(h.deps);
 
     expect([h.labels(), await readPhase(h.storage)]).toEqual([
-      ["Confirmer"],
+      Array(5).fill("Confirmer"),
       other,
     ]);
   });
+
+  it.each([
+    ["ne passe plus", 0],
+    ["recule", -1000],
+  ])(
+    "borne ses cadres à la durée de l'état armé quand l'horloge %s, puis revient au repos",
+    async (_, drift) => {
+      const h = harness();
+      h.deps.wait = (ms) => {
+        h.waits.push(ms);
+        h.clock.now = after(h.clock.now, drift);
+        return Promise.resolve();
+      };
+
+      await tap(h.deps);
+
+      expect([
+        total(h.waits) <= PHASE_MS.armed,
+        h.labels().at(-1),
+        await readPhase(h.storage),
+      ]).toEqual([true, "Badger", null]);
+    },
+  );
 
   it("range la phase sous sa propre clé, sans toucher la File d'envoi ni l'état local", async () => {
     const h = harness();
