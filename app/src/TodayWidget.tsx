@@ -187,8 +187,8 @@ function TimeSlot({
 
 /**
  * Le bouton de pointage, de toute la place que lui laisse la ligne des heures, aux coins de rayon
- * `radius`. Armé, il a un bord, et le chiffre de son décompte dans le coin haut droit, de la
- * couleur du libellé.
+ * `radius`. Armé, il porte le chiffre de son décompte dans le coin haut droit, de la couleur du
+ * libellé, et un bord hors d'un jour grisé (`border` du modèle).
  */
 function PunchButton({
   button,
