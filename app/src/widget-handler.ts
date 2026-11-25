@@ -44,7 +44,7 @@ export function widgetTaskHandler(
     clearToken,
     send: writeDay,
     wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-    draw: (model) => props.renderWidget(todayWidget(model)),
+    draw: (model) => props.renderWidget(todayWidget(model, props.widgetInfo)),
   });
 }
 
@@ -59,6 +59,7 @@ export function widgetTaskHandler(
 export function refreshWidget(): Promise<void> {
   return requestWidgetUpdate({
     widgetName: WIDGET_NAME,
-    renderWidget: async () => todayWidget(await currentModel(sources)),
+    renderWidget: async (info) =>
+      todayWidget(await currentModel(sources), info),
   }).catch(() => undefined);
 }

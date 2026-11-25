@@ -60,7 +60,9 @@ export const PHASE_KEY = "phase-widget";
 
 /**
  * L'intervalle entre deux cadres de chaque phase, en millisecondes : l'état armé s'anime, sa
- * transition puis son compte à rebours ; le refus reste fixe, en un seul cadre.
+ * transition puis son compte à rebours ; le refus reste fixe, en un seul cadre. Celui de l'état
+ * armé suit le dessin natif d'un cadre, de l'ordre de 0,1 s sur l'émulateur : plus court, il
+ * empilerait des dessins (ADR-0002, « Refonte en 2×2 »).
  */
 export const FRAME_MS: Record<PhaseKind, number> = {
   armed: 100,

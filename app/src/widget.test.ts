@@ -189,14 +189,25 @@ describe("widgetModel — état armé et refus affiché", () => {
     });
   });
 
-  it("inverse les couleurs du bouton armé au fil de la transition, à mi-chemin à sa moitié", () => {
+  it("inverse le fond et la bande du bouton armé au fil de la transition, à mi-chemin à sa moitié", () => {
     expect(armedAfter(TRANSITION_MS / 2)).toMatchObject({
       background: { from: "accent", to: "accentInk", amount: 0.5 },
-      color: { from: "accentInk", to: "accent", amount: 0.5 },
       border: "accent",
       countdown: { color: { from: "accent", to: "accentSoft", amount: 0.5 } },
     });
   });
+
+  it.each([
+    [0.25, "accentInk"],
+    [0.49, "accentInk"],
+    [0.5, "accent"],
+    [0.75, "accent"],
+  ])(
+    "garde le libellé lisible pendant la transition, sans mélange qui le fondrait dans le fond : à %d d'elle, en %s",
+    (part, color) => {
+      expect(armedAfter(TRANSITION_MS * part).color).toBe(color);
+    },
+  );
 
   it("achève la transition : fond accentInk, texte et bord accent, bande accentSoft", () => {
     expect(armedAfter(TRANSITION_MS)).toMatchObject({

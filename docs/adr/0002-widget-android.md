@@ -7,8 +7,9 @@ la documentation officielle des deux bibliothèques et un essai sur l'émulateur
 
 ## Contexte
 
-L'issue #20 ajoute un widget d'écran d'accueil Android de 4×1 cellules. Il montre une pastille
-d'envoi, l'arrivée et le départ du jour, et le bouton de pointage. Le lanceur garde l'appui long
+L'issue #20 ajoute un widget d'écran d'accueil Android de 2×2 cellules, 4×1 jusqu'à l'arrêt
+visuel du 2026-11-25 (« Refonte en 2×2 »). Il montre en haut une pastille d'envoi, l'arrivée et le
+départ du jour, et en dessous le bouton de pointage. Le lanceur garde l'appui long
 sur un widget : le bouton pointe donc en **deux touchers** (ADR-0001, « Propositions UX »). Le
 premier l'arme pour 3 s, le second pointe, et sans second toucher le bouton revient **seul** à son
 état normal. Le pointage suit le chemin de l'app : écriture locale à l'heure du téléphone, puis la
@@ -38,15 +39,15 @@ page d'`expo-widgets` est `https://docs.expo.dev/versions/latest/sdk/widgets/`.
 ## Décision
 
 1. **`react-native-android-widget`** (0.26.0, licence MIT) porte le widget. Son plugin Expo le
-   déclare dans `app/app.json` : un widget `Today`, 4×1, rafraîchi toutes les 30 min. Le test
+   déclare dans `app/app.json` : un widget `Today`, 2×2, rafraîchi toutes les 30 min. Le test
    `app/app.test.ts` épingle cette déclaration.
-   - `targetCellWidth` 4 et `targetCellHeight` 1 fixent la taille sur Android 12 et plus.
-   - `minWidth` 250dp et `minHeight` 40dp la fixent sur Android 11 et moins. Sur un écran de
+   - `targetCellWidth` 2 et `targetCellHeight` 2 fixent la taille sur Android 12 et plus.
+   - `minWidth` 110dp et `minHeight` 110dp la fixent sur Android 11 et moins. Sur un écran de
      5×4 cellules, la largeur de `n` cellules en portrait vaut `73n − 16` dp et la hauteur de `m`
      cellules en paysage `66m − 15` dp ; `minWidth` se prend en portrait et `minHeight` en paysage
      (doc : developer.android.com/develop/ui/views/appwidgets/layouts, « Determine a size for
-     your widget », lu le 2026-11-25). 250dp dépasse 3 cellules (203dp) sans dépasser 4 (276dp),
-     et 40dp tient dans une (51dp).
+     your widget », lu le 2026-11-25). 110dp dépasse une cellule (57dp de large, 51dp de haut)
+     sans dépasser deux (130dp et 117dp).
    - `updatePeriodMillis` vaut 1 800 000 ms, le plancher : une mise à jour périodique « will not
      be delivered more than once every 30 minutes » (doc : `rnaw/update-widget`), et le plugin
      relève toute valeur plus basse à 30 min (source : `app.plugin.js`, `Math.max`).
@@ -56,6 +57,8 @@ page d'`expo-widgets` est `https://docs.expo.dev/versions/latest/sdk/widgets/`.
    « Décision », point 1).
 3. **Le double toucher tient dans une seule invocation du gestionnaire de tâche** : rendu armé,
    attente de 3 s, rendu au repos. C'est l'essai qui l'établit, la documentation n'en dit rien.
+   Depuis la refonte en 2×2, l'attente se découpe en cadres redessinés, qui animent l'état armé
+   (« Refonte en 2×2 »).
 
 ## Options étudiées
 
@@ -129,8 +132,8 @@ affiché jusqu'au toucher suivant ou au prochain rafraîchissement ; pas de refu
   dessine le repos.
 - Chaque étape écrit un horodatage dans le journal (`adb logcat`, étiquette `ReactNativeJS`).
   Les captures viennent d'`adb exec-out screencap -p`.
-- Le widget a été posé par `requestPinWidget`. Le lanceur l'a annoncé « 4 × 1 », et
-  `widgetInfo` lui donne 360×109 dp.
+- Le widget, alors déclaré en 4×1, a été posé par `requestPinWidget`. Le lanceur l'a annoncé
+  « 4 × 1 », et `widgetInfo` lui donne 360×109 dp.
 - Aucun jeton n'a été saisi, et l'adresse de l'API visait `http://127.0.0.1:9`.
 
 **Mesures :**
@@ -163,6 +166,49 @@ l'API sur `http://127.0.0.1:9`, par une sonde de journal jetable, jamais version
   C'est un ordre de grandeur. Celle d'une tâche de pointage n'est pas mesurée : il y faut un
   jeton.
 
+## Refonte en 2×2
+
+Décidée à l'arrêt visuel du 2026-11-25 (issue #20, « Décisions ») : le widget passe en 2×2, les
+heures au-dessus du bouton, sous des libellés courts (« Badger », « Confirmer »), et l'armement
+devient animé : transition du bouton plein au bouton inversé, puis compte à rebours des 3 s.
+Les mesures de l'essai ci-dessus, faites sur le 4×1, restent vraies.
+
+Un widget ne joue pas d'animation : le gestionnaire redessine l'état armé cadre par cadre, toutes
+les 100 ms (`FRAME_MS`), chaque cadre à l'instant de l'horloge, et relit la phase rangée avant
+chacun pour céder la main à un autre toucher. Les 3 s comptent depuis le premier cadre, et la
+transition de 400 ms (`TRANSITION_MS`) en fait partie.
+
+**Mesures**, le 2026-11-25 sur le même AVD, processus de l'app vivant, par une sonde de journal
+jetable et par `adb shell screenrecord`, ni l'une ni l'autre versionnées. Ce sont des ordres de
+grandeur, qui varient avec le poste :
+
+- **La taille.** Le lanceur Pixel annonce « 2 × 2 », et `widgetInfo` donne 172×234 dp en portrait.
+- **Le dessin natif limite la cadence.** Chaque cadre rend deux images, claire et sombre, puis
+  les écrit en PNG (source : `RNWidget.java`, `drawWidget`) : 84 à 130 ms par cadre, 105 ms en
+  médiane, sur 25 cadres. Les cadres partent toutes les 117 ms en médiane, soit 25 cadres armés
+  en 3 s, environ 8 par seconde. Un intervalle plus court empilerait des dessins que le natif ne
+  suit pas.
+- **À l'écran**, filmé : 20 images armées en 3,08 s, espacées de 100 à 186 ms (164 ms en médiane,
+  environ 6 par seconde), dont 4 pour la transition. Le film charge lui-même l'émulateur : pendant
+  qu'il tourne, les cadres partent toutes les 153 à 163 ms en médiane.
+- **La relecture de la phase** avant chaque cadre prend 1 ms en médiane (0 à 28 ms), sans film.
+- **Le retour au repos** suit le premier cadre armé de 3,03 à 3,08 s (deux films).
+- **Le libellé ne se mélange pas.** Mélangés, libellé et fond se rejoignent à mi-transition : sur
+  un cadre filmé, « Confirmer » s'y effaçait. Le libellé change donc de couleur d'un coup, à
+  mi-chemin, ce qui lui garde un contraste d'environ 2,5:1 sur ce seul cadre, dans les deux thèmes
+  (calcul sur les palettes).
+- **Les libellés tiennent sur une ligne.** Aux métriques des polices, « Journée terminée »
+  (171 dp à 20 sp) et « Départ trop tôt » (141 dp) dépassent les 132 dp du bouton : l'ajustement
+  uniforme d'Android (`adjustsFontSizeToFit`) les réduit, et c'est ce que montre l'émulateur.
+- **En paysage**, avec la rotation de l'écran d'accueil permise (réglage du lanceur, rendu à son
+  état ensuite), la cellule mesure 332×137 dp (`dumpsys activity top`). Le lanceur ne redessine
+  pas le widget à la rotation : il réduit l'image du portrait dans la cellule, proportions
+  gardées, sans débordement. Les zones touchables, calées sur le portrait, s'y écrasent, et la
+  bibliothèque ignore un toucher d'une taille périmée jusqu'au dessin suivant (source :
+  `RNWidgetProvider.java`, `hasOutdatedSize`) : en paysage, un toucher reste sans effet jusqu'à la
+  prochaine mise à jour. Un dessin à 332×137 dp donnerait 53 dp au bouton et 52 aux heures
+  (calcul) : la hauteur du bouton suit l'espace réel.
+
 ## Conséquences
 
 **Plus simple :**
@@ -188,6 +234,8 @@ l'API sur `http://127.0.0.1:9`, par une sonde de journal jetable, jamais version
     de 194 caractères, sans faire échouer le build. La ligne `run local` de
     `.claude/pipeline.config.md` tient la mesure à jour.
 - Une montée du SDK Expo attend la version de `react-native-android-widget` qui le suit.
+- L'animation de l'armement redessine toute l'image à chaque cadre (« Refonte en 2×2 ») : un
+  téléphone plus lent l'animera à moindre cadence, le délai de 3 s restant compté à l'horloge.
 
 **À revoir si le besoin change :**
 
