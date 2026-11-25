@@ -7,15 +7,13 @@ import {
 import { describe, expect, it } from "vitest";
 import type { WeekView } from "./week-store";
 import {
-  FRAME_STEPS,
-  type FrameStep,
+  FRAME_MS,
   isStillShown,
   nextFrame,
   PHASE_MS,
   punchAt,
   showPhase,
   tapEffect,
-  TRANSITION_MS,
   widgetModel,
   type WidgetState,
 } from "./widget";
@@ -180,43 +178,15 @@ describe("widgetModel — état armé et refus affiché", () => {
     return widgetModel(state(ARRIVED, now, { phase })).button;
   }
 
-  it("dessine le premier cadre armé aux couleurs du repos : « Confirmer », bord accent, 3 secondes au décompte", () => {
+  it("inverse d'un coup les couleurs du bouton armé : « Confirmer », fond accentInk, texte et bord accent, 3 secondes au décompte", () => {
     expect(armedAfter(0)).toEqual({
       label: "Confirmer",
       accessibilityLabel: "Confirmer le départ",
-      background: "accent",
-      color: "accentInk",
-      border: "accent",
-      secondsLeft: 3,
-      tap: "punch",
-    });
-  });
-
-  it("inverse le fond du bouton armé au fil de la transition, à mi-chemin à sa moitié", () => {
-    expect(armedAfter(TRANSITION_MS / 2)).toMatchObject({
-      background: { from: "accent", to: "accentInk", amount: 0.5 },
-      border: "accent",
-    });
-  });
-
-  it.each([
-    [0.25, "accentInk"],
-    [0.49, "accentInk"],
-    [0.5, "accent"],
-    [0.75, "accent"],
-  ])(
-    "garde le libellé lisible pendant la transition, sans mélange qui le fondrait dans le fond : à %d d'elle, en %s",
-    (part, color) => {
-      expect(armedAfter(TRANSITION_MS * part).color).toBe(color);
-    },
-  );
-
-  it("achève la transition : fond accentInk, texte et bord accent", () => {
-    expect(armedAfter(TRANSITION_MS)).toMatchObject({
-      label: "Confirmer",
       background: "accentInk",
       color: "accent",
       border: "accent",
+      secondsLeft: 3,
+      tap: "punch",
     });
   });
 
@@ -244,10 +214,10 @@ describe("widgetModel — état armé et refus affiché", () => {
     });
   });
 
-  it("garde un jour grisé les couleurs grisées du bouton armé, sans transition, avec le décompte", () => {
+  it("garde un jour grisé les couleurs grisées du bouton armé, sans bord, avec le décompte", () => {
     const phase = showPhase("armed", SATURDAY_9AM);
     const view = weekOf(arrivedAt("2026-11-28"));
-    const now = after(SATURDAY_9AM, TRANSITION_MS / 2);
+    const now = after(SATURDAY_9AM, 200);
     expect(widgetModel(state(view, now, { phase })).button).toEqual({
       label: "Confirmer",
       accessibilityLabel: "Confirmer le départ",
@@ -376,64 +346,43 @@ describe("widgetModel — sans jeton", () => {
   });
 });
 
-describe("les durées et le calendrier des cadres", () => {
-  it("arme 3 s, transition de 400 ms comprise, et affiche un refus 3 s", () => {
-    expect([PHASE_MS, TRANSITION_MS]).toEqual([
-      { armed: 3000, refused: 3000 },
-      400,
-    ]);
+describe("les durées et la cadence des cadres", () => {
+  it("arme 3 s et affiche un refus 3 s", () => {
+    expect(PHASE_MS).toEqual({ armed: 3000, refused: 3000 });
   });
 
-  it("redessine l'état armé toutes les 100 ms pendant la transition, puis à chaque seconde ; le refus en un seul cadre", () => {
-    expect(FRAME_STEPS).toEqual({
-      armed: [
-        { until: 400, every: 100 },
-        { until: 3000, every: 1000 },
-      ],
-      refused: [{ until: 3000, every: 3000 }],
-    });
+  it("redessine l'état armé à chaque seconde, au changement du chiffre ; le refus en un seul cadre", () => {
+    expect(FRAME_MS).toEqual({ armed: 1000, refused: 3000 });
   });
 });
 
-describe("nextFrame — le calendrier des cadres", () => {
-  /** Des cadres toutes les 100 ms jusqu'à 400 ms, puis à chaque seconde jusqu'à 3 s. */
-  const STEPS: FrameStep[] = [
-    { until: 400, every: 100 },
-    { until: 3000, every: 1000 },
-  ];
-
+describe("nextFrame — le cadre suivant", () => {
   it.each([
-    [0, 100],
-    [99, 100],
-    [100, 200],
-    [380, 400],
-    [400, 1000],
+    [0, 1000],
     [999, 1000],
     [1000, 2000],
     [2999, 3000],
   ])(
-    "place le cadre qui suit %i ms sur la grille de son étape, à %i ms",
+    "place le cadre qui suit %i ms sur la grille d'une seconde, à %i ms",
     (elapsed, next) => {
-      expect(nextFrame(STEPS, elapsed)).toBe(next);
+      expect(nextFrame(elapsed, 1000, 3000)).toBe(next);
     },
   );
 
   it.each([
-    [300, 350],
-    [349, 350],
-    [350, 1000],
+    [2000, 2500],
+    [2499, 2500],
   ])(
-    "arrête une étape à sa fin même hors de sa grille : après %i ms, %i ms",
+    "s'arrête à la fin de la phase même hors de sa grille : après %i ms, %i ms",
     (elapsed, next) => {
-      const steps = [{ until: 350, every: 100 }, ...STEPS.slice(1)];
-      expect(nextFrame(steps, elapsed)).toBe(next);
+      expect(nextFrame(elapsed, 1000, 2500)).toBe(next);
     },
   );
 
   it.each([3000, 3500])(
-    "rend la fin de la dernière étape une fois passée, %i ms après l'affichage",
+    "rend la fin de la phase une fois passée, %i ms après l'affichage",
     (elapsed) => {
-      expect(nextFrame(STEPS, elapsed)).toBe(3000);
+      expect(nextFrame(elapsed, 1000, 3000)).toBe(3000);
     },
   );
 });

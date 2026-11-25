@@ -21,7 +21,7 @@ import { REQUEST_TIMEOUT_MS, ServerUnreachableError } from "./api";
 import { createSendQueue, readPendingDays } from "./send-queue";
 import { today } from "./today";
 import {
-  FRAME_STEPS,
+  FRAME_MS,
   isStillShown,
   nextFrame,
   PHASE_MS,
@@ -215,7 +215,7 @@ async function showFor(
 }
 
 /**
- * Redessine une phase affichée aux instants de son calendrier ({@link FRAME_STEPS}), chaque cadre à
+ * Redessine une phase affichée toutes les {@link FRAME_MS} depuis son affichage, chaque cadre à
  * l'instant de l'horloge, jusqu'à l'expiration de la phase. Avant chaque cadre, la phase rangée se
  * relit : un autre toucher a pu ranger la sienne, ou le repos d'un pointage, et ses cadres prennent
  * alors la main ({@link isStillShown}). Le temps attendu est borné à la durée de la phase : une
@@ -229,13 +229,13 @@ async function playFrames(
   state: WidgetState,
   posted: WidgetPhase,
 ): Promise<boolean> {
-  const steps = FRAME_STEPS[posted.kind];
+  const every = FRAME_MS[posted.kind];
   const duration = PHASE_MS[posted.kind];
   const expiry = posted.shownAt + duration;
   for (let waited = 0; waited < duration;) {
     const elapsed = deps.now().getTime() - posted.shownAt;
-    // Jamais négative : un dessin a pu franchir l'expiration, que le calendrier rend alors.
-    const ms = Math.max(0, nextFrame(steps, elapsed) - elapsed);
+    // Jamais négative : un dessin a pu franchir l'expiration, que `nextFrame` rend alors.
+    const ms = Math.max(0, nextFrame(elapsed, every, duration) - elapsed);
     await deps.wait(ms);
     waited += ms;
     if (!isStillShown(await readPhase(deps.storage), posted)) return false;
