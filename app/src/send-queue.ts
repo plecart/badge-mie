@@ -23,6 +23,16 @@ const KEY = "file-envoi";
 type Entries = Map<string, PresenceDay>;
 
 /**
+ * La dernière lecture-modification-écriture de la file, par stockage : la suivante l'attend, de
+ * quelque file qu'elle vienne. Le processus de l'app vivant, son widget tourne dans le même
+ * contexte JS qu'elle — sa tâche prend le `ReactHost` de l'application et son contexte courant
+ * (`HeadlessJsTaskWorker.java` de `react-native-android-widget` 0.26.0, lu le 2026-11-25) —,
+ * chacun avec sa file sur le même stockage : une chaîne propre à chaque file laisserait la sortie
+ * d'un jour envoyé par l'une effacer le jour que l'autre vient d'enregistrer.
+ */
+const writesByStorage = new WeakMap<KeyValueStorage, Promise<unknown>>();
+
+/**
  * Lit le texte rangé de la file. C'est une frontière de confiance, comme l'état local d'une
  * semaine : un texte absent, illisible ou qui n'est pas un objet compte comme une file vide, et
  * une entrée dont la valeur n'est pas la journée de sa clé, date réelle comprise (voir
@@ -99,8 +109,9 @@ export interface SendQueue {
 /**
  * Crée la File d'envoi.
  *
- * Toutes les lectures-modifications-écritures de la file passent l'une après l'autre : un
- * enregistrement pendant une relance n'est jamais écrasé par la sortie d'un jour envoyé.
+ * Toutes les lectures-modifications-écritures de la file passent l'une après l'autre, celles de
+ * toutes les files créées sur le même stockage : un enregistrement pendant une relance, de cette
+ * file ou d'une autre, n'est jamais écrasé par la sortie d'un jour envoyé.
  *
  * @param options.storage - Le stockage clé-valeur, celui de l'état local des semaines.
  * @param options.send - L'envoi d'une journée au serveur, jeton compris ; il lève les erreurs de
@@ -119,8 +130,6 @@ export function createSendQueue({
   onChange?: (pending: number) => void;
   onTokenRejected?: () => void;
 }): SendQueue {
-  // La dernière lecture-modification-écriture de la file : la suivante l'attend.
-  let writes: Promise<unknown> = Promise.resolve();
   // La relance en cours, et la demande de la faire repartir.
   let running: Promise<void> | undefined;
   let rerun = false;
@@ -131,14 +140,18 @@ export function createSendQueue({
 
   /** Modifie la file à son tour, et rend le nombre de jours qui y restent. */
   function update(change: (entries: Entries) => void): Promise<number> {
-    const done = writes.then(async () => {
+    const previous = writesByStorage.get(storage) ?? Promise.resolve();
+    const done = previous.then(async () => {
       const entries = await read();
       change(entries);
       await storage.setItem(KEY, JSON.stringify(Object.fromEntries(entries)));
       return entries.size;
     });
     // Une écriture qui échoue ne bloque pas les suivantes.
-    writes = done.catch(() => undefined);
+    writesByStorage.set(
+      storage,
+      done.catch(() => undefined),
+    );
     return done;
   }
 
