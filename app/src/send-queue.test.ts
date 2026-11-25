@@ -50,6 +50,22 @@ async function storageWaiting(
 }
 
 /**
+ * Un stockage en mémoire dont chaque lecture rend l'état du moment où elle part, une tâche plus
+ * tard : deux lectures-écritures qui se chevauchent y lisent le même état.
+ */
+function lateReadStorage(): KeyValueStorage {
+  const memory = memoryStorage();
+  return {
+    getItem: async (key) => {
+      const text = await memory.getItem(key);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return text;
+    },
+    setItem: memory.setItem,
+  };
+}
+
+/**
  * Un envoi retenu : chaque appel attend qu'on le règle par son `settle`, sans argument pour un
  * succès, avec l'erreur de l'échec sinon. `call(n)` attend le `n`-ième appel, compté depuis 1, et
  * le rend.
@@ -289,17 +305,7 @@ describe("createSendQueue", () => {
   });
 
   it("n'écrase pas un pointage enregistré pendant la sortie d'un jour envoyé", async () => {
-    // Chaque lecture rend l'état du moment où elle part, une tâche plus tard : deux
-    // lectures-écritures qui se chevauchent y lisent le même état.
-    const memory = memoryStorage();
-    const storage: KeyValueStorage = {
-      getItem: async (key) => {
-        const text = await memory.getItem(key);
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        return text;
-      },
-      setItem: memory.setItem,
-    };
+    const storage = lateReadStorage();
     const recorded: Promise<void>[] = [];
     const queue = createSendQueue({
       storage,
@@ -315,6 +321,28 @@ describe("createSendQueue", () => {
     await queue.flush();
 
     expect(await queue.pendingDays()).toEqual([WEDNESDAY_DAY]);
+  });
+
+  it("n'écrase pas un pointage enregistré par une autre file du même stockage pendant la sortie d'un jour envoyé", async () => {
+    // Le processus de l'app vivant, l'app et son widget tournent dans le même contexte JS, chacun
+    // avec sa file sur le même stockage (`writesByStorage` de `./send-queue`).
+    const storage = lateReadStorage();
+    const widget = createSendQueue({ storage, send: unreachable });
+    const recorded: Promise<void>[] = [];
+    const app = createSendQueue({
+      storage,
+      send: async (day) => {
+        if (day.jour === WEDNESDAY_DAY.jour) throw new ServerUnreachableError();
+        recorded.push(widget.record(WEDNESDAY_DAY));
+      },
+    });
+
+    await app.record(MONDAY_DAY);
+    await app.flush();
+    await Promise.all(recorded);
+    await app.flush();
+
+    expect(await app.pendingDays()).toEqual([WEDNESDAY_DAY]);
   });
 
   it("range le pointage dans l'état local de sa semaine", async () => {
