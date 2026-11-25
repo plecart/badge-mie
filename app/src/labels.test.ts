@@ -2,11 +2,14 @@ import { emptyDay, type PresenceDay } from "@badge-mie/week";
 import { describe, expect, it } from "vitest";
 import {
   clockLine,
+  CONFIRM_LABELS,
+  DEPARTURE_TOO_EARLY,
   durationText,
   editHint,
   editMessage,
   HOLD_HINT,
   HOLD_TO_PUNCH,
+  OPEN_APP,
   pendingText,
   PUNCH_LABELS,
   punchMessage,
@@ -24,6 +27,30 @@ describe("PUNCH_LABELS", () => {
       expect(PUNCH_LABELS[action]).toBe(label);
     },
   );
+});
+
+describe("CONFIRM_LABELS", () => {
+  it.each([
+    ["arrival", "Confirmer l'arrivée"],
+    ["departure", "Confirmer le départ"],
+  ] as const)(
+    "demande sur le widget armé de confirmer l'action %s par « %s »",
+    (action, label) => {
+      expect(CONFIRM_LABELS[action]).toBe(label);
+    },
+  );
+});
+
+describe("DEPARTURE_TOO_EARLY", () => {
+  it("dit sur le bouton du widget un départ refusé", () => {
+    expect(DEPARTURE_TOO_EARLY).toBe("Départ trop tôt");
+  });
+});
+
+describe("OPEN_APP", () => {
+  it("renvoie vers l'app un widget sans jeton", () => {
+    expect(OPEN_APP).toBe("Ouvrir l'app");
+  });
 });
 
 describe("REFUSAL_TEXTS", () => {

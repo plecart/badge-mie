@@ -10,7 +10,7 @@ import { SpaceGrotesk_700Bold } from "@expo-google-fonts/space-grotesk/700Bold";
 import { useColorScheme } from "react-native";
 import { PALETTES, type Palette } from "./palette";
 
-/** Les couleurs d'un mode ({@link Palette} de `./palette`), que les écrans prennent avec le thème. */
+/** Les couleurs d'un mode, de `./palette`, que les écrans prennent avec le reste du thème. */
 export type { Palette };
 
 /**
