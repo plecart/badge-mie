@@ -81,9 +81,10 @@ flowchart LR
 
 ## Les décisions
 
-Les choix structurants sont dans l'[ADR-0001](docs/adr/0001-stack-et-architecture.md) — le
-contexte, les options écartées et pourquoi. Le raisonnement du PRD et des amendements est archivé
-dans [`docs/archive/`](docs/archive/).
+Les choix structurants sont dans les ADR — le contexte, les options écartées et pourquoi :
+l'[ADR-0001](docs/adr/0001-stack-et-architecture.md) pour la stack et l'architecture,
+l'[ADR-0002](docs/adr/0002-widget-android.md) pour le widget Android. Le raisonnement du PRD et
+des amendements est archivé dans [`docs/archive/`](docs/archive/).
 
 ## Une pipeline de développement par agents IA
 
