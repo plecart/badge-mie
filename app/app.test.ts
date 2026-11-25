@@ -28,10 +28,12 @@ const portraitWidth = (n: number) => 73 * n - 16;
 const landscapeHeight = (m: number) => 66 * m - 15;
 
 /**
- * Le widget d'écran d'accueil (#20) : un seul, `Today`, en 2×1. Android 12 et plus le posent sur
- * `targetCellWidth` × `targetCellHeight` ; Android 11 et moins, sur le nombre de cellules qu'il
- * faut pour tenir `minWidth` × `minHeight` (même page). Android ne le rafraîchit pas plus d'une
- * fois toutes les 30 min, le plancher que le plugin impose à `updatePeriodMillis`.
+ * Le widget d'écran d'accueil (#20, #48) : un seul, `Today`. Android 12 et plus le posent sur
+ * `targetCellWidth` × `targetCellHeight`, 2×2 ; Android 11 et moins, sur le nombre de cellules
+ * qu'il faut pour tenir `minWidth` × `minHeight` (même page), 2×1. `resizeMode` vertical le laisse
+ * étirer ou réduire en hauteur seulement, jusqu'à `minHeight` faute de `minResizeHeight` dans le
+ * plugin (0.26.0) : une rangée. Android ne le rafraîchit pas plus d'une fois toutes les 30 min, le
+ * plancher que le plugin impose à `updatePeriodMillis`.
  */
 describe("app.json — le widget d'écran d'accueil", () => {
   it("déclare un seul widget, « Today », celui que redessine l'app", () => {
@@ -47,9 +49,14 @@ describe("app.json — le widget d'écran d'accueil", () => {
     }
   });
 
-  it("occupe 2×1 cellules, sur Android 12 et plus comme avant", () => {
-    expect(today?.targetCellWidth).toBe(2);
-    expect(today?.targetCellHeight).toBe(1);
+  it("se pose en 2×2 sur Android 12 et plus, en 2×1 sur Android 11 et moins, et s'étire en hauteur seulement", () => {
+    expect(today).toMatchObject({
+      targetCellWidth: 2,
+      targetCellHeight: 2,
+      resizeMode: "vertical",
+      minWidth: "110dp",
+      minHeight: "40dp",
+    });
     const minWidth = Number.parseFloat(today?.minWidth ?? "");
     const minHeight = Number.parseFloat(today?.minHeight ?? "");
     expect(minWidth).toBeGreaterThan(portraitWidth(1));

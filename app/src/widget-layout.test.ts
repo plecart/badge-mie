@@ -12,15 +12,16 @@ const HEIGHTS = Array.from({ length: 201 }, (_, i) => 40 + i);
 
 describe("widgetLayout — les hauteurs du widget", () => {
   it.each([
-    ["109 dp, le 2×1 en portrait", 109, 10, 6, 14, 28, 12],
-    ["100 dp, au plus juste avec les titres", 100, 10, 6, 14, 28, 12],
-    ["99 dp, les heures sans leurs titres", 99, 10, 6, 0, 28, 12],
-    ["86 dp, au plus juste avec les heures", 86, 10, 6, 0, 28, 12],
-    ["85 dp, le bouton seul", 85, 10, 0, 0, 0, 12],
-    ["51 dp, une cellule en paysage", 51, 9, 0, 0, 0, 13],
-    ["40 dp, la hauteur minimale déclarée", 40, 4, 0, 0, 0, 18],
+    ["l'ordre de grandeur d'un 2×2", 160, 10, 6, 14, 28, 12],
+    ["une rangée de l'émulateur en portrait", 109, 10, 6, 14, 28, 12],
+    ["au plus juste avec les titres", 100, 10, 6, 14, 28, 12],
+    ["les heures sans leurs titres", 99, 10, 6, 0, 28, 12],
+    ["au plus juste avec les heures", 86, 10, 6, 0, 28, 12],
+    ["le bouton seul", 85, 10, 0, 0, 0, 12],
+    ["une cellule en paysage", 51, 9, 0, 0, 0, 13],
+    ["la hauteur minimale déclarée", 40, 4, 0, 0, 0, 18],
   ])(
-    "sur %s : marge %i, écart %i, titres %i, heures %i, rayon du bouton %i",
+    "%s, %i dp : marge %i, écart %i, titres %i, heures %i, rayon du bouton %i",
     (_, height, padding, gap, titleHeight, timeHeight, buttonRadius) => {
       expect(widgetLayout(height)).toEqual({
         padding,
@@ -33,6 +34,7 @@ describe("widgetLayout — les hauteurs du widget", () => {
   );
 
   it.each([
+    [160, 92],
     [109, 41],
     [100, 32],
     [99, 45],

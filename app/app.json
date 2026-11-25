@@ -33,7 +33,8 @@
               "minWidth": "110dp",
               "minHeight": "40dp",
               "targetCellWidth": 2,
-              "targetCellHeight": 1,
+              "targetCellHeight": 2,
+              "resizeMode": "vertical",
               "updatePeriodMillis": 1800000
             }
           ]
