@@ -7,9 +7,12 @@ import {
 import { describe, expect, it } from "vitest";
 import type { WeekView } from "./week-store";
 import {
+  FRAME_STEPS,
+  type FrameStep,
   isStillShown,
-  punchAt,
+  nextFrame,
   PHASE_MS,
+  punchAt,
   showPhase,
   tapEffect,
   TRANSITION_MS,
@@ -177,23 +180,22 @@ describe("widgetModel — état armé et refus affiché", () => {
     return widgetModel(state(ARRIVED, now, { phase })).button;
   }
 
-  it("dessine le premier cadre armé aux couleurs du repos : « Confirmer », bord accent, bande du compte à rebours pleine", () => {
+  it("dessine le premier cadre armé aux couleurs du repos : « Confirmer », bord accent, 3 secondes au décompte", () => {
     expect(armedAfter(0)).toEqual({
       label: "Confirmer",
       accessibilityLabel: "Confirmer le départ",
       background: "accent",
       color: "accentInk",
       border: "accent",
-      countdown: { color: "accent", remaining: 1 },
+      secondsLeft: 3,
       tap: "punch",
     });
   });
 
-  it("inverse le fond et la bande du bouton armé au fil de la transition, à mi-chemin à sa moitié", () => {
+  it("inverse le fond du bouton armé au fil de la transition, à mi-chemin à sa moitié", () => {
     expect(armedAfter(TRANSITION_MS / 2)).toMatchObject({
       background: { from: "accent", to: "accentInk", amount: 0.5 },
       border: "accent",
-      countdown: { color: { from: "accent", to: "accentSoft", amount: 0.5 } },
     });
   });
 
@@ -209,25 +211,26 @@ describe("widgetModel — état armé et refus affiché", () => {
     },
   );
 
-  it("achève la transition : fond accentInk, texte et bord accent, bande accentSoft", () => {
+  it("achève la transition : fond accentInk, texte et bord accent", () => {
     expect(armedAfter(TRANSITION_MS)).toMatchObject({
       label: "Confirmer",
       background: "accentInk",
       color: "accent",
       border: "accent",
-      countdown: { color: "accentSoft" },
     });
   });
 
   it.each([
-    [0, 1],
-    [750, 0.75],
-    [1500, 0.5],
-    [2400, 0.2],
+    [0, 3],
+    [999, 3],
+    [1000, 2],
+    [1999, 2],
+    [2000, 1],
+    [2999, 1],
   ])(
-    "vide la bande du compte à rebours avec le délai : %i ms après l'affichage, il en reste %d",
-    (elapsed, remaining) => {
-      expect(armedAfter(elapsed).countdown?.remaining).toBeCloseTo(remaining);
+    "décompte les secondes qui restent, arrondies au-dessus : %i ms après l'affichage, %i",
+    (elapsed, seconds) => {
+      expect(armedAfter(elapsed).secondsLeft).toBe(seconds);
     },
   );
 
@@ -241,7 +244,7 @@ describe("widgetModel — état armé et refus affiché", () => {
     });
   });
 
-  it("garde un jour grisé les couleurs grisées du bouton armé, sans transition, avec le compte à rebours en `line`", () => {
+  it("garde un jour grisé les couleurs grisées du bouton armé, sans transition, avec le décompte", () => {
     const phase = showPhase("armed", SATURDAY_9AM);
     const view = weekOf(arrivedAt("2026-11-28"));
     const now = after(SATURDAY_9AM, TRANSITION_MS / 2);
@@ -250,10 +253,7 @@ describe("widgetModel — état armé et refus affiché", () => {
       accessibilityLabel: "Confirmer le départ",
       background: "surface2",
       color: "fg",
-      countdown: {
-        color: "line",
-        remaining: 1 - TRANSITION_MS / 2 / PHASE_MS.armed,
-      },
+      secondsLeft: 3,
       tap: "punch",
     });
   });
@@ -374,6 +374,68 @@ describe("widgetModel — sans jeton", () => {
         .button,
     ).toMatchObject({ label: "Ouvrir l'app", tap: "openApp" });
   });
+});
+
+describe("les durées et le calendrier des cadres", () => {
+  it("arme 3 s, transition de 400 ms comprise, et affiche un refus 3 s", () => {
+    expect([PHASE_MS, TRANSITION_MS]).toEqual([
+      { armed: 3000, refused: 3000 },
+      400,
+    ]);
+  });
+
+  it("redessine l'état armé toutes les 100 ms pendant la transition, puis à chaque seconde ; le refus en un seul cadre", () => {
+    expect(FRAME_STEPS).toEqual({
+      armed: [
+        { until: 400, every: 100 },
+        { until: 3000, every: 1000 },
+      ],
+      refused: [{ until: 3000, every: 3000 }],
+    });
+  });
+});
+
+describe("nextFrame — le calendrier des cadres", () => {
+  /** Des cadres toutes les 100 ms jusqu'à 400 ms, puis à chaque seconde jusqu'à 3 s. */
+  const STEPS: FrameStep[] = [
+    { until: 400, every: 100 },
+    { until: 3000, every: 1000 },
+  ];
+
+  it.each([
+    [0, 100],
+    [99, 100],
+    [100, 200],
+    [380, 400],
+    [400, 1000],
+    [999, 1000],
+    [1000, 2000],
+    [2999, 3000],
+  ])(
+    "place le cadre qui suit %i ms sur la grille de son étape, à %i ms",
+    (elapsed, next) => {
+      expect(nextFrame(STEPS, elapsed)).toBe(next);
+    },
+  );
+
+  it.each([
+    [300, 350],
+    [349, 350],
+    [350, 1000],
+  ])(
+    "arrête une étape à sa fin même hors de sa grille : après %i ms, %i ms",
+    (elapsed, next) => {
+      const steps = [{ until: 350, every: 100 }, ...STEPS.slice(1)];
+      expect(nextFrame(steps, elapsed)).toBe(next);
+    },
+  );
+
+  it.each([3000, 3500])(
+    "rend la fin de la dernière étape une fois passée, %i ms après l'affichage",
+    (elapsed) => {
+      expect(nextFrame(STEPS, elapsed)).toBe(3000);
+    },
+  );
 });
 
 describe("tapEffect — double toucher", () => {
