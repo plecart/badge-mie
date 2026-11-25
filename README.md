@@ -60,7 +60,8 @@ flowchart LR
 - **L'APK se construit dans le cloud, à la release seulement** : EAS Build le produit ; en
   développement, l'app et son widget tournent sur l'émulateur d'Android Studio, dans un build de
   développement construit sur le poste (`npm run android -w app`, avec `JAVA_HOME` sur un JDK 17
-  ou plus ; sous Windows, depuis un dépôt à chemin court, mesuré dans la ligne `run local` de
+  ou plus ; sous Windows, un plugin raccourcit les chemins du C++ généré, et le build aboutit
+  depuis une racine de 5 comme de 60 caractères, mesuré dans la ligne `run local` de
   `.claude/pipeline.config.md`).
 
 ## Stack

@@ -113,8 +113,10 @@ hors de l'app ouverte, raison d'être du widget.
 
 ## Essai sur l'émulateur
 
-**Résultat : positif.** Le widget revient seul à son état normal, et le repli de l'issue (l'état
-armé qui reste affiché jusqu'au toucher suivant) ne s'applique pas.
+**Résultat : positif.** Le widget revient seul à son état normal, et le repli verrouillé de
+l'issue ne s'applique pas (brief de #20, « Décisions verrouillées ») : l'état armé qui expire
+quand même au bout de 3 s, un toucher plus tard réarmant au lieu de pointer ; « Confirmer … »
+affiché jusqu'au toucher suivant ou au prochain rafraîchissement ; pas de refus bref.
 
 **Conditions.** Essai du 2026-11-25 :
 
@@ -169,8 +171,11 @@ armé qui reste affiché jusqu'au toucher suivant) ne s'applique pas.
     racine de 5 caractères. Windows plafonne un dossier à 248 caractères.
   - Le plugin `app/plugins/with-cmake-object-path-max.ts` fait raccourcir ces chemins par CMake.
     Avec lui, le build aboutit depuis la racine courte de l'essai.
-  - Depuis la racine de 60 caractères d'un worktree de `.claude/worktrees/`, il n'est pas mesuré.
-    La ligne `run local` de `.claude/pipeline.config.md` tient la mesure à jour.
+  - Avec lui, le build aboutit aussi depuis la racine de 60 caractères d'un worktree de
+    `.claude/worktrees/` (mesuré le 2026-11-25, sur l'ABI de l'émulateur). CMake y avertit qu'un
+    objet de `@react-native-community/datetimepicker` « cannot be safely placed » sous son dossier
+    de 194 caractères, sans faire échouer le build. La ligne `run local` de
+    `.claude/pipeline.config.md` tient la mesure à jour.
 - Une montée du SDK Expo attend la version de `react-native-android-widget` qui le suit.
 
 **À revoir si le besoin change :**
