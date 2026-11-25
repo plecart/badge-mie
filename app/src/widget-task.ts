@@ -1,15 +1,15 @@
 /**
  * Le gestionnaire de tâche du widget d'écran d'accueil (issue #20), à dépendances injectées :
- * stockage, coffre du jeton, envoi d'une journée, horloge, attente et dessin. L'adaptateur du
- * widget y branche ceux de l'app ; ce module ne connaît ni React ni la bibliothèque du widget,
- * hormis le type de ce qu'elle passe au gestionnaire.
+ * stockage, coffre du jeton, envoi d'une journée, horloge, attente et dessin. Son adaptateur,
+ * `./widget-handler`, y branche ceux de l'app ; ce module ne connaît ni React ni la bibliothèque
+ * du widget, hormis le type de ce qu'elle passe au gestionnaire.
  *
  * Chaque événement du widget est une invocation neuve (ADR-0002, « Essai sur l'émulateur ») :
  * - un ajout, une mise à jour ou un redimensionnement le dessine ({@link currentModel}) ;
  * - un toucher du bouton de pointage l'arme ou pointe ({@link tapEffect}), sur la semaine de
  *   l'instant du toucher, par la File d'envoi de l'app ;
  * - les autres touchers, sur une heure ou sur « Ouvrir l'app », ouvrent l'app sans invocation :
- *   la bibliothèque traite `OPEN_APP` en natif.
+ *   la bibliothèque traite `OPEN_APP` en natif ({@link CLICK_ACTIONS}).
  *
  * Le widget ne lit jamais le serveur : il dessine l'état local de la semaine, les jours en attente
  * d'envoi par-dessus, comme l'app hors réseau. Seul l'envoi d'un pointage le contacte.
@@ -30,12 +30,27 @@ import {
   type WidgetModel,
   type WidgetPhase,
   type WidgetState,
+  type WidgetTap,
   widgetModel,
 } from "./widget";
 import { type KeyValueStorage, loadWeek, type WeekView } from "./week-store";
 
+/** Le nom du widget, celui que déclare le plugin de la bibliothèque dans `app.json`. */
+export const WIDGET_NAME = "Today";
+
 /** L'action d'un toucher sur le bouton de pointage, que le gestionnaire reçoit. */
 export const PUNCH_CLICK = "PUNCH";
+
+/**
+ * L'action que porte une zone touchable du widget, selon ce que fait son toucher : le bouton de
+ * pointage appelle le gestionnaire ({@link PUNCH_CLICK}) ; `OPEN_APP` ouvre l'app, traité en natif
+ * par la bibliothèque sans appeler le gestionnaire ; sans action, le toucher ne fait rien.
+ */
+export const CLICK_ACTIONS: Record<WidgetTap, { clickAction?: string }> = {
+  punch: { clickAction: PUNCH_CLICK },
+  openApp: { clickAction: "OPEN_APP" },
+  none: {},
+};
 
 /**
  * La clé de la phase du bouton dans le stockage, distincte de celles de la File d'envoi

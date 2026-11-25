@@ -18,6 +18,12 @@ import type { PunchAction, Refusal, TimeField } from "./punch";
 /** Ce qu'affiche une heure, une durée ou un total encore inconnus. */
 export const MISSING = "—";
 
+/** Le libellé des deux heures d'une journée, sur une carte de l'écran comme sur le widget. */
+export const TIME_LABELS: Record<TimeField, string> = {
+  arrivee: "Arrivée",
+  depart: "Départ",
+};
+
 /** Le libellé du bouton de pointage pour chaque action (PRD #1, stories 12 à 15). */
 export const PUNCH_LABELS: Record<PunchAction, string> = {
   arrival: "Pointer l'arrivée",

@@ -20,6 +20,11 @@
       [
         "react-native-android-widget",
         {
+          "fonts": [
+            "../node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf",
+            "../node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf",
+            "../node_modules/@expo-google-fonts/space-grotesk/500Medium/SpaceGrotesk_500Medium.ttf"
+          ],
           "widgets": [
             {
               "name": "Today",

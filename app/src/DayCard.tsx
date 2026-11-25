@@ -8,18 +8,12 @@
 
 import type { PresenceDay, WeekDay } from "@badge-mie/week";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { durationText, editHint, MISSING } from "./labels";
+import { durationText, editHint, MISSING, TIME_LABELS } from "./labels";
 import type { TimeField } from "./punch";
 import { FONTS, type Palette } from "./theme";
 
 /** Les deux heures d'une carte, dans l'ordre d'affichage. */
 const TIME_FIELDS: readonly TimeField[] = ["arrivee", "depart"];
-
-/** Le libellé des deux heures d'une carte. */
-const TIME_LABELS: Record<TimeField, string> = {
-  arrivee: "Arrivée",
-  depart: "Départ",
-};
 
 /** L'opacité des cases d'un jour futur. */
 const FUTURE_OPACITY = 0.45;

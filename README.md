@@ -22,14 +22,16 @@ compte, et le minimum de pièces mobiles.
   pointages sont « En attente d'envoi ».
 - **Pas de compte** : un jeton, saisi une fois au premier lancement et gardé dans le stockage
   sécurisé du téléphone.
+- **Un widget d'écran d'accueil** de 4×1 cases : l'arrivée et le départ du jour, une pastille qui
+  dit si tout est envoyé, et un bouton qui pointe en deux touchers — le premier l'arme pour 3 s,
+  le second pointe, par le même chemin que l'application. Toucher une heure ouvre l'application.
 
 ## Où en est le projet
 
 - **Fait** : la [version 1.0.0](https://github.com/plecart/badge-mie/releases/tag/v1.0.0), du
   lundi au vendredi : l'API, l'application, le pointage hors ligne et l'APK ; puis la semaine
-  sur sept jours avec les jours fériés.
-- **À venir** : les congés posés dans un calendrier, un widget Android et un rappel quand un
-  pointage manque.
+  sur sept jours avec les jours fériés, et le widget Android.
+- **À venir** : les congés posés dans un calendrier et un rappel quand un pointage manque.
 
 Le découpage vit dans les [issues](https://github.com/plecart/badge-mie/issues) et les
 [milestones](https://github.com/plecart/badge-mie/milestones).
@@ -77,7 +79,8 @@ flowchart LR
 ## Qualité
 
 - **Tests** : Vitest sur toute la logique (calendrier de semaine, pointage du jour, file d'envoi,
-  API) ; les écrans, eux, se valident à l'œil.
+  gestionnaire du widget, API) ; les écrans et la mise en page du widget, eux, se valident à
+  l'œil.
 - **CI à chaque PR** : audit des dépendances, lint, format, typecheck et tests.
 
 ## Les décisions

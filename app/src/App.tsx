@@ -12,6 +12,7 @@ import { FONT_SOURCES } from "./theme";
 import { TokenScreen } from "./TokenScreen";
 import { clearToken, readToken } from "./token-vault";
 import { WeekScreen } from "./WeekScreen";
+import { refreshWidget } from "./widget-handler";
 
 export function App() {
   // Les glyphes d'Ionicons sont une police : chargée ici, aucune flèche n'apparaît vide.
@@ -27,12 +28,26 @@ export function App() {
     readToken().then(setToken, () => setToken(null));
   }, []);
 
-  /** Le serveur a refusé le jeton : il quitte le coffre, et l'écran du jeton revient. */
+  /**
+   * Le jeton saisi est reconnu et enregistré : l'écran de la semaine s'ouvre, et le widget se
+   * redessine pour pointer.
+   */
+  function acceptToken(accepted: string) {
+    setToken(accepted);
+    void refreshWidget();
+  }
+
+  /**
+   * Le serveur a refusé le jeton : il quitte le coffre, l'écran du jeton revient, et le widget
+   * renvoie vers l'app une fois le coffre vidé.
+   */
   function forgetToken() {
     setToken(null);
     // Un effacement manqué laisse l'ancien jeton, que le prochain refus renverra ici et que la
     // saisie suivante remplacera.
-    clearToken().catch(() => {});
+    void clearToken()
+      .catch(() => {})
+      .then(refreshWidget);
   }
 
   // Une police qui ne charge pas laisse place à celle du système, plutôt qu'à un écran vide.
@@ -42,7 +57,7 @@ export function App() {
     <SafeAreaProvider>
       <StatusBar style="auto" />
       {token === null ? (
-        <TokenScreen onAccepted={setToken} />
+        <TokenScreen onAccepted={acceptToken} />
       ) : (
         <WeekScreen token={token} onTokenRejected={forgetToken} />
       )}

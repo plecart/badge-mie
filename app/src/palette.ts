@@ -8,20 +8,23 @@
  * appeler de hook (issue #20) ; l'app choisit sa palette par `usePalette` de `./theme`.
  */
 
+/** Une couleur `#RRGGBB`, de la forme qu'attendent aussi les primitives du widget. */
+type HexColor = `#${string}`;
+
 /** Les couleurs d'un mode, nommées comme les variables du prototype. */
 export interface Palette {
-  bg: string;
-  surface: string;
-  surface2: string;
-  fg: string;
-  muted: string;
-  line: string;
-  accent: string;
-  accentInk: string;
-  accentSoft: string;
-  danger: string;
+  bg: HexColor;
+  surface: HexColor;
+  surface2: HexColor;
+  fg: HexColor;
+  muted: HexColor;
+  line: HexColor;
+  accent: HexColor;
+  accentInk: HexColor;
+  accentSoft: HexColor;
+  danger: HexColor;
   /** Le point orange de l'indicateur d'envoi, quand des jours attendent l'envoi. */
-  pending: string;
+  pending: HexColor;
 }
 
 /**

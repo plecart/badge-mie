@@ -2,15 +2,18 @@ import { existsSync } from "node:fs";
 import type { WithAndroidWidgetsParams } from "react-native-android-widget";
 import { describe, expect, it } from "vitest";
 import app from "./app.json" with { type: "json" };
+import { WIDGET_NAME } from "./src/widget-task";
 
 /** L'entrée du plugin `react-native-android-widget` dans la configuration Expo, s'il en a une. */
 const plugin = app.expo.plugins.find(
   (entry) => Array.isArray(entry) && entry[0] === "react-native-android-widget",
 );
 
+/** Les options du plugin, s'il en a. */
+const params = plugin?.[1] as WithAndroidWidgetsParams | undefined;
+
 /** Les widgets que déclare le plugin, vide s'il n'en déclare aucun. */
-const widgets =
-  (plugin?.[1] as WithAndroidWidgetsParams | undefined)?.widgets ?? [];
+const widgets = params?.widgets ?? [];
 
 /** Le premier widget déclaré, celui que les tests suivants lisent. */
 const [today] = widgets;
@@ -31,8 +34,17 @@ const landscapeHeight = (m: number) => 66 * m - 15;
  * fois toutes les 30 min, le plancher que le plugin impose à `updatePeriodMillis`.
  */
 describe("app.json — le widget d'écran d'accueil", () => {
-  it("déclare un seul widget, « Today »", () => {
+  it("déclare un seul widget, « Today », celui que redessine l'app", () => {
     expect(widgets.map(({ name }) => name)).toEqual(["Today"]);
+    expect(WIDGET_NAME).toBe("Today");
+  });
+
+  it("copie dans le build les polices du widget, qui existent à côté d'app.json", () => {
+    const fonts = params?.fonts ?? [];
+    expect(fonts.length).toBeGreaterThan(0);
+    for (const font of fonts) {
+      expect(existsSync(new URL(font, import.meta.url)), font).toBe(true);
+    }
   });
 
   it("occupe 4×1 cellules, sur Android 12 et plus comme avant", () => {

@@ -63,7 +63,7 @@ page d'`expo-widgets` est `https://docs.expo.dev/versions/latest/sdk/widgets/`.
 
 | Point | Ce qu'en disent la doc, la source et l'essai |
 |---|---|
-| Pointer hors de l'app ouverte | Le gestionnaire de tâche est une fonction asynchrone, `WidgetTaskHandler = (props) => Promise<void>`, enregistrée dans le fichier d'entrée de l'app (doc : `rnaw/public-api`, `rnaw/tutorial/register-task-handler`). Android l'exécute en tâche JS sans écran (*headless*), lancée par WorkManager, avec un délai de 30 s (source : `RNWidgetBackgroundTaskWorker.java`, `HeadlessJsTaskConfig(…, 30 * 1000, …)` ; CHANGELOG 0.11.0, « Increased background task timeout to 30s »). Le bundle JS est celui de l'app : le gestionnaire importe ses modules, sans copie. Lecture et écriture d'AsyncStorage dans le gestionnaire : **essai**. Lecture d'`expo-secure-store` et envoi : non mesurés, ils viendront avec le gestionnaire réel. |
+| Pointer hors de l'app ouverte | Le gestionnaire de tâche est une fonction asynchrone, `WidgetTaskHandler = (props) => Promise<void>`, enregistrée dans le fichier d'entrée de l'app (doc : `rnaw/public-api`, `rnaw/tutorial/register-task-handler`). Android l'exécute en tâche JS sans écran (*headless*), lancée par WorkManager, avec un délai de 30 s (source : `RNWidgetBackgroundTaskWorker.java`, `HeadlessJsTaskConfig(…, 30 * 1000, …)` ; CHANGELOG 0.11.0, « Increased background task timeout to 30s »). Le bundle JS est celui de l'app : le gestionnaire importe ses modules, sans copie. Lecture et écriture d'AsyncStorage dans le gestionnaire, lecture d'`expo-secure-store` : **essai**. Envoi : non mesuré, aucun jeton n'étant saisi en développement. Le processus de l'app vivant, la tâche tourne dans son contexte JS : elle reprend le `ReactHost` de l'application et son contexte courant (source : `HeadlessJsTaskWorker.java`, `getReactHost`). |
 | L'état armé et son retour seul | `renderWidget` redessine le widget (doc : `rnaw/public-api`). Deux rendus dans une même invocation, séparés par une attente : ni la doc ni le CHANGELOG n'en parlent, **essai**. |
 | La mise à jour depuis l'app | `requestWidgetUpdate({ widgetName, renderWidget })`, appelable depuis l'app (doc : `rnaw/api/request-widget-update`). |
 | Thème clair ou sombre | `renderWidget({ light, dark })` : « The host system will choose the appropriate one », les deux arbres ayant la même structure (doc : `rnaw/tutorial/dark-mode-widget`). |
@@ -151,6 +151,17 @@ affiché jusqu'au toucher suivant ou au prochain rafraîchissement ; pas de refu
   ont tourné en même temps. Le retour au repos de la première a effacé l'état armé de la seconde,
   1,1 s avant la fin de sa fenêtre. Le gestionnaire réel ne revient donc au repos que si
   l'armement qu'il a posé est toujours le dernier.
+
+**Le gestionnaire réel**, mesuré le même jour sur le même AVD, sans jeton saisi, l'adresse de
+l'API sur `http://127.0.0.1:9`, par une sonde de journal jetable, jamais versionnée :
+
+- **`expo-secure-store` se lit dans le gestionnaire.** `getItemAsync` a rendu `null`, sans
+  erreur, le processus de l'app vivant comme après un redémarrage de l'émulateur, où la tâche
+  `WIDGET_UPDATE` a tourné sans que l'app s'ouvre. Le widget a dessiné « Ouvrir l'app ».
+- **La durée d'une tâche de dessin**, du début du gestionnaire à sa fin : 15 à 64 ms le processus
+  vivant, 199 et 341 ms dans un processus neuf, après un arrêt forcé puis après le redémarrage.
+  C'est un ordre de grandeur. Celle d'une tâche de pointage n'est pas mesurée : il y faut un
+  jeton.
 
 ## Conséquences
 
