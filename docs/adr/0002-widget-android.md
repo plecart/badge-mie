@@ -192,6 +192,21 @@ cadre. Le cadre de mi-transition, le seul dont le contraste descendait sous 4,5:
 ci-dessous), disparaît avec elle : dès le premier cadre, le libellé et le chiffre ont 6,37:1 en
 clair et 10,16:1 en sombre sur le bouton armé.
 
+Le bouton s'arrondit en concentrique au widget : son rayon est celui du widget, 22 dp, moins la
+marge, 10 dp, soit 12 dp. C'est la règle des arrondis imbriqués (doc Android, page Glance
+« Implement rounded corners » : « calculate a proportional radius for your inner content »,
+formule `systemRadiusValue - widgetPadding`,
+developer.android.com/develop/ui/compose/glance/create-app-widget, lue par la session de la PR le
+2026-11-25), essayée en direct et validée au troisième regard.
+
+Les hauteurs du widget suivent celle que donne le lanceur (`widgetLayout`). Avant, 68 dp fixes
+au-dessus du bouton (marges, ligne des heures, écart) lui laissaient la hauteur moins 68 dp : rien
+sous 68 dp, −17 dp sur une cellule de 51 dp. Désormais, la ligne des heures garde ses titres tant
+que le bouton garde 32 dp, puis les perd, puis disparaît, la marge se resserrant au besoin : le
+bouton garde au moins 32 dp sur toute hauteur d'au moins 40 dp, la hauteur minimale déclarée.
+Cela donne 41 dp sur le 2×1 de 109 dp et 33 dp sur 51 dp. 32 dp, c'est ce que laissent ces 40 dp
+sous une marge de 4 dp en haut et en bas.
+
 **Mesures du 2×2, avec la bande**, le 2026-11-25 sur le même AVD, processus de l'app vivant, un
 cadre toutes les 100 ms pendant les 3 s, par une sonde de journal jetable et par
 `adb shell screenrecord`, ni l'une ni l'autre versionnées. Ce sont des ordres de grandeur, qui
