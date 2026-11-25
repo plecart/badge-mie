@@ -2,13 +2,13 @@
   "expo": {
     "name": "Badge Mie",
     "slug": "badge-mie",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "com.plecart.badgemie",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon-foreground.png",
         "monochromeImage": "./assets/icon-monochrome.png",
