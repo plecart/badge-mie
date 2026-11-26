@@ -31,8 +31,9 @@ compte, et le minimum de pièces mobiles.
 ## Où en est le projet
 
 - **Fait** : la [version 1.0.0](https://github.com/plecart/badge-mie/releases/tag/v1.0.0), du
-  lundi au vendredi : l'API, l'application, le pointage hors ligne et l'APK ; puis la semaine
-  sur sept jours avec les jours fériés, et le widget Android.
+  lundi au vendredi : l'API, l'application, le pointage hors ligne et l'APK ; puis la
+  [version 1.1.1](https://github.com/plecart/badge-mie/releases/tag/v1.1.1) : la semaine sur
+  sept jours avec les jours fériés, et le widget Android.
 - **À venir** : les congés posés dans un calendrier et un rappel quand un pointage manque.
 
 Le découpage vit dans les [issues](https://github.com/plecart/badge-mie/issues) et les
