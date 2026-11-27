@@ -122,6 +122,7 @@ Pour le plan dans son ensemble :
 
 ### 5. Ancre chaque commande à une réalité vérifiée
 
+- La QA joue sur la pré-prod — la Function de la branche Neon `preprod`, que le build de développement vise par défaut — et n'écrit jamais sur la branche Neon `main` (production).
 - Utilise des variables d'environnement pour la répétabilité : `$QA_RUN`, `$TOKEN_A`, `$TOKEN_B`, `$CLIENT_ID`, etc.
 - Requêtes sur la persistance : uniquement sur les noms réels que le relevé du `releveur` a vérifiés contre les migrations ou les modèles (étape 1).
 - Logs : toujours **bornés** (`--tail=200`), jamais un `--follow` non borné. Une preuve QA doit être petite et copiable-collable.

@@ -34,6 +34,7 @@ L'état du plan est la forge : aucune copie locale du corps. La prochaine case s
 
 ### 2. Établir l'état courant
 
+- **L'environnement** — la pré-prod : la QA joue sur la Function de la branche Neon `preprod`, que le build de développement vise par défaut, et n'écrit jamais sur la branche Neon `main` (production).
 - **La prochaine case** — `python .claude/skills/cycle-pr/scripts/ecriture-relue.py checkbox next <plan>` rend le titre de son bloc, puis sa ligne : la première case `- [ ]` qui ne porte ni `🔴`, ni ` — BLOQUÉ`, ni ` — accepté` (§3, étape 4, et §4). En mode de repli markdown, la première case `- [ ]` du fichier qui ne porte aucune de ces marques, lue par `Read`. Sans case en attente, passer au §6.
 - **Le bloc courant** — la session le lit elle-même dans le corps, une fois par bloc, borné : ses titres par `gh issue view <plan> --json body -q .body | grep -n "^## "`, puis sa plage par `gh issue view <plan> --json body -q .body | sed -n "<début>,<fin>p"`. Elle y lit chaque case, son type — **Commande** ou **Observation**, écrit dans le plan (`plan-qa/references/gabarit-plan-qa.md`, « Types de case ») — et son état.
 - **L'état de l'arbre** — au `releveur` (« Délégation »), une fois par bloc, pas une fois par case : `git status --short`, `git log -10 --oneline`, et les fichiers que les cases du bloc nomment — `CLAUDE.md`, `Makefile`, `docker-compose*.yml`, routes, composants, fixtures —, rendus tels quels. Préserver les changements de l'utilisateur ; ne jamais annuler du travail sans rapport.
