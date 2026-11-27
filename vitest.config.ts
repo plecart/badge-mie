@@ -1,6 +1,11 @@
 import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // `__DEV__`, global que le prélude du bundle React Native pose, n'existe pas sous Node. Vitest
+  // assigne une clé sans point de `define` à `globalThis`, sans remplacement statique
+  // (`deleteDefineConfig` et `setupDefines`, vitest 5.1.1, lus le 2026-11-27) : un test le change
+  // encore par `vi.stubGlobal`. Vrai, comme dans le build de développement.
+  define: { __DEV__: true },
   test: {
     include: ["**/*.test.ts"],
     // `.claude/` héberge les worktrees des sessions parallèles : lancée depuis la copie
