@@ -72,7 +72,7 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" = push ]; then
             verts=$(gh run list --workflow CI --event push --commit "$sha" --status success --json databaseId --jq length)
             if [ "$verts" = 0 ]; then
-              echo "::error::Aucun run CI vert né du push de $sha sur main : la production ne se déploie pas."
+              echo "::error::Aucun run CI vert né du push de $sha sur main : la production ne se déploie pas ; si la CI de main tourne encore, relancer ce run une fois verte."
               exit 1
             fi
           elif [ "$sha" != "$(git rev-parse origin/main)" ]; then
