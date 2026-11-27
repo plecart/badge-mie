@@ -62,6 +62,10 @@ flowchart LR
   compilé dans l'APK.
 - **Un calendrier pur** : le paquet `week/`, sans réseau ni horloge, est partagé par
   l'application et l'API.
+- **Deux environnements** : la pré-prod, branche Neon `preprod`, que la CI redéploie à chaque
+  merge sur `main` ; la production, branche Neon `main`, déployée à chaque tag `v*`
+  (`.github/workflows/deploiement.yml`). Le build de développement vise la pré-prod, l'APK la
+  production.
 - **L'APK se construit dans le cloud, à la release seulement** : EAS Build le produit ; en
   développement, l'app et son widget tournent sur l'émulateur d'Android Studio, dans un build de
   développement construit sur le poste (`npm run android -w app`, avec `JAVA_HOME` sur un JDK 17

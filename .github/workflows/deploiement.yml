@@ -1,0 +1,87 @@
+# Déploiement de la Neon Function `api` (`api/neon.ts`) par la commande « deploy » de
+# `.claude/pipeline.config.md`, « Commandes du projet ». Deux cibles, chacune son déclencheur :
+# - la pré-prod, branche Neon `preprod` : chaque push sur `main` dont la CI est verte ;
+# - la production, branche Neon `main`, aux vrais pointages : chaque tag `v*` posé sur `main`.
+# Chaque `uses:` est épinglé par empreinte de commit, aux versions de `ci.yml`.
+
+name: Déploiement
+
+# Aucune étape n'écrit sur le dépôt : le jeton ne reçoit que la lecture.
+permissions:
+  contents: read
+
+on:
+  # À la fin de chaque run de CI sur `main`, quels qu'en soient l'issue et l'événement : le garde
+  # `if:` du job ne garde que les push verts. `workflow_run` ne part que si ce fichier est sur la
+  # branche par défaut.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  # Un filtre `tags` sans `branches` : un push de branche ne déclenche rien ici.
+  push:
+    tags: ["v*"]
+
+# L'événement désigne la cible, et chaque cible a son groupe : un déploiement en cours n'est
+# jamais interrompu ; le suivant attend, et un plus récent remplace celui qui attend.
+concurrency:
+  group: deploiement-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploiement:
+    name: Déploiement de la Function
+    runs-on: ubuntu-latest
+
+    # Un tag, ou un run de CI vert né d'un push. Le filtre `branches` ne suffit pas : le passage
+    # planifié de la CI tourne lui aussi sur `main` (runs du dépôt relus le 2026-11-27), comme un
+    # `workflow_dispatch` lancé depuis `main`, et l'un comme l'autre ne jouent que l'audit ; un run
+    # de PR — même d'une branche de fork nommée `main` — n'a pas l'événement `push`.
+    #
+    # ponytail: un run de CI qui finit après celui d'un commit plus récent, ou relancé à la main,
+    # redéploie un commit plus ancien sur la pré-prod jusqu'au merge suivant ; comparer HEAD à la
+    # tête d'origin/main avant de déployer si cela gêne.
+    if: github.event_name == 'push' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+
+    steps:
+      # Sur `workflow_run`, le commit que la CI a éprouvé — `GITHUB_SHA` y est la tête de la branche
+      # par défaut, pas ce commit ; sur un tag, `ref` vide prend le commit du tag. Historique
+      # complet : la porte lit `origin/main`, que le clone complet écrit pour chaque branche
+      # (`getRefSpecForAllHistory` d'`actions/checkout`, lu le 2026-11-27 à l'empreinte épinglée).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      # Un tag posé hors du trunk mettrait en production du code que personne n'a relu. `HEAD`,
+      # le commit extrait, est celui qui se déploie.
+      - name: Porte — le commit est sur main
+        run: |
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::Le commit $(git rev-parse HEAD) n'est pas sur origin/main : il ne se déploie pas."
+            exit 1
+          fi
+
+      # Node depuis `devEngines.runtime` du `package.json` racine, comme `ci.yml`.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Les secrets n'entrent qu'ici, jamais dans `npm ci`. Un secret absent vaut une chaîne vide,
+      # et un jeton vide ferait refuser le démarrage à la Function (`api/src/index.ts`) : le pas
+      # s'arrête avant. Le script `deploy` charge `api/.env.local`, que `neon deploy --env` exige
+      # présent ; une variable de l'environnement l'emporte sur le fichier. La CLI `neon` lit
+      # `NEON_API_KEY` ; `--yes`, aucune invite n'ayant de réponse ici.
+      - name: Déploiement
+        env:
+          BRANCHE_NEON: ${{ github.event_name == 'push' && 'main' || 'preprod' }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          JETON_API: ${{ secrets.JETON_API }}
+        run: |
+          : "${JETON_API:?le secret JETON_API est vide}"
+          touch api/.env.local
+          npm run deploy -w api -- --branch "$BRANCHE_NEON" --yes

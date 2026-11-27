@@ -67,6 +67,9 @@ Règle d'une étude du 2026-10-29 (relevé d'origine non joint au seed).
   fraîcheur** de `cycle-pr` Étape 1, qui chaîne deux prédicats `git merge-base --is-ancestor` (une
   par direction) à la création. La commande nue crée la branche sur le `main` qu'elle trouve, à
   jour ou non.
+- **Une seule branche durable, `main`, qui est la pré-prod** ; un tag `v*` posé sur `main` est la
+  livraison en production (`.github/workflows/deploiement.yml`). Jamais de branche
+  d'environnement.
 - Une session démarrée par une autre, dans un worktree de l'application, crée la sienne par le
   premier geste de `.claude/skills/cycle-pr/references/sessions-liees.md`, depuis le distant : la
   porte vaut pour une branche créée sur `main`.
