@@ -92,11 +92,11 @@ jobs:
         if: steps.porte.outputs.deployer == 'true'
         run: npm ci
 
-      # Les secrets n'entrent qu'ici, jamais dans `npm ci`. Un secret absent vaut une chaîne vide,
-      # et un jeton vide ferait refuser le démarrage à la Function (`api/src/index.ts`) : le pas
-      # s'arrête avant. Le script `deploy` charge `api/.env.local`, que `neon deploy --env` exige
-      # présent ; une variable de l'environnement l'emporte sur le fichier. La CLI `neon` lit
-      # `NEON_API_KEY`. `--yes`, aucune invite n'ayant de réponse ici, vaut `--update-existing` et
+      # La clé d'API Neon n'entre qu'ici, jamais dans `npm ci` ; un secret absent vaut une chaîne
+      # vide, et le pas s'arrête avant. Le jeton de l'API, lui, n'entre jamais en CI (ADR-0001,
+      # « Décision », point 3) : sans `JETON_API`, le déploiement garde celui déjà déployé
+      # (`api/neon.ts`). Le script `deploy` charge `api/.env.local`, que `neon deploy --env` exige
+      # présent. La CLI `neon` lit `NEON_API_KEY`. `--yes`, aucune invite n'ayant de réponse ici, vaut `--update-existing` et
       # `--allow-protected` (`neon deploy --help`) : il aligne sans demander la branche Neon sur
       # `api/neon.ts` et passe la protection de la branche de production — le tag est l'acte de
       # livraison.
@@ -105,8 +105,7 @@ jobs:
         env:
           BRANCHE_NEON: ${{ github.event_name == 'push' && 'main' || 'preprod' }}
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          JETON_API: ${{ secrets.JETON_API }}
         run: |
-          : "${JETON_API:?le secret JETON_API est vide}"
+          : "${NEON_API_KEY:?le secret NEON_API_KEY est vide}"
           touch api/.env.local
           npm run deploy -w api -- --branch "$BRANCHE_NEON" --yes
