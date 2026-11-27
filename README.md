@@ -63,7 +63,8 @@ flowchart LR
 - **Un calendrier pur** : le paquet `week/`, sans réseau ni horloge, est partagé par
   l'application et l'API.
 - **Deux environnements** : la pré-prod, branche Neon `preprod`, que la CI redéploie à chaque
-  merge sur `main` ; la production, branche Neon `main`, déployée à chaque tag `v*`
+  merge sur `main` dont la CI est verte ; la production, branche Neon `main`, déployée à chaque
+  tag `v*` posé sur un commit de `main` à la CI verte
   (`.github/workflows/deploiement.yml`). Le build de développement vise la pré-prod, l'APK la
   production.
 - **L'APK se construit dans le cloud, à la release seulement** : EAS Build le produit ; en
