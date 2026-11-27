@@ -27,7 +27,11 @@ export default defineConfig({
       name: "Badge Mie API",
       source: "src/index.ts",
       env: {
-        JETON_API: { value: process.env.JETON_API, required: false, onUndefined: "skip" },
+        JETON_API: {
+          value: process.env.JETON_API,
+          required: false,
+          onUndefined: "skip",
+        },
       },
     },
   },
