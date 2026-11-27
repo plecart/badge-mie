@@ -4,7 +4,7 @@
  *
  * Déployer : la CI (`.github/workflows/deploiement.yml`) déploie sur la branche Neon `preprod`, la
  * pré-prod, à chaque push sur `main` dont la CI est verte, et sur la branche Neon `main`, la
- * production, à chaque tag `v*` posé sur `main`. À la main, en secours :
+ * production, à chaque tag `v*` posé sur un commit de `main` à la CI verte. À la main, en secours :
  * `npm run deploy -w api -- --branch preprod` (ou `--branch main`). Le script charge
  * `api/.env.local` (ignoré par git) avant d'évaluer ce fichier ; une variable déjà présente dans
  * l'environnement l'emporte sur le fichier — c'est ainsi que la CI passe le jeton. Un
