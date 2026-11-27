@@ -12,7 +12,8 @@
  * Le jeton n'est connu que de la Function et du téléphone (ADR-0001, « Décision », point 3) :
  * la CI ne l'a jamais. `JETON_API` absent ou vide, le déploiement garde la valeur déjà déployée
  * (`onUndefined: "skip"`, doc de `FunctionEnvVar` dans `@neon/config`) ; une Function déployée
- * sans jeton du tout refuse de démarrer (`src/index.ts`).
+ * sans jeton du tout refuse de démarrer (`src/index.ts`) : une branche Neon neuve reçoit le sien
+ * par un premier déploiement à la main, depuis le poste.
  *
  * Tourner le jeton : la pré-prod et la production partagent le même. Le changer dans
  * `api/.env.local`, redéployer à la main les deux branches Neon, puis le ressaisir dans

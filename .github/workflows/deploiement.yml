@@ -96,7 +96,8 @@ jobs:
       # vide, et le pas s'arrête avant. Le jeton de l'API, lui, n'entre jamais en CI (ADR-0001,
       # « Décision », point 3) : sans `JETON_API`, le déploiement garde celui déjà déployé
       # (`api/neon.ts`). Le script `deploy` charge `api/.env.local`, que `neon deploy --env` exige
-      # présent. La CLI `neon` lit `NEON_API_KEY`. `--yes`, aucune invite n'ayant de réponse ici, vaut `--update-existing` et
+      # présent. La CLI `neon` lit `NEON_API_KEY`.
+      # `--yes`, aucune invite n'ayant de réponse ici, vaut `--update-existing` et
       # `--allow-protected` (`neon deploy --help`) : il aligne sans demander la branche Neon sur
       # `api/neon.ts` et passe la protection de la branche de production — le tag est l'acte de
       # livraison.
